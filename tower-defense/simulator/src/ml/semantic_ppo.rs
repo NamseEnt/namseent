@@ -63,8 +63,6 @@ pub const SEMANTIC_PPO_CHECKPOINT_SCHEMA_VERSION: u32 = 1;
 /// 2: critic inputs pass through `critic_squash`.
 pub const CRITIC_CHECKPOINT_SCHEMA_VERSION: u32 = 2;
 const INFERENCE_BATCH_SIZE: usize = 256;
-/// Preregistered number of geometric retries after the full actor step.
-const ACTOR_KL_BACKTRACK_RETRIES: usize = 8;
 
 /// Action kinds whose sampled share is tracked every iteration (a kind that
 /// suddenly vanishes or explodes is a regression signal).
@@ -812,6 +810,16 @@ pub struct UpdateStats {
     #[serde(default, rename = "epoch_target_kl_stopped", alias = "early_stopped")]
     pub epoch_target_kl_stopped: bool,
     #[serde(default)]
+    pub actor_epochs_attempted: usize,
+    #[serde(default)]
+    pub actor_epochs_committed: usize,
+    #[serde(default)]
+    pub rejected_actor_epoch_index: Option<usize>,
+    #[serde(default)]
+    pub epoch_final_rollout_kl: Vec<EpochFinalKlStats>,
+    #[serde(default)]
+    pub minibatch_post_step_approx_kl_samples: Vec<f64>,
+    #[serde(default)]
     pub attempted_actor_minibatches: usize,
     /// Actor steps accepted and committed; retained as the previous schema's applied-step count.
     #[serde(default)]
@@ -881,6 +889,23 @@ pub struct UpdateStats {
     pub first_value_loss: f64,
     pub last_value_loss: f64,
     pub max_value_loss: f64,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct EpochFinalKlStats {
+    pub epoch_index: usize,
+    pub sample_count: usize,
+    pub mean_approx_kl: f64,
+    pub kl_p50: f64,
+    pub kl_p90: f64,
+    pub kl_p95: f64,
+    pub kl_p99: f64,
+    pub kl_max: f64,
+    pub log_ratio_p50: f64,
+    pub log_ratio_p90: f64,
+    pub log_ratio_p95: f64,
+    pub log_ratio_p99: f64,
+    pub log_ratio_max: f64,
 }
 
 pub struct PpoLearner {
@@ -1026,6 +1051,8 @@ struct ActorTerms {
     position_entropy_contribution: f32,
     kl_to_init: f32,
     approx_kl: f32,
+    sample_approx_kls: Vec<f32>,
+    sample_log_ratios: Vec<f32>,
     clip_fraction: f32,
 }
 
@@ -1753,6 +1780,11 @@ fn actor_terms(
         .map(|(ratio, log_ratio)| (ratio - 1.0) - log_ratio)
         .sum::<f32>()
         / rows as f32;
+    let sample_approx_kls = ratio_values
+        .iter()
+        .zip(&log_ratio_values)
+        .map(|(ratio, log_ratio)| (ratio - 1.0) - log_ratio)
+        .collect();
     let clip_fraction = ratio_values
         .iter()
         .filter(|ratio| (**ratio - 1.0).abs() > config.clip_epsilon)
@@ -1768,6 +1800,8 @@ fn actor_terms(
             [0],
         kl_to_init: kl_to_init_value,
         approx_kl,
+        sample_approx_kls,
+        sample_log_ratios: log_ratio_values,
         clip_fraction,
         loss,
     })
@@ -1853,6 +1887,11 @@ fn build_option_actor_terms(
         .map(|(ratio, log_ratio)| (ratio - 1.0) - log_ratio)
         .sum::<f32>()
         / rows as f32;
+    let sample_approx_kls = ratio_values
+        .iter()
+        .zip(&log_ratio_values)
+        .map(|(ratio, log_ratio)| (ratio - 1.0) - log_ratio)
+        .collect();
     let clip_fraction = ratio_values
         .iter()
         .filter(|ratio| (**ratio - 1.0).abs() > config.clip_epsilon)
@@ -1868,6 +1907,8 @@ fn build_option_actor_terms(
         position_entropy_contribution: 0.0,
         kl_to_init: 0.0,
         approx_kl,
+        sample_approx_kls,
+        sample_log_ratios: log_ratio_values,
         clip_fraction,
     }))
 }
@@ -1962,6 +2003,11 @@ fn position_only_actor_terms(
         .map(|(ratio, log_ratio)| (ratio - 1.0) - log_ratio)
         .sum::<f32>()
         / rows as f32;
+    let sample_approx_kls = ratio_values
+        .iter()
+        .zip(&log_ratio_values)
+        .map(|(ratio, log_ratio)| (ratio - 1.0) - log_ratio)
+        .collect();
     let clip_fraction = ratio_values
         .iter()
         .filter(|ratio| (**ratio - 1.0).abs() > config.clip_epsilon)
@@ -1977,12 +2023,76 @@ fn position_only_actor_terms(
         position_entropy_contribution: position_entropy.into_data().to_vec::<f32>()?[0],
         kl_to_init: kl_to_init_value,
         approx_kl,
+        sample_approx_kls,
+        sample_log_ratios: log_ratio_values,
         clip_fraction,
     })
 }
 
-fn target_kl_stop_after_minibatch(target_kl: Option<f32>, post_step_approx_kl: f32) -> bool {
-    target_kl.is_some_and(|target| post_step_approx_kl > target)
+fn percentile(values: &[f32], percentile: f64) -> f64 {
+    let mut values = values
+        .iter()
+        .map(|value| f64::from(*value))
+        .collect::<Vec<_>>();
+    values.sort_by(f64::total_cmp);
+    if values.is_empty() {
+        return 0.0;
+    }
+    let index = ((values.len() - 1) as f64 * percentile).ceil() as usize;
+    values[index]
+}
+
+fn full_rollout_epoch_kl(
+    actor: &PolicyNet<TrainBackend>,
+    transitions: &[Transition],
+    advantages: &[f32],
+    config: &PpoConfig,
+    device: &PolicyDevice,
+    epoch_index: usize,
+) -> Result<EpochFinalKlStats> {
+    let mut sample_kls = Vec::with_capacity(transitions.len());
+    let mut sample_log_ratios = Vec::with_capacity(transitions.len());
+    for start in (0..transitions.len()).step_by(config.minibatch_size.max(1)) {
+        let end = (start + config.minibatch_size.max(1)).min(transitions.len());
+        let batch = (start..end)
+            .map(|index| &transitions[index])
+            .collect::<Vec<_>>();
+        let terms = actor_terms(actor, &batch, &advantages[start..end], config, device)?;
+        sample_kls.extend(terms.sample_approx_kls);
+        sample_log_ratios.extend(terms.sample_log_ratios);
+    }
+    anyhow::ensure!(
+        sample_kls.len() == transitions.len() && sample_log_ratios.len() == transitions.len(),
+        "full-rollout KL measurement did not include every actor sample"
+    );
+    let mean_approx_kl = sample_kls
+        .iter()
+        .map(|value| f64::from(*value))
+        .sum::<f64>()
+        / sample_kls.len().max(1) as f64;
+    Ok(EpochFinalKlStats {
+        epoch_index,
+        sample_count: sample_kls.len(),
+        mean_approx_kl,
+        kl_p50: percentile(&sample_kls, 0.50),
+        kl_p90: percentile(&sample_kls, 0.90),
+        kl_p95: percentile(&sample_kls, 0.95),
+        kl_p99: percentile(&sample_kls, 0.99),
+        kl_max: sample_kls
+            .iter()
+            .map(|value| f64::from(*value))
+            .reduce(f64::max)
+            .unwrap_or(0.0),
+        log_ratio_p50: percentile(&sample_log_ratios, 0.50),
+        log_ratio_p90: percentile(&sample_log_ratios, 0.90),
+        log_ratio_p95: percentile(&sample_log_ratios, 0.95),
+        log_ratio_p99: percentile(&sample_log_ratios, 0.99),
+        log_ratio_max: sample_log_ratios
+            .iter()
+            .map(|value| f64::from(*value))
+            .reduce(f64::max)
+            .unwrap_or(0.0),
+    })
 }
 
 impl PpoLearner {
@@ -2036,7 +2146,21 @@ impl PpoLearner {
         let mut critic_grad_sum = 0.0f64;
         let mut actor_grad_sum = 0.0f64;
         let mut value_loss_sum = 0.0f64;
+        let transactional_epoch_gate = update_actor
+            && config.actor_update_mode == ActorUpdateMode::Full
+            && config.target_kl.is_some();
+        let mut actor_epochs_stopped = false;
         for epoch in 0..config.update_epochs {
+            let epoch_actor_snapshot =
+                (transactional_epoch_gate && !actor_epochs_stopped).then(|| self.actor.clone());
+            let epoch_optimizer_snapshot = (transactional_epoch_gate && !actor_epochs_stopped)
+                .then(|| self.actor_optimizer.clone());
+            let epoch_actor_steps_start = actor_steps;
+            let epoch_actor_grad_sum_start = actor_grad_sum;
+            let epoch_sums_start = sums;
+            let epoch_position_entropy_start = stats.position_entropy_contribution;
+            let epoch_applied_steps_start = stats.applied_actor_optimizer_steps;
+            let epoch_accepted_steps_start = stats.accepted_actor_optimizer_steps;
             let mut order = (0..transitions.len()).collect::<Vec<_>>();
             let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(
                 config.seed
@@ -2054,7 +2178,7 @@ impl PpoLearner {
                     .map(|index| advantages[*index])
                     .collect::<Vec<_>>();
                 stats.minibatches += 1;
-                if update_actor && !stats.target_kl_stop_minibatch_index.is_some() {
+                if update_actor && !actor_epochs_stopped {
                     stats.attempted_actor_minibatches += 1;
                     let factor_diagnostics = diagnostics_path
                         .as_ref()
@@ -2148,8 +2272,8 @@ impl PpoLearner {
                                 ),
                             };
                             if norm.is_finite() {
-                                if config.actor_update_mode == ActorUpdateMode::Full
-                                    && config.target_kl.is_some()
+                                if transactional_epoch_gate
+                                    && config.actor_update_mode == ActorUpdateMode::Full
                                 {
                                     stats.actor_preclip_grad_norm_samples.push(f64::from(norm));
                                 }
@@ -2194,274 +2318,72 @@ impl PpoLearner {
                                     });
                                     write_actor_diagnostic(path, &record)?;
                                 }
-                                let shared_scorer_grad_norm = (config.target_kl.is_some()
-                                    && config.actor_update_mode == ActorUpdateMode::Full)
-                                    .then(|| {
-                                        super::ppo::gradient_l2_norm(&self.actor.scorer, &gradients)
-                                    });
-                                if config.actor_update_mode == ActorUpdateMode::Full
-                                    && config.target_kl.is_some()
-                                {
-                                    let target_kl = config.target_kl.expect("checked target KL");
-                                    let rollback_actor = self.actor.clone();
-                                    let rollback_optimizer = self.actor_optimizer.clone();
-                                    let mut first_gradients = Some(gradients);
-                                    let mut accepted = None;
-
-                                    for retry in 0..=ACTOR_KL_BACKTRACK_RETRIES {
-                                        let scale = 2.0_f64.powi(-(retry as i32));
-                                        if retry > 0 {
-                                            stats.backtracking_retries += 1;
-                                            self.actor = rollback_actor.clone();
-                                            self.actor_optimizer = rollback_optimizer.clone();
-                                        }
-                                        let trial_gradients = if retry == 0 {
-                                            first_gradients.take().context(
-                                                "full-step gradients were already consumed",
-                                            )?
-                                        } else {
-                                            let retry_terms = actor_terms(
-                                                &self.actor,
-                                                &batch,
-                                                &batch_advantages,
-                                                config,
-                                                &self.device,
-                                            )?;
-                                            GradientsParams::from_grads(
-                                                retry_terms.loss.backward(),
-                                                &self.actor,
-                                            )
-                                        };
+                                match config.actor_update_mode {
+                                    ActorUpdateMode::Full => {
                                         self.actor = self.actor_optimizer.step(
-                                            config.actor_learning_rate * scale,
+                                            config.actor_learning_rate,
                                             self.actor.clone(),
-                                            trial_gradients,
+                                            gradients,
                                         );
-                                        let post_step_approx_kl = self
-                                            .post_step_actor_approx_kl(
-                                                &batch,
-                                                &batch_advantages,
-                                                chunk,
-                                                config,
-                                                position_cache.as_ref(),
-                                            )?
-                                            .context(
-                                                "backtracking actor trial has no post-step KL",
-                                            )?;
-                                        anyhow::ensure!(
-                                            post_step_approx_kl.is_finite(),
-                                            "backtracking actor trial approximate KL is nonfinite"
+                                    }
+                                    ActorUpdateMode::PositionOnly => {
+                                        let head = self.actor.spatial_cell_head();
+                                        let head = self.spatial_cell_optimizer.step(
+                                            config.actor_learning_rate,
+                                            head,
+                                            gradients,
                                         );
-                                        if retry == 0 {
-                                            stats
-                                                .full_step_kl_samples
-                                                .push(f64::from(post_step_approx_kl));
-                                        }
-                                        stats.max_proposed_post_step_approx_kl = stats
-                                            .max_proposed_post_step_approx_kl
-                                            .max(f64::from(post_step_approx_kl));
-                                        if post_step_approx_kl <= target_kl {
-                                            accepted = Some((retry, post_step_approx_kl));
-                                            break;
-                                        }
+                                        self.actor =
+                                            self.actor.clone().with_spatial_cell_head(head);
                                     }
-
-                                    match accepted {
-                                        Some((retry, post_step_approx_kl)) => {
-                                            actor_steps += 1;
-                                            stats.applied_actor_optimizer_steps += 1;
-                                            stats.accepted_actor_optimizer_steps += 1;
-                                            if retry == 0 {
-                                                stats.full_step_accepts += 1;
-                                            } else {
-                                                stats.backtracked_accepts += 1;
-                                            }
-                                            let accepted_scale = 2.0_f64.powi(-(retry as i32));
-                                            *stats
-                                                .accepted_scale_histogram
-                                                .entry(accepted_scale.to_string())
-                                                .or_default() += 1;
-                                            stats
-                                                .accepted_post_step_kl_samples
-                                                .push(f64::from(post_step_approx_kl));
-                                            stats.max_accepted_post_step_approx_kl = stats
-                                                .max_accepted_post_step_approx_kl
-                                                .max(f64::from(post_step_approx_kl));
-                                            stats.max_post_step_approx_kl = stats
-                                                .max_post_step_approx_kl
-                                                .max(f64::from(post_step_approx_kl));
-                                            actor_grad_sum += norm as f64;
-                                            stats.max_actor_grad_norm =
-                                                stats.max_actor_grad_norm.max(norm as f64);
-                                            sums[0] += terms.policy_loss as f64;
-                                            sums[1] += terms.entropy as f64;
-                                            sums[2] += terms.approx_kl as f64;
-                                            sums[3] += terms.clip_fraction as f64;
-                                            sums[4] += terms.kl_to_init as f64;
-                                            sums[5] += terms.normalized_family_entropy as f64;
-                                            sums[6] += terms.normalized_candidate_entropy as f64;
-                                            sums[7] += terms.normalized_cell_entropy as f64;
-                                            stats.position_entropy_contribution +=
-                                                terms.position_entropy_contribution as f64;
-                                        }
-                                        None => {
-                                            self.actor = rollback_actor;
-                                            self.actor_optimizer = rollback_optimizer;
-                                            stats.complete_rejects += 1;
-                                            stats.rejected_actor_optimizer_steps += 1;
-                                            stats.rejected_step_minibatch_index =
-                                                Some(stats.attempted_actor_minibatches);
-                                            stats.rejected_step_proposed_post_step_approx_kl =
-                                                stats.full_step_kl_samples.last().copied();
-                                            stats.rejected_actor_grad_norm = Some(f64::from(norm));
-                                            stats.rejected_shared_scorer_grad_norm =
-                                                shared_scorer_grad_norm.map(f64::from);
-                                        }
-                                    }
-                                } else {
-                                    // The model and the active Adam state are cloned before every
-                                    // proposed step when a KL limit is enabled. Burn's optimizer
-                                    // records are immutable tensor values, so restoring this clone
-                                    // also restores Adam moments and its per-parameter step state.
-                                    let rollback_actor = (config.target_kl.is_some()
-                                        && config.actor_update_mode
-                                            != ActorUpdateMode::BuildOptionOnly)
-                                        .then(|| self.actor.clone());
-                                    let rollback_actor_optimizer = (config.target_kl.is_some()
-                                        && config.actor_update_mode == ActorUpdateMode::Full)
-                                        .then(|| self.actor_optimizer.clone());
-                                    let rollback_spatial_optimizer = (config.target_kl.is_some()
-                                        && config.actor_update_mode
-                                            == ActorUpdateMode::PositionOnly)
-                                        .then(|| self.spatial_cell_optimizer.clone());
-                                    let rollback_build_option_head = (config.target_kl.is_some()
-                                        && config.actor_update_mode
-                                            == ActorUpdateMode::BuildOptionOnly)
-                                        .then(|| (*self.build_option_head).clone());
-                                    let rollback_build_option_optimizer =
-                                        (config.target_kl.is_some()
-                                            && config.actor_update_mode
-                                                == ActorUpdateMode::BuildOptionOnly)
-                                            .then(|| self.build_option_optimizer.clone());
-                                    match config.actor_update_mode {
-                                        ActorUpdateMode::Full => {
-                                            self.actor = self.actor_optimizer.step(
+                                    ActorUpdateMode::BuildOptionOnly => {
+                                        self.build_option_head = self
+                                            .build_option_optimizer
+                                            .step(
                                                 config.actor_learning_rate,
-                                                self.actor.clone(),
+                                                (*self.build_option_head).clone(),
                                                 gradients,
-                                            );
-                                        }
-                                        ActorUpdateMode::PositionOnly => {
-                                            let head = self.actor.spatial_cell_head();
-                                            let head = self.spatial_cell_optimizer.step(
-                                                config.actor_learning_rate,
-                                                head,
-                                                gradients,
-                                            );
-                                            self.actor =
-                                                self.actor.clone().with_spatial_cell_head(head);
-                                        }
-                                        ActorUpdateMode::BuildOptionOnly => {
-                                            self.build_option_head = self
-                                                .build_option_optimizer
-                                                .step(
-                                                    config.actor_learning_rate,
-                                                    (*self.build_option_head).clone(),
-                                                    gradients,
-                                                )
-                                                .into();
-                                        }
+                                            )
+                                            .into();
                                     }
-                                    let post_step_approx_kl = self
-                                        .post_step_actor_approx_kl(
-                                            &batch,
-                                            &batch_advantages,
-                                            chunk,
-                                            config,
-                                            position_cache.as_ref(),
-                                        )?
-                                        .context("proposed actor step has no post-step KL")?;
+                                }
+                                let post_step_approx_kl = self.post_step_actor_approx_kl(
+                                    &batch,
+                                    &batch_advantages,
+                                    chunk,
+                                    config,
+                                    position_cache.as_ref(),
+                                )?;
+                                if let Some(post_step_approx_kl) = post_step_approx_kl {
                                     anyhow::ensure!(
                                         post_step_approx_kl.is_finite(),
                                         "post-step actor approximate KL is nonfinite"
                                     );
-                                    stats.max_proposed_post_step_approx_kl = stats
-                                        .max_proposed_post_step_approx_kl
-                                        .max(f64::from(post_step_approx_kl));
-                                    if target_kl_stop_after_minibatch(
-                                        config.target_kl,
-                                        post_step_approx_kl,
-                                    ) {
-                                        // Reject the proposal atomically: restore both parameters
-                                        // and the active optimizer state before skipping later actor
-                                        // minibatches. Critic updates below remain unaffected.
-                                        match config.actor_update_mode {
-                                            ActorUpdateMode::Full => {
-                                                self.actor = rollback_actor
-                                                    .context("missing actor rollback snapshot")?;
-                                                self.actor_optimizer = rollback_actor_optimizer
-                                                    .context("missing Adam rollback snapshot")?;
-                                            }
-                                            ActorUpdateMode::PositionOnly => {
-                                                self.actor = rollback_actor
-                                                    .context("missing actor rollback snapshot")?;
-                                                self.spatial_cell_optimizer =
-                                                    rollback_spatial_optimizer.context(
-                                                        "missing spatial Adam rollback snapshot",
-                                                    )?;
-                                            }
-                                            ActorUpdateMode::BuildOptionOnly => {
-                                                self.build_option_head =
-                                                    Box::new(rollback_build_option_head.context(
-                                                        "missing build-option rollback snapshot",
-                                                    )?);
-                                                self.build_option_optimizer =
-                                                rollback_build_option_optimizer.context(
-                                                    "missing build-option Adam rollback snapshot",
-                                                )?;
-                                            }
-                                        }
-                                        stats.rejected_actor_optimizer_steps += 1;
-                                        stats.rejected_step_minibatch_index =
-                                            Some(stats.attempted_actor_minibatches);
-                                        stats.rejected_step_proposed_post_step_approx_kl =
-                                            Some(f64::from(post_step_approx_kl));
-                                        stats.rejected_actor_grad_norm = Some(f64::from(norm));
-                                        stats.rejected_shared_scorer_grad_norm =
-                                            shared_scorer_grad_norm.map(f64::from);
-                                        // Preserve the previous stop fields as aliases for the
-                                        // iteration-level stop caused by rejecting this proposal.
-                                        stats.target_kl_stop_count = 1;
-                                        stats.target_kl_stop_minibatch_index =
-                                            stats.rejected_step_minibatch_index;
-                                        stats.target_kl_stop_post_step_approx_kl =
-                                            stats.rejected_step_proposed_post_step_approx_kl;
-                                    } else {
-                                        actor_steps += 1;
-                                        stats.applied_actor_optimizer_steps += 1;
-                                        stats.accepted_actor_optimizer_steps += 1;
-                                        stats.max_accepted_post_step_approx_kl = stats
-                                            .max_accepted_post_step_approx_kl
+                                    if config.actor_update_mode == ActorUpdateMode::Full {
+                                        stats
+                                            .minibatch_post_step_approx_kl_samples
+                                            .push(f64::from(post_step_approx_kl));
+                                        stats.max_proposed_post_step_approx_kl = stats
+                                            .max_proposed_post_step_approx_kl
                                             .max(f64::from(post_step_approx_kl));
-                                        // Keep the earlier field as an alias for the accepted-step max.
-                                        stats.max_post_step_approx_kl = stats
-                                            .max_post_step_approx_kl
-                                            .max(f64::from(post_step_approx_kl));
-                                        actor_grad_sum += norm as f64;
-                                        stats.max_actor_grad_norm =
-                                            stats.max_actor_grad_norm.max(norm as f64);
-                                        sums[0] += terms.policy_loss as f64;
-                                        sums[1] += terms.entropy as f64;
-                                        sums[2] += terms.approx_kl as f64;
-                                        sums[3] += terms.clip_fraction as f64;
-                                        sums[4] += terms.kl_to_init as f64;
-                                        sums[5] += terms.normalized_family_entropy as f64;
-                                        sums[6] += terms.normalized_candidate_entropy as f64;
-                                        sums[7] += terms.normalized_cell_entropy as f64;
-                                        stats.position_entropy_contribution +=
-                                            terms.position_entropy_contribution as f64;
                                     }
                                 }
+                                actor_steps += 1;
+                                stats.applied_actor_optimizer_steps += 1;
+                                stats.accepted_actor_optimizer_steps += 1;
+                                actor_grad_sum += norm as f64;
+                                stats.max_actor_grad_norm =
+                                    stats.max_actor_grad_norm.max(norm as f64);
+                                sums[0] += terms.policy_loss as f64;
+                                sums[1] += terms.entropy as f64;
+                                sums[2] += terms.approx_kl as f64;
+                                sums[3] += terms.clip_fraction as f64;
+                                sums[4] += terms.kl_to_init as f64;
+                                sums[5] += terms.normalized_family_entropy as f64;
+                                sums[6] += terms.normalized_candidate_entropy as f64;
+                                sums[7] += terms.normalized_cell_entropy as f64;
+                                stats.position_entropy_contribution +=
+                                    terms.position_entropy_contribution as f64;
                             } else {
                                 stats.nonfinite_skips += 1;
                             }
@@ -2484,6 +2406,36 @@ impl PpoLearner {
                         stats.max_critic_grad_norm = stats.max_critic_grad_norm.max(norm as f64);
                     }
                     None => stats.nonfinite_skips += 1,
+                }
+            }
+            if transactional_epoch_gate && update_actor && !actor_epochs_stopped {
+                stats.actor_epochs_attempted += 1;
+                let final_kl = full_rollout_epoch_kl(
+                    &self.actor,
+                    transitions,
+                    &advantages,
+                    config,
+                    &self.device,
+                    epoch + 1,
+                )?;
+                let rejected = final_kl.mean_approx_kl > f64::from(config.target_kl.unwrap());
+                stats.epoch_final_rollout_kl.push(final_kl);
+                if rejected {
+                    self.actor =
+                        epoch_actor_snapshot.context("missing actor epoch rollback snapshot")?;
+                    self.actor_optimizer =
+                        epoch_optimizer_snapshot.context("missing Adam epoch rollback snapshot")?;
+                    actor_steps = epoch_actor_steps_start;
+                    actor_grad_sum = epoch_actor_grad_sum_start;
+                    sums = epoch_sums_start;
+                    stats.position_entropy_contribution = epoch_position_entropy_start;
+                    stats.applied_actor_optimizer_steps = epoch_applied_steps_start;
+                    stats.accepted_actor_optimizer_steps = epoch_accepted_steps_start;
+                    stats.rejected_actor_epoch_index = Some(epoch + 1);
+                    stats.epoch_target_kl_stopped = true;
+                    actor_epochs_stopped = true;
+                } else {
+                    stats.actor_epochs_committed += 1;
                 }
             }
             stats.epochs_completed = epoch + 1;
@@ -4548,200 +4500,7 @@ mod tests {
     }
 
     #[test]
-    fn target_kl_stop_uses_post_step_minibatch_kl_and_strict_threshold() {
-        assert!(!target_kl_stop_after_minibatch(Some(0.02), 0.02));
-        assert!(target_kl_stop_after_minibatch(Some(0.02), 0.0201));
-        assert!(!target_kl_stop_after_minibatch(None, 1.0));
-    }
-
-    #[test]
-    fn target_kl_backtracking_matches_scaled_adam_step_and_rejects_atomically() {
-        let device = default_policy_device();
-        let make_learner = |actor_learning_rate| {
-            let actor = crate::ml::semantic_bc::seeded_policy_net::<TrainBackend>(
-                ModelConfig::default(),
-                KindMode::Learned,
-                2901,
-                &device,
-            )
-            .unwrap()
-            .with_inputs(InputContract::Normalized);
-            let critic = super::super::semantic_bc::seeded_materialized_model(
-                ModelConfig::default(),
-                2902,
-                &device,
-            )
-            .unwrap();
-            PpoLearner::new(
-                actor,
-                critic,
-                CriticInputs::SquashAll,
-                &PpoConfig {
-                    actor_learning_rate,
-                    update_epochs: 1,
-                    minibatch_size: 1,
-                    entropy_coefficient: 0.01,
-                    ..PpoConfig::default()
-                },
-            )
-        };
-        let mut learner = make_learner(0.3);
-        let base_config = PpoConfig {
-            actor_learning_rate: 0.3,
-            update_epochs: 1,
-            minibatch_size: 256,
-            entropy_coefficient: 0.01,
-            ..PpoConfig::default()
-        };
-        let actor_inference = learner.actor_inference();
-        let (episodes, rollout) = collect_iteration(
-            &learner,
-            &actor_inference,
-            None,
-            &base_config,
-            game_config(),
-            1,
-            &[2903],
-            CandidateMode::Top8,
-        )
-        .unwrap();
-        assert_eq!(rollout.illegal_actions, 0);
-        assert_eq!(rollout.action_mismatches, 0);
-        assert_eq!(rollout.nonfinite_values, 0);
-        let transitions = episodes[0].transitions.clone();
-
-        // When the full proposal is inside the trust region, target-KL
-        // handling must be byte-identical to the original A1′ optimizer step.
-        let full_step_config = PpoConfig {
-            actor_learning_rate: 0.0003,
-            update_epochs: 1,
-            minibatch_size: 256,
-            entropy_coefficient: 0.01,
-            ..PpoConfig::default()
-        };
-        let full_initial_actor = learner.actor.clone();
-        let full_initial_critic = learner.critic.clone();
-        let mut full_with_guard = PpoLearner::new(
-            full_initial_actor.clone(),
-            full_initial_critic.clone(),
-            CriticInputs::SquashAll,
-            &full_step_config,
-        );
-        let mut full_without_guard = PpoLearner::new(
-            full_initial_actor,
-            full_initial_critic,
-            CriticInputs::SquashAll,
-            &PpoConfig {
-                target_kl: None,
-                ..full_step_config.clone()
-            },
-        );
-        let full_result = full_with_guard
-            .update(&transitions, &full_step_config, 1, true)
-            .unwrap();
-        assert_eq!(full_result.full_step_accepts, 1);
-        let unguarded_result = full_without_guard
-            .update(
-                &transitions,
-                &PpoConfig {
-                    target_kl: None,
-                    ..full_step_config.clone()
-                },
-                1,
-                true,
-            )
-            .unwrap();
-        assert_eq!(unguarded_result.accepted_actor_optimizer_steps, 1);
-        assert!(
-            module_to_bytes(full_with_guard.actor.clone()).unwrap()
-                == module_to_bytes(full_without_guard.actor.clone()).unwrap()
-        );
-        assert!(
-            optimizer_record_bytes(&full_with_guard.actor_optimizer)
-                == optimizer_record_bytes(&full_without_guard.actor_optimizer)
-        );
-
-        // A separately initialized run at the accepted effective LR must
-        // reproduce the backtracked actor and Adam state exactly.
-        let mut expected = PpoLearner::new(
-            learner.actor.clone(),
-            learner.critic.clone(),
-            CriticInputs::SquashAll,
-            &base_config,
-        );
-        let bt = learner.update(&transitions, &base_config, 1, true).unwrap();
-        assert_eq!(bt.attempted_actor_minibatches, 1);
-        assert!(
-            bt.full_step_kl_samples[0] > 0.02,
-            "full step KL was {}",
-            bt.full_step_kl_samples[0]
-        );
-        assert_eq!(bt.backtracked_accepts, 1);
-        assert_eq!(bt.complete_rejects, 0);
-        assert_eq!(bt.accepted_post_step_kl_samples.len(), 1);
-        assert!(bt.accepted_post_step_kl_samples[0] <= 0.02);
-        let scale = bt
-            .accepted_scale_histogram
-            .iter()
-            .find_map(|(scale, count)| (*count == 1).then(|| scale.parse::<f64>().unwrap()))
-            .unwrap();
-        let expected_config = PpoConfig {
-            actor_learning_rate: 0.3 * scale,
-            target_kl: None,
-            ..base_config.clone()
-        };
-        let expected_result = expected
-            .update(&transitions, &expected_config, 1, true)
-            .unwrap();
-        assert_eq!(expected_result.accepted_actor_optimizer_steps, 1);
-        assert!(
-            module_to_bytes(learner.actor.clone()).unwrap()
-                == module_to_bytes(expected.actor.clone()).unwrap(),
-            "backtracked parameters differ from the independently scaled Adam step at scale {scale}"
-        );
-        assert!(
-            optimizer_record_bytes(&learner.actor_optimizer)
-                == optimizer_record_bytes(&expected.actor_optimizer),
-            "backtracking must commit Adam moments from the accepted trial only"
-        );
-
-        // A rollout old-log-probability offset makes every allowed trial KL
-        // infeasible. Both actor and Adam are restored, and the next scheduled
-        // actor minibatch is still attempted (no iteration-level stop).
-        let mut reject_learner = make_learner(0.0003);
-        let reject_config = PpoConfig {
-            actor_learning_rate: 0.0003,
-            update_epochs: 1,
-            minibatch_size: 1,
-            entropy_coefficient: 0.01,
-            ..PpoConfig::default()
-        };
-        let actor_before = module_to_bytes(reject_learner.actor.clone()).unwrap();
-        let adam_before = optimizer_record_bytes(&reject_learner.actor_optimizer);
-        let mut impossible = transitions[0].clone();
-        impossible.old_log_prob -= 4.0;
-        let rejected = reject_learner
-            .update(&[impossible.clone(), impossible], &reject_config, 2, true)
-            .unwrap();
-        assert_eq!(rejected.attempted_actor_minibatches, 2);
-        assert_eq!(rejected.complete_rejects, 2);
-        assert_eq!(rejected.accepted_actor_optimizer_steps, 0);
-        assert_eq!(rejected.backtracking_retries, 16);
-        assert_eq!(rejected.target_kl_stop_count, 0);
-        assert_eq!(rejected.critic_optimizer_steps, rejected.minibatches);
-        assert_eq!(rejected.nonfinite_skips, 0);
-        assert_eq!(
-            module_to_bytes(reject_learner.actor.clone()).unwrap(),
-            actor_before
-        );
-        assert_eq!(
-            optimizer_record_bytes(&reject_learner.actor_optimizer),
-            adam_before
-        );
-    }
-
-    #[test]
-    fn minibatch_target_kl_reject_restores_actor_and_adam_then_keeps_critic_running() {
+    fn epoch_transaction_accepts_full_rollout_kl_and_matches_original_update() {
         let device = default_policy_device();
         let actor = crate::ml::semantic_bc::seeded_policy_net::<TrainBackend>(
             ModelConfig::default(),
@@ -4762,7 +4521,7 @@ mod tests {
             entropy_coefficient: 0.01,
             ..PpoConfig::default()
         };
-        let mut learner = PpoLearner::new(actor, critic, CriticInputs::SquashAll, &config);
+        let learner = PpoLearner::new(actor, critic, CriticInputs::SquashAll, &config);
         let actor_inference = learner.actor_inference();
         let (episodes, rollout) = collect_iteration(
             &learner,
@@ -4778,76 +4537,345 @@ mod tests {
         assert_eq!(rollout.illegal_actions, 0);
         assert_eq!(rollout.action_mismatches, 0);
         assert_eq!(rollout.nonfinite_values, 0);
-        let mut transition = episodes[0].transitions[0].clone();
-        transition.advantage = 0.0;
-        let transitions = vec![transition.clone()];
-
-        // An accepted proposal changes parameters and Adam state, is counted,
-        // and every accepted post-step KL remains within the registered limit.
-        let actor_before = module_to_bytes(learner.actor.clone()).unwrap();
-        let adam_before = optimizer_record_bytes(&learner.actor_optimizer);
-        let accepted = learner.update(&transitions, &config, 1, true).unwrap();
+        let transitions = episodes[0].transitions.clone();
+        let initial_actor = learner.actor.clone();
+        let initial_critic = learner.critic.clone();
+        let mut guarded = PpoLearner::new(
+            initial_actor.clone(),
+            initial_critic.clone(),
+            CriticInputs::SquashAll,
+            &config,
+        );
+        let mut original = PpoLearner::new(
+            initial_actor,
+            initial_critic,
+            CriticInputs::SquashAll,
+            &PpoConfig {
+                target_kl: None,
+                ..config.clone()
+            },
+        );
+        let guarded_stats = guarded.update(&transitions, &config, 1, true).unwrap();
+        let original_stats = original
+            .update(
+                &transitions,
+                &PpoConfig {
+                    target_kl: None,
+                    ..config.clone()
+                },
+                1,
+                true,
+            )
+            .unwrap();
+        assert_eq!(guarded_stats.actor_epochs_attempted, config.update_epochs);
+        assert_eq!(guarded_stats.actor_epochs_committed, config.update_epochs);
+        assert_eq!(guarded_stats.rejected_actor_epoch_index, None);
         assert_eq!(
-            accepted.accepted_actor_optimizer_steps,
+            guarded_stats.epoch_final_rollout_kl.len(),
             config.update_epochs
         );
-        assert_eq!(accepted.applied_actor_optimizer_steps, config.update_epochs);
-        assert_eq!(accepted.rejected_actor_optimizer_steps, 0);
-        assert!(accepted.max_accepted_post_step_approx_kl <= 0.02);
+        assert!(
+            guarded_stats
+                .epoch_final_rollout_kl
+                .iter()
+                .all(
+                    |epoch| epoch.sample_count == transitions.len() && epoch.mean_approx_kl <= 0.02
+                )
+        );
+        assert_eq!(
+            guarded_stats.epoch_final_rollout_kl[0].sample_count,
+            transitions.len()
+        );
+        assert_eq!(
+            guarded_stats.applied_actor_optimizer_steps,
+            original_stats.applied_actor_optimizer_steps
+        );
+        assert_eq!(
+            module_to_bytes(guarded.actor.clone()).unwrap(),
+            module_to_bytes(original.actor.clone()).unwrap()
+        );
+        assert_eq!(
+            optimizer_record_bytes(&guarded.actor_optimizer),
+            optimizer_record_bytes(&original.actor_optimizer)
+        );
+        assert_eq!(
+            guarded_stats.critic_optimizer_steps,
+            guarded_stats.minibatches
+        );
+    }
+
+    #[test]
+    fn epoch_transaction_gate_uses_final_full_rollout_kl_not_minibatch_average() {
+        let device = default_policy_device();
+        let actor = crate::ml::semantic_bc::seeded_policy_net::<TrainBackend>(
+            ModelConfig::default(),
+            KindMode::Learned,
+            2921,
+            &device,
+        )
+        .unwrap()
+        .with_inputs(InputContract::Normalized);
+        let critic = super::super::semantic_bc::seeded_materialized_model(
+            ModelConfig::default(),
+            2922,
+            &device,
+        )
+        .unwrap();
+        let base_config = PpoConfig {
+            actor_learning_rate: 0.0003,
+            entropy_coefficient: 0.01,
+            minibatch_size: 16,
+            update_epochs: 1,
+            target_kl: None,
+            ..PpoConfig::default()
+        };
+        let initial = PpoLearner::new(actor, critic, CriticInputs::SquashAll, &base_config);
+        let actor_inference = initial.actor_inference();
+        let (episodes, rollout) = collect_iteration(
+            &initial,
+            &actor_inference,
+            None,
+            &base_config,
+            game_config(),
+            1,
+            &[2923],
+            CandidateMode::Top8,
+        )
+        .unwrap();
+        assert_eq!(rollout.illegal_actions, 0);
+        assert_eq!(rollout.action_mismatches, 0);
+        let transitions = episodes[0].transitions.clone();
+        let mut probe = PpoLearner::new(
+            initial.actor.clone(),
+            initial.critic.clone(),
+            CriticInputs::SquashAll,
+            &base_config,
+        );
+        let probe_stats = probe.update(&transitions, &base_config, 7, true).unwrap();
+        let advantages = transitions
+            .iter()
+            .map(|transition| transition.advantage)
+            .collect::<Vec<_>>();
+        let final_rollout_kl = full_rollout_epoch_kl(
+            &probe.actor,
+            &transitions,
+            &advantages,
+            &base_config,
+            &device,
+            1,
+        )
+        .unwrap();
+        assert_eq!(final_rollout_kl.sample_count, transitions.len());
+        assert_eq!(probe_stats.minibatch_post_step_approx_kl_samples.len(), 4);
+        let minibatch_kl_mean = probe_stats
+            .minibatch_post_step_approx_kl_samples
+            .iter()
+            .sum::<f64>()
+            / probe_stats.minibatch_post_step_approx_kl_samples.len() as f64;
+        let aggregate_kl = final_rollout_kl.mean_approx_kl;
         assert_ne!(
+            aggregate_kl.total_cmp(&minibatch_kl_mean),
+            std::cmp::Ordering::Equal
+        );
+        let target_kl = ((aggregate_kl + minibatch_kl_mean) / 2.0) as f32;
+        let transactional_config = PpoConfig {
+            target_kl: Some(target_kl),
+            ..base_config.clone()
+        };
+        let mut transactional = PpoLearner::new(
+            initial.actor,
+            initial.critic,
+            CriticInputs::SquashAll,
+            &transactional_config,
+        );
+        let stats = transactional
+            .update(&transitions, &transactional_config, 7, true)
+            .unwrap();
+        assert_eq!(stats.epoch_final_rollout_kl.len(), 1);
+        assert_eq!(
+            stats.epoch_final_rollout_kl[0].sample_count,
+            transitions.len()
+        );
+        assert!(
+            (stats.epoch_final_rollout_kl[0].mean_approx_kl - aggregate_kl).abs() < 1e-8,
+            "transaction measured a different rollout/actor than the epoch-final policy"
+        );
+        let rejected_by_full_rollout = aggregate_kl > f64::from(target_kl);
+        let rejected_by_minibatch_average = minibatch_kl_mean > f64::from(target_kl);
+        assert_ne!(rejected_by_full_rollout, rejected_by_minibatch_average);
+        assert_eq!(
+            stats.rejected_actor_epoch_index.is_some(),
+            rejected_by_full_rollout
+        );
+    }
+
+    #[test]
+    fn epoch_transaction_reject_restores_actor_and_adam_and_keeps_critic_schedule() {
+        let device = default_policy_device();
+        let actor = crate::ml::semantic_bc::seeded_policy_net::<TrainBackend>(
+            ModelConfig::default(),
+            KindMode::Learned,
+            2901,
+            &device,
+        )
+        .unwrap()
+        .with_inputs(InputContract::Normalized);
+        let critic = super::super::semantic_bc::seeded_materialized_model(
+            ModelConfig::default(),
+            2902,
+            &device,
+        )
+        .unwrap();
+        let config = PpoConfig {
+            actor_learning_rate: 0.0003,
+            entropy_coefficient: 0.01,
+            minibatch_size: 1,
+            ..PpoConfig::default()
+        };
+        let mut learner = PpoLearner::new(actor, critic, CriticInputs::SquashAll, &config);
+        let actor_inference = learner.actor_inference();
+        let (episodes, rollout) = collect_iteration(
+            &learner,
+            &actor_inference,
+            None,
+            &config,
+            game_config(),
+            1,
+            &[2903],
+            CandidateMode::Top8,
+        )
+        .unwrap();
+        assert_eq!(rollout.illegal_actions, 0);
+        let mut impossible = episodes[0].transitions[0].clone();
+        impossible.old_log_prob -= 4.0;
+        let actor_before = module_to_bytes(learner.actor.clone()).unwrap();
+        let adam_before = optimizer_record_bytes(&learner.actor_optimizer);
+        let rejected = learner.update(&[impossible], &config, 2, true).unwrap();
+        assert_eq!(rejected.actor_epochs_attempted, 1);
+        assert_eq!(rejected.actor_epochs_committed, 0);
+        assert_eq!(rejected.rejected_actor_epoch_index, Some(1));
+        assert_eq!(rejected.epoch_final_rollout_kl.len(), 1);
+        assert!(rejected.epoch_final_rollout_kl[0].mean_approx_kl > 0.02);
+        assert_eq!(rejected.attempted_actor_minibatches, 1);
+        assert_eq!(rejected.applied_actor_optimizer_steps, 0);
+        assert_eq!(rejected.critic_optimizer_steps, rejected.minibatches);
+        assert_eq!(rejected.epochs_completed, config.update_epochs);
+        assert_eq!(
             module_to_bytes(learner.actor.clone()).unwrap(),
             actor_before
         );
-        assert_ne!(
+        assert_eq!(
             optimizer_record_bytes(&learner.actor_optimizer),
             adam_before
         );
+    }
 
-        // Populate Adam moments with accepted updates, then propose an overshoot.
-        // The rejected update must restore both actor parameters and optimizer
-        // state exactly, count no applied step, and leave the critic schedule intact.
-        let actor_before_reject = module_to_bytes(learner.actor.clone()).unwrap();
-        let adam_before_reject = optimizer_record_bytes(&learner.actor_optimizer);
-        let mut overshoot_transition = transition.clone();
-        overshoot_transition.old_log_prob -= 4.0;
-        let rejected = learner
-            .update(&[overshoot_transition], &config, 2, true)
-            .unwrap();
-        assert_eq!(rejected.attempted_actor_minibatches, config.update_epochs);
-        assert_eq!(rejected.accepted_actor_optimizer_steps, 0);
-        assert_eq!(rejected.applied_actor_optimizer_steps, 0);
-        assert_eq!(rejected.complete_rejects, config.update_epochs);
-        assert_eq!(
-            rejected.rejected_actor_optimizer_steps,
-            config.update_epochs
+    #[test]
+    fn epoch_transaction_keeps_prior_commit_when_later_epoch_rejects() {
+        let device = default_policy_device();
+        let actor = crate::ml::semantic_bc::seeded_policy_net::<TrainBackend>(
+            ModelConfig::default(),
+            KindMode::Learned,
+            2911,
+            &device,
+        )
+        .unwrap()
+        .with_inputs(InputContract::Normalized);
+        let critic = super::super::semantic_bc::seeded_materialized_model(
+            ModelConfig::default(),
+            2912,
+            &device,
+        )
+        .unwrap();
+        let base_config = PpoConfig {
+            actor_learning_rate: 0.0003,
+            entropy_coefficient: 0.01,
+            minibatch_size: 100_000,
+            update_epochs: 1,
+            target_kl: None,
+            ..PpoConfig::default()
+        };
+        let initial = PpoLearner::new(actor, critic, CriticInputs::SquashAll, &base_config);
+        let actor_inference = initial.actor_inference();
+        let (episodes, _) = collect_iteration(
+            &initial,
+            &actor_inference,
+            None,
+            &base_config,
+            game_config(),
+            1,
+            &[2913],
+            CandidateMode::Top8,
+        )
+        .unwrap();
+        let transitions = episodes[0].transitions.clone();
+        let advantages = transitions
+            .iter()
+            .map(|transition| transition.advantage)
+            .collect::<Vec<_>>();
+        let mut probe = PpoLearner::new(
+            initial.actor.clone(),
+            initial.critic.clone(),
+            CriticInputs::SquashAll,
+            &base_config,
         );
-        assert!(rejected.full_step_kl_samples.iter().all(|kl| *kl > 0.02));
-        assert!(rejected.rejected_actor_grad_norm.unwrap() > 0.0);
-        assert!(rejected.rejected_shared_scorer_grad_norm.unwrap() > 0.0);
-        assert_eq!(rejected.max_accepted_post_step_approx_kl, 0.0);
-        assert_eq!(rejected.target_kl_stop_count, 0);
-        assert_eq!(rejected.target_kl_stop_minibatch_index, None);
-        assert_eq!(rejected.critic_optimizer_steps, rejected.minibatches);
-        assert_eq!(rejected.epochs_completed, config.update_epochs);
-        assert_eq!(rejected.nonfinite_skips, 0);
-        assert_eq!(
-            module_to_bytes(learner.actor.clone()).unwrap(),
-            actor_before_reject
-        );
+        probe.update(&transitions, &base_config, 5, true).unwrap();
+        let first_kl = full_rollout_epoch_kl(
+            &probe.actor,
+            &transitions,
+            &advantages,
+            &base_config,
+            &device,
+            1,
+        )
+        .unwrap()
+        .mean_approx_kl;
+        let actor_after_first = probe.actor.clone();
+        let adam_after_first = optimizer_record_bytes(&probe.actor_optimizer);
+        probe.update(&transitions, &base_config, 5, true).unwrap();
+        let second_kl = full_rollout_epoch_kl(
+            &probe.actor,
+            &transitions,
+            &advantages,
+            &base_config,
+            &device,
+            2,
+        )
+        .unwrap()
+        .mean_approx_kl;
         assert!(
-            optimizer_record_bytes(&learner.actor_optimizer) == adam_before_reject,
-            "Adam optimizer state changed after a rejected actor step"
+            second_kl > first_kl,
+            "test rollout did not produce increasing cumulative KL: {first_kl} then {second_kl}"
         );
 
-        // The next iteration begins from the exact pre-rejection state and can
-        // accept new updates, proving that the proposed Adam moment did not leak.
-        let resumed = learner.update(&transitions, &config, 3, true).unwrap();
-        assert_eq!(resumed.rejected_actor_optimizer_steps, 0);
-        assert!(resumed.accepted_actor_optimizer_steps > 0);
-        assert!(resumed.max_accepted_post_step_approx_kl <= 0.02);
-        assert_ne!(
-            optimizer_record_bytes(&learner.actor_optimizer),
-            adam_before_reject
+        let target = ((first_kl + second_kl) / 2.0) as f32;
+        let config = PpoConfig {
+            update_epochs: 2,
+            target_kl: Some(target),
+            ..base_config.clone()
+        };
+        let mut transactional = PpoLearner::new(
+            initial.actor,
+            initial.critic,
+            CriticInputs::SquashAll,
+            &config,
+        );
+        let result = transactional
+            .update(&transitions, &config, 5, true)
+            .unwrap();
+        assert_eq!(result.actor_epochs_attempted, 2);
+        assert_eq!(result.actor_epochs_committed, 1);
+        assert_eq!(result.rejected_actor_epoch_index, Some(2));
+        assert_eq!(result.epoch_final_rollout_kl.len(), 2);
+        assert!(result.epoch_final_rollout_kl[0].mean_approx_kl <= f64::from(target));
+        assert!(result.epoch_final_rollout_kl[1].mean_approx_kl > f64::from(target));
+        assert_eq!(
+            module_to_bytes(transactional.actor.clone()).unwrap(),
+            module_to_bytes(actor_after_first).unwrap()
+        );
+        assert_eq!(
+            optimizer_record_bytes(&transactional.actor_optimizer),
+            adam_after_first
         );
     }
 
