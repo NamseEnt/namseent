@@ -63,7 +63,7 @@ target/release/td-simulator ml phase4 retrain --spec retrain.json --threads 8
 | `iter-NNNN/` | actor/critic와 각각의 optimizer, standalone actor 계약 |
 | `retraining-report.json` | 개발 평가로 선택한 checkpoint, 변경 후 원본/재학습/canonical 비교, 비용 범위 |
 
-checkpoint는 개발 seed의 평균 terminal progress로 선택하고, 동률이면 최신 iteration을 선택한다. 완주 횟수는 선택의 선행 조건이 아니다. iteration 0도 포함하므로 추가 학습이 나빠지면 원본을 유지할 수 있다. 마지막 학습 iteration에도 개발 평가를 수행한다.
+checkpoint는 개발 seed의 평균 terminal progress로 선택하고, 동률이면 최신 iteration을 선택한다. 완주 횟수는 선택의 선행 조건이 아니다. iteration 0도 포함하므로 추가 학습이 나빠지면 초기 정책을 유지할 수 있다. 후보 모드를 넓혔다면 가중치가 같아도 확률 정규화가 달라지므로 초기 정책의 행동은 원본과 다를 수 있다. 마지막 학습 iteration에도 개발 평가를 수행한다.
 
 `post_change_budget`은 rollout, optimizer, 학습 중 개발 평가의 비용이다. 준비 시간과 report 생성용 평가 시간은 별도로 기록한다. 원본 모델을 만들 때의 학습 비용은 `source_budget`으로 분리한다. `workflow_invocation_seconds`는 이번 실행의 시간이며 이전 실행이나 중단 중 발생한 모든 비용의 합계가 아니다.
 

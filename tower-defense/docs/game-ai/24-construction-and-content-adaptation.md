@@ -73,11 +73,11 @@ mechanic without experience.
   treasure change from subsequent default enemy-HP changes.
 - Paired arms: disabled-effect retraining and unchanged-effect retraining control.
   Each uses source actor/critic, fresh Adam, PPO seed 83, training seeds starting
-  at 5200000, 48 games/iteration, 2 epochs/iteration, 20 iterations (960 completed
-  training games). Keep the source learning rates, entropy and KL recipe.
+  at 5200000, 48 rollouts/iteration, 2 epochs/iteration, 20 iterations (960
+  rollouts per arm). Keep the source learning rates, entropy and KL recipe.
 - Evaluate every 5 iterations on 128 development games. Production checkpoint
   selection uses mean progress. For the behavioral experiment compare **iteration
-  20** in both arms at the same completed game budget; never select by treasure rate.
+  20** in both arms at the same rollout budget; never select by treasure rate.
 - Validation seeds 6000000–6000255 are reserved before evaluation, disjoint from
   training/development and the earlier final sets. Evaluate source, control and
   retrained policies under both original and disabled-effect configurations.
@@ -88,7 +88,11 @@ mechanic without experience.
 A training/evaluation interruption preserves the last complete checkpoint.
 The original 512-decision cap rejected a normal stage-43 control episode;
 it was raised to 10000 and both arms resumed from completed checkpoints.
-Aborted iteration work is not included in completed-game budgets.
+Aborted iteration work is excluded from recorded budgets. An audit found two
+truncated, bootstrapped training rollouts in the disabled arm and one in the
+control arm during the early cap phase: respectively 958 and 959 of the 960
+rollouts reached terminal. All final validation games reached terminal. Treat
+this run as an exploratory diagnostic, not a fixed-cap efficiency experiment.
 
 ## Validation status
 
@@ -101,14 +105,86 @@ Aborted iteration work is not included in completed-game budgets.
 - Statistics tests cover trace/streaming equivalence, per-run reports and
   exclusion of incomplete records. Four development games match the existing
   terminal evaluator's progress values within float serialization precision.
-- Full simulator library suite: 412 passed, 8 failed, 20 ignored at the first
-  full-suite run. All 8 failures also reproduce on `origin/master` (`acb2cabc`),
+- Final serial simulator library suite: **416 passed, 8 failed, 20 ignored**.
+  All 8 failures also reproduce on `origin/master` (`acb2cabc`),
   whose suite has 28 failures; the card-service legality fixes remove the other
-  20. Existing failures include five stale enemy-HP expectations, two PPO fixture
-  assumptions and a teacher candidate fixture. Targeted new tests pass separately.
+  20. One BC roundtrip/resume precision test also failed once in parallel, then
+  passed in isolation and in the serial suite. Existing failures include five stale
+  enemy-HP expectations, two PPO fixture assumptions and a teacher candidate fixture. Targeted new tests pass separately.
 - An initial statistics smoke accidentally reused four V2 final seeds
   (4200000–4200003). It was excluded from training, model selection and ablation
   analysis, and repeated on development seeds. No new held-out claim uses those
   historical final seeds.
 
-Experiment results and exact artifact hashes are recorded after completion.
+## Experiment results
+
+The requested treasure-selection adaptation **was not demonstrated**. On 256
+fresh validation seeds in each environment, every policy selected `black_white`
+whenever offered:
+
+| Policy | Original effect picks/offers | Disabled effect picks/offers | First-stage picks/offers | Mean conditional selection probability |
+| --- | --- | --- | --- | --- |
+| Source | 136/136 | 136/136 | 47/47 | 99.85% |
+| Unchanged-effect control, iteration 20 | 133/133 | 133/133 | 47/47 | 99.12% |
+| Disabled-effect retraining, iteration 20 | 146/146 | 146/146 | 47/47 | 99.93% |
+
+The first treasure occurs at stage 1, with the same 47 opportunities across
+policies and environments; this comparison does not depend on later survival.
+Probabilities are conditional on the SelectTreasure action family, rather than
+unconditional joint action probabilities. First-opportunity Wilson 95% intervals
+are [92.44%, 100%]. A unanimous empirical bootstrap degenerates at zero change;
+it does not establish equal underlying preferences.
+
+| Validation environment | Source mean progress | Control mean progress | Retrained mean progress |
+| --- | ---: | ---: | ---: |
+| Original effect | 49.22 | 48.69 | 53.17 |
+| Disabled effect | 45.70 | 45.87 | 50.47 |
+
+Disabled-effect retraining improved progress by 4.77 points over the source
+(paired standard error 0.62), while treasure selection stayed at 100%. Progress
+is not win probability; all policies recorded zero victories under this balance.
+Illegal actions, fallback actions and post-sampling mutations were zero in all
+validation games. Near-saturated source probabilities suggest exploration and
+credit assignment as follow-up investigation; the experiment does not identify
+the root cause. No independent training repeats or scratch-training comparison
+were run, so faster adaptation is unverified.
+
+The separate all-construction smoke resumed successfully across two iterations
+and four rollouts, sampling outside Top8 in 69.05% and 86.84% of construction
+choices. On four development games its selected initialization scored 41.35
+progress versus the source's 46.77. This verifies exploration and checkpoint
+reuse, not a stronger production policy. The treasure experiment retained Top8
+to isolate the content change; all-options construction remains opt-in.
+
+[Machine-readable results and artifact hashes](results/2026-10-09-treasure-ablation.json)
+include rollout budgets, truncations, PPO settings, source identity and test
+status. Large raw evaluation files and model weights remain local artifacts.
+
+## Reproduce the comparison
+
+The local experiment directory is
+`artifacts/retraining/treasure-ablation-20261009/`. It contains the original and
+disabled JSONC configurations, both retraining specs and all evaluation inputs.
+With the source artifacts available, run each spec using the command above.
+From `tower-defense/simulator/`, evaluate each environment (replace `original`
+with `disabled` for the second invocation):
+
+```sh
+target/release/td-simulator ml phase4 \
+  --config artifacts/retraining/treasure-ablation-20261009/original.jsonc \
+  terminal-eval --split retraining-validation --count 256 \
+  --allow-checkpoint-config-change \
+  --policy source=artifacts/phase4b/kl-epoch-transaction-r2-p2/iter-0200 \
+  --policy control=artifacts/retraining/treasure-ablation-20261009/control-run/iter-0020 \
+  --policy retrained=artifacts/retraining/treasure-ablation-20261009/disabled-run/iter-0020 \
+  --compare retrained:source --compare retrained:control \
+  --output artifacts/retraining/treasure-ablation-20261009/validation-original.json
+python3 scripts/summarize_treasure_ablation.py \
+  --baseline artifacts/retraining/treasure-ablation-20261009/baseline.json \
+  --original artifacts/retraining/treasure-ablation-20261009/validation-original.json \
+  --disabled artifacts/retraining/treasure-ablation-20261009/validation-disabled.json \
+  --output artifacts/retraining/treasure-ablation-20261009/selection-summary.json
+```
+
+The summary script reproduces selection/progress aggregates and intervals. The
+checked-in result additionally records training metadata and artifact hashes.

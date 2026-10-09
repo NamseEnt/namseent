@@ -14,11 +14,14 @@
 cargo build --release --bin td-simulator
 target/release/td-simulator simulate \
   --checkpoint artifacts/phase4b/kl-epoch-transaction-r2-p2/iter-0200 \
-  --samples 1000 --seed-start 6000000 --threads 8 \
+  --config configs/original.jsonc \
+  --samples 1000 --seed-start 6100000 --threads 8 \
   --db ai-stats.db --all-stats
 
 target/release/td-simulator stats --db ai-stats.db
 ```
+
+`configs/original.jsonc`에는 해당 checkpoint의 학습 설정을 제공한다. 현재 기본 밸런스가 학습 당시와 다르면 설정을 생략한 실행은 거부된다. 변경 설정에서 평가하려면 아래의 명시적 허용 옵션을 사용한다.
 
 `--checkpoint`는 PPO iteration 디렉터리(`ppo-actor.json`), BC run 디렉터리(`bc.json`), 과거 neural checkpoint 파일을 받는다. 모델은 실행 전에 한 번 로딩하며, 현재 PPO/BC는 기존 semantic 정책의 greedy 선택을 사용한다. 실행 중 학습하지 않는다. 미래 RNG를 참조하거나 scripted로 실패를 대신 처리하지 않는다.
 

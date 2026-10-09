@@ -3,8 +3,20 @@
 import argparse
 from collections import Counter
 import json
+import math
 from pathlib import Path
 import random
+
+
+def wilson_interval(picks, offers):
+    if not offers:
+        return None
+    z = 1.96
+    p = picks / offers
+    denominator = 1 + z * z / offers
+    center = (p + z * z / (2 * offers)) / denominator
+    margin = z * math.sqrt(p * (1 - p) / offers + z * z / (4 * offers * offers)) / denominator
+    return [max(0.0, center - margin), min(1.0, center + margin)]
 
 
 def aggregate(episodes, treasure):
@@ -26,6 +38,7 @@ def aggregate(episodes, treasure):
         'pick_rate_given_offer': picks / offers if offers else None,
         'first_treasure_offers': first_offers, 'first_treasure_picks': first_picks,
         'first_treasure_pick_rate': first_picks / first_offers if first_offers else None,
+        'first_treasure_wilson_ci95': wilson_interval(first_picks, first_offers),
         'mean_progress': sum(e['terminal_clear_rate'] for e in episodes) / len(episodes),
         'victories': sum(e['victory'] for e in episodes),
         'illegal_actions': sum(e['illegal_actions'] for e in episodes),
@@ -79,9 +92,11 @@ def summarize(baseline, original, disabled):
             'retrained_vs_control': paired_rate_change(groups['control'], groups['retrained'], treasure),
         }
     result['limits'] = ['One paired training seed; not an independent-repeats result.',
-                        'Final iteration at equal completed game budgets, not selected for treasure pick rate.',
+                        'Final iteration at equal rollout budgets, not selected for treasure pick rate.',
                         'No proof of faster adaptation than training from scratch.',
-                        'A lower pick rate alone does not establish a stronger game policy.']
+                        'A lower pick rate alone does not establish a stronger game policy.',
+                        'Probability diagnostics are conditional on choosing the SelectTreasure family.',
+                        'Empirical bootstrap intervals can degenerate at unanimous choices; this is not proof of identical preferences.']
     return result
 
 
