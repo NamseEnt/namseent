@@ -327,6 +327,7 @@ mod tests {
 
     fn config(waves: Vec<td_core::StageWaveState>) -> td_core::GameConfigState {
         td_core::GameConfigState {
+            treasures: Default::default(),
             player: td_core::PlayerConfigState {
                 max_hp_raw: 1,
                 starting_gold: 0,

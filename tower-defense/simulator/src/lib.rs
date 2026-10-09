@@ -27,6 +27,8 @@ pub mod policy_action;
 #[cfg(feature = "simulator")]
 pub mod policy_runner;
 pub mod recording;
+#[cfg(feature = "simulator")]
+pub mod simulation;
 pub mod stats;
 #[cfg(feature = "simulator")]
 pub mod teacher;

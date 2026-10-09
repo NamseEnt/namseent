@@ -2,6 +2,7 @@ use anyhow::{Context, Result};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use indicatif::{ProgressBar, ProgressStyle};
 use rayon::ThreadPoolBuilder;
+use rayon::prelude::*;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -21,8 +22,9 @@ use td_simulator::ml::seed::SeedRange;
 use td_simulator::ml::validation::{
     BaselinePolicy, evaluate_baseline, evaluate_checkpoint, paired_baseline_report,
 };
-use td_simulator::policy_runner::{BatchResult, PolicyRunnerConfig, run_batch};
+use td_simulator::policy_runner::{BatchResult, PolicyRunnerConfig};
 use td_simulator::recording::{SimRecorder, SimulationProvenance};
+use td_simulator::simulation::{self, SimulationSummary};
 use td_simulator::stats::Database;
 use td_simulator::teacher::{RolloutTeacherConfig, run_semantic_teacher_episode};
 use td_simulator::teacher_eval::{
@@ -630,6 +632,8 @@ struct TeacherEvalOptions {
 struct SimulateOptions {
     #[arg(short, long, default_value_t = 1000)]
     samples: usize,
+    #[arg(long, default_value_t = 0)]
+    seed_start: u64,
     #[arg(short, long, default_value = "sim_results.db")]
     db: PathBuf,
     #[arg(long)]
@@ -638,6 +642,7 @@ struct SimulateOptions {
     threads: usize,
     #[arg(long)]
     config: Option<PathBuf>,
+    /// PPO iteration / BC run directory, or a legacy neural checkpoint file.
     #[arg(long, default_value = "ml_policy_checkpoint.json")]
     checkpoint: PathBuf,
     #[arg(long)]
@@ -1486,27 +1491,29 @@ fn run_baseline(options: BaselineOptions) -> Result<()> {
 }
 
 fn run_simulate(options: SimulateOptions) -> Result<()> {
+    anyhow::ensure!(options.samples > 0, "--samples must be positive");
+    anyhow::ensure!(
+        options.max_decisions > 0,
+        "--max-decisions must be positive"
+    );
+    if options.trace_steps && (options.samples != 1 || options.threads != 1) {
+        anyhow::bail!("--trace-steps requires --samples 1 --threads 1");
+    }
     let config = Arc::new(match options.config {
         Some(ref path) => config::load_jsonc(path)
             .with_context(|| format!("failed to load config {}", path.display()))?,
         None => GameConfig::default_config(),
     });
-    let seeds = (0..options.samples as u64).collect::<Vec<_>>();
+    let seed_end = options
+        .seed_start
+        .checked_add(u64::try_from(options.samples)? - 1)
+        .context("simulation seed range overflow")?;
+    let seeds = (options.seed_start..=seed_end).collect::<Vec<_>>();
     let runner_config = PolicyRunnerConfig {
         max_decisions_per_episode: options.max_decisions,
         record_steps: options.trace_steps,
-        max_stage: None,
-        reward_config: td_simulator::environment::RewardConfig::default(),
+        ..PolicyRunnerConfig::default()
     };
-
-    if options.trace_steps && (options.samples != 1 || options.threads != 1) {
-        anyhow::bail!("--trace-steps requires --samples 1 --threads 1");
-    }
-
-    if options.fresh_db && options.db.exists() {
-        std::fs::remove_file(&options.db)?;
-    }
-    let recorder = SimRecorder::new(&options.db)?;
     let pool = {
         let builder = ThreadPoolBuilder::new().thread_name(|index| format!("sim-{index}"));
         let builder = if options.threads == 0 {
@@ -1516,13 +1523,57 @@ fn run_simulate(options: SimulateOptions) -> Result<()> {
         };
         builder.build()?
     };
-
+    enum SimulationPolicy {
+        Semantic(Box<td_simulator::ml::semantic_bc::SemanticPolicy>),
+        Legacy(Box<DeepSetsActorCritic<InferenceBackend>>, PolicyDevice),
+    }
+    let contract = MlContract::from_config(config.as_ref());
+    let (policy, iteration, policy_kind) = if options.checkpoint.is_dir() {
+        let (policy, iteration) = simulation::load_semantic_policy(
+            &options.checkpoint,
+            &config,
+            options.allow_checkpoint_config_change,
+        )?;
+        (
+            SimulationPolicy::Semantic(Box::new(policy)),
+            iteration,
+            if iteration.is_some() {
+                "semantic_ppo"
+            } else {
+                "semantic_bc"
+            },
+        )
+    } else {
+        let (checkpoint, model) = NeuralCheckpoint::load_with_inference_model_with_config_change(
+            &options.checkpoint,
+            &contract,
+            options.allow_checkpoint_config_change,
+        )?;
+        (
+            SimulationPolicy::Legacy(Box::new(model), default_policy_device()),
+            Some(checkpoint.iteration),
+            "neural_checkpoint",
+        )
+    };
+    let provenance = SimulationProvenance {
+        runner_kind: "simulate".to_string(),
+        policy_kind: policy_kind.to_string(),
+        checkpoint_path: Some(options.checkpoint.display().to_string()),
+        checkpoint_iteration: iteration,
+        environment_version: Some(contract.environment_version),
+        action_schema_version: Some(contract.action_schema_version),
+        config_digest: Some(contract.config_digest),
+        config_override: options.allow_checkpoint_config_change,
+        seed_schedule: Some(seed_schedule(&seeds)),
+    };
+    // Validate the checkpoint before an explicitly requested database reset.
+    if options.fresh_db && options.db.exists() {
+        std::fs::remove_file(&options.db)?;
+    }
+    let recorder = SimRecorder::new(&options.db)?;
     if !options.quiet {
         println!("Running {} simulations...", seeds.len());
-        println!(
-            "Policy: neural checkpoint ({})",
-            options.checkpoint.display()
-        );
+        println!("Policy: {policy_kind} ({})", options.checkpoint.display());
     }
     let progress = (!options.quiet).then(|| {
         let progress = ProgressBar::new(seeds.len() as u64);
@@ -1534,77 +1585,92 @@ fn run_simulate(options: SimulateOptions) -> Result<()> {
         );
         progress
     });
-
-    let contract = MlContract::from_config(config.as_ref());
-    let mut provenance = SimulationProvenance {
-        runner_kind: "policy_runner".to_string(),
-        policy_kind: "neural_checkpoint".to_string(),
-        checkpoint_path: Some(options.checkpoint.display().to_string()),
-        checkpoint_iteration: None,
-        environment_version: Some(contract.environment_version),
-        action_schema_version: Some(contract.action_schema_version),
-        config_digest: Some(contract.config_digest.clone()),
-        config_override: false,
-        seed_schedule: Some(seed_schedule(&seeds)),
-    };
-    let result = {
-        let checkpoint_path = &options.checkpoint;
-        provenance.config_override = options.allow_checkpoint_config_change;
-        let (checkpoint, model) = NeuralCheckpoint::load_with_inference_model_with_config_change(
-            checkpoint_path,
-            &contract,
-            options.allow_checkpoint_config_change,
-        )?;
-        provenance.checkpoint_iteration = Some(checkpoint.iteration);
-        let model = Arc::new(model);
-        let device = Arc::new(default_policy_device());
-        pool.install(|| {
-            run_batch::<_, _>(Arc::clone(&config), &seeds, &runner_config, {
-                let model = Arc::clone(&model);
-                let device = Arc::clone(&device);
-                move |_seed| {
-                    let model = Arc::clone(&model);
-                    let device = Arc::clone(&device);
-                    move |observation: &Observation, legal_actions: &[LegalAction]| {
-                        choose_model_action(
-                            model.as_ref(),
-                            device.as_ref(),
-                            observation,
-                            legal_actions,
-                        )
-                    }
-                }
-            })
-        })
-        .with_context(|| {
-            format!(
-                "failed to simulate checkpoint {} (iteration {})",
-                checkpoint_path.display(),
-                checkpoint.iteration
-            )
-        })?
-    };
-
-    record_results(&recorder, &result, &provenance)?;
-    if options.trace_steps {
-        print_step_trace(&result)?;
+    let run_id = format!(
+        "sim_{}_{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)?
+            .as_nanos()
+    );
+    let mut summary = SimulationSummary::default();
+    let chunk_size = pool.current_num_threads().saturating_mul(2).max(1);
+    for chunk in seeds.chunks(chunk_size) {
+        let recorded = pool.install(|| {
+            chunk
+                .par_iter()
+                .map(|&seed| match &policy {
+                    SimulationPolicy::Semantic(policy) => simulation::run_semantic_statistics(
+                        Arc::clone(&config),
+                        seed,
+                        &runner_config,
+                        policy,
+                    ),
+                    SimulationPolicy::Legacy(model, device) => simulation::run_legacy_statistics(
+                        Arc::clone(&config),
+                        seed,
+                        &runner_config,
+                        |observation: &Observation, legal: &[LegalAction]| {
+                            choose_model_action(model, device, observation, legal)
+                        },
+                    ),
+                })
+                .collect::<Result<Vec<_>>>()
+        })?;
+        for recorded in recorded {
+            let sim_id = format!("{run_id}_{:016x}", recorded.episode.seed);
+            simulation::record_episode(&recorder, &sim_id, &recorded, &provenance)?;
+            summary.observe(&recorded.episode);
+            if options.trace_steps {
+                print_step_trace(&BatchResult {
+                    seeds: vec![recorded.episode.seed],
+                    episodes: vec![recorded.episode],
+                })?;
+            }
+            if let Some(progress) = &progress {
+                progress.inc(1);
+            }
+        }
     }
     if let Some(progress) = progress {
         progress.finish_and_clear();
     }
-    print_summary(&result, &options);
-
+    print_summary(&summary, &options);
     if options.strategy_stats || options.all_stats {
-        let database = Database::open(&options.db)?;
+        let database = Database::open_run(&options.db, &format!("{run_id}_"))?;
         for row in database.list_strategy_win_rates()? {
             println!(
-                "{}: {} {:.1}% ({}/{})",
+                "{}: {} {:.1}% ({}/{}) progress {:.2}% variance {:.2}",
                 row.category,
                 row.name,
                 row.win_rate * 100.0,
                 row.win_count,
-                row.sample_count
+                row.sample_count,
+                row.avg_clear_rate,
+                row.clear_rate_variance
             );
+        }
+        if options.all_stats {
+            for (title, rows) in [
+                ("Items (purchased)", database.list_items()?),
+                (
+                    "Upgrades and treasures",
+                    database.list_upgrades_and_treasures()?,
+                ),
+                ("Card services", database.list_card_services()?),
+            ] {
+                println!("=== {title} ===");
+                for row in rows {
+                    println!(
+                        "{}: samples {} picks {} win {:.1}% progress {:.2}% variance {:.2}",
+                        row.name,
+                        row.selected_simulations,
+                        row.total_purchases,
+                        row.win_rate * 100.0,
+                        row.avg_clear_rate,
+                        row.clear_rate_variance
+                    );
+                }
+            }
         }
     }
     println!("Results saved to: {}", options.db.display());
@@ -1712,60 +1778,35 @@ fn seed_schedule(seeds: &[u64]) -> String {
     }
 }
 
-fn record_results(
-    recorder: &SimRecorder,
-    result: &BatchResult,
-    provenance: &SimulationProvenance,
-) -> Result<()> {
-    for episode in &result.episodes {
-        let sim_id = format!("sim_{:016x}", episode.seed);
-        recorder.record_simulation_start_with_provenance(
-            &sim_id,
-            "environment",
-            "environment",
-            "environment",
-            "environment",
-            "environment",
-            episode.seed,
-            provenance,
-        )?;
-        recorder.record_simulation_end(
-            &sim_id,
-            episode.victory,
-            episode.final_observation.stage,
-            episode.clear_rate,
-            episode.final_observation.hp_raw as f32 / 1000.0,
-            episode.final_observation.gold,
-            episode.metrics.total_towers_placed,
-            episode.metrics.total_items_used,
-            episode.metrics.total_player_damage,
-            episode.metrics.total_gold_earned,
-        )?;
-    }
-    Ok(())
-}
-
-fn print_summary(result: &BatchResult, options: &SimulateOptions) {
-    let victories = result
-        .episodes
-        .iter()
-        .filter(|episode| episode.victory)
-        .count();
+fn print_summary(result: &SimulationSummary, options: &SimulateOptions) {
+    let count = result.samples.max(1) as f64;
     println!("=== Simulation Complete ===");
-    println!("Samples: {}", result.episodes.len());
+    println!("Samples: {}", result.samples);
     println!(
         "Win rate: {:.1}% ({}/{})",
-        victories as f64 / result.episodes.len().max(1) as f64 * 100.0,
-        victories,
-        result.episodes.len()
+        result.victories as f64 / count * 100.0,
+        result.victories,
+        result.samples
     );
-    if options.clear_rate_graph || options.all_stats {
-        let clear_rates = result
-            .episodes
+    if options.all_stats {
+        let mean = result
+            .clear_rates
             .iter()
-            .map(|episode| episode.clear_rate)
-            .collect::<Vec<_>>();
-        print_clear_rate_histogram(&clear_rates);
+            .map(|value| *value as f64)
+            .sum::<f64>()
+            / count;
+        let variance = result
+            .clear_rates
+            .iter()
+            .map(|value| (*value as f64 - mean).powi(2))
+            .sum::<f64>()
+            / count;
+        println!("Game progress: mean {mean:.2}% variance {variance:.2}");
+        println!("Average damage taken: {:.2}", result.damage_taken / count);
+        println!("Average damage dealt: {:.2}", result.damage_dealt / count);
+    }
+    if options.clear_rate_graph || options.all_stats {
+        print_clear_rate_histogram(&result.clear_rates);
     }
 }
 
@@ -1779,8 +1820,9 @@ fn print_clear_rate_histogram(clear_rates: &[f32]) {
     for (index, count) in bins.into_iter().enumerate() {
         let bar_length = (count * 20 + max_count / 2) / max_count;
         println!(
-            "{:02} | {:<20} {}",
-            index + 1,
+            "{:3}–{:3}% | {:<20} {}",
+            index * 2,
+            (index * 2 + 2).min(100),
             "#".repeat(bar_length),
             count
         );

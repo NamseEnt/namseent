@@ -1,10 +1,15 @@
 # 기획 변경 후 재학습 구현 계획
 
+> 현재 범위: AI 반복 실행·기존 통계 수집에 더해, 2026-10-09 후속 요청의 건설 후보 확장·콘텐츠 변경 후 재학습·보물 효과 제거 실험을 구현한다. 밸런스 조정 방법론과 사람 모델은 후속 작업이다. 현재 구현과 검증 범위는 [24](24-construction-and-content-adaptation.md)를 따른다.
+
+
 ## 목표와 현재 상태
 
 [`00-goals-and-acceptance.md`](00-goals-and-acceptance.md)의 재학습 목표를 구현 단위로 나눈다. 성공 판정은 [`09-balance-experiments.md`](09-balance-experiments.md)의 비교 계약을 따른다. 이 문서는 구현 계획이며 아래 기능의 구현 완료나 재학습 속도 개선을 보고하는 문서가 아니다.
 
-현재 재사용할 수 있는 기반:
+수치 변경 경로의 첫 구현과 기술 검증은 [`22-numeric-retraining.md`](22-numeric-retraining.md)에 기록한다. 효과 입력 확장과 재학습 효율 비교는 남아 있다.
+
+계획 수립 시점에 재사용할 수 있었던 기반:
 
 - authoritative core 기반 simulator와 legal action 생성
 - `GameConfig` JSONC 로딩과 configuration digest
@@ -12,7 +17,7 @@
 - 관측·행동·dataset version 검사, deterministic replay, paired terminal evaluation
 - tower status/splash 및 build template splash의 구조화된 feature 추출
 
-현재 보완할 부분:
+계획 수립 시점에 보완이 필요했던 부분:
 
 - `ml/phase4_cli.rs`의 기본 설정 생성 경로를 사용자 지정 configuration으로 통일해야 한다.
 - 기존 PPO loader는 다른 game rules epoch나 candidate/encoder version을 거부한다. 변경 후 재학습을 위한 명시적인 이관 경로가 필요하다.
@@ -79,17 +84,20 @@
 
 - 변경 후 처음부터 학습하는 대조군과 기존 checkpoint에서 시작하는 실험군을 동일 target 모델 구조와 seed 계약으로 실행한다.
 - source 모델의 과거 학습 비용과 이번 변경 후 발생한 준비·학습 비용을 구분해서 기록한다. 대조군도 BC/critic 준비를 포함한 전체 비용을 기록한다.
-- 목표 full-clear 성능까지의 게임 수·semantic decisions·wall time, 동일 예산의 성능, 수동 준비 단계, inference 시간·memory를 report로 출력한다.
+- 사전에 정한 목표 성능까지의 게임 수·semantic decisions·wall time, 동일 예산의 성능, 수동 준비 단계, inference 시간·memory를 report로 출력한다.
 - 수치 변경과 새 효과/전투 규칙 변경을 최소 하나씩 검증한다. 최소 3회 독립 학습의 분포와 held-out confidence interval을 보고한다.
 - development에서 선택한 뒤 잠근 final seed를 사용한다. 이전 final seed 범위는 재사용하지 않는다.
-- 목표 완주 성능에 미달하면 진행도 개선과 재학습 시간 측정은 개발 진단으로 보고한다. 완주 목표 달성으로 승인하지 않는다.
+- 해당 configuration에 맞는 primary metric과 목표를 실험 전에 정한다. 현재 밸런스에서는 진행도 목표를 사용할 수 있고 완주는 필수 조건이 아니다. 목표 미달이나 독립 반복·held-out 검증 누락은 그대로 보고하며, 실행 성공만으로 재학습 효율을 승인하지 않는다.
 
 완료 조건: 처음부터 학습하는 것보다 재학습이 빠른지, 실제로 같은 목표 성능에 도달했는지 결과로 판정할 수 있다. 개선이 없는 변경 유형도 기록한다.
 
 ## 구현 순서
 
+첫 수치 변경 경로의 구현 범위와 사용법은 [`22-numeric-retraining.md`](22-numeric-retraining.md)에 기록한다. 새 효과 입력과 구조 변경 adapter, 재학습 효율의 대조 실험은 후속 작업이다.
+
+0. **평가 계약 반영 완료:** 재학습 checkpoint는 개발 평균 진행도로 선택한다. 향후 다른 primary metric이 필요하면 spec의 확장을 별도로 구현한다.
 1. **수치 변경 경로:** 1 → 2의 동일 구조 이관 → 4의 최소 workflow → 5의 수치 변경 비교. 기존 checkpoint 재사용을 가장 작은 변경으로 검증한다.
 2. **새 효과 경로:** 3 → 2의 구조 변경 adapter → 4/5의 효과 변경 비교. 이미 추출 가능한 광역공격·status 정보부터 연결한다.
 3. **사용 절차 정리:** 검증된 spec과 workflow를 문서화하고 변경 유형별 지원 범위·필요 작업·측정된 비용을 안내한다.
 
-전투 성능 개선 연구와 이 구현은 각각 추적한다. 재학습 workflow가 완성되어도 높은 확률의 full-clear 목표가 충족되는 것은 아니며, 각 목표는 자신의 승인 기준으로 확인한다.
+전투 성능 개선 연구와 이 구현은 각각 추적한다. 재학습 workflow의 작동, AI의 플레이 성능, 재학습 효율은 각각 자신의 승인 기준으로 확인한다. 현재 밸런스에서 full-clear를 선행 조건으로 두지 않는다.

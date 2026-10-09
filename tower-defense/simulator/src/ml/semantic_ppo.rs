@@ -766,7 +766,7 @@ pub fn rollout_episode_with_build_option_head(
         initial_clear_rate,
         terminal_clear_rate,
         final_stage: environment.snapshot().stage,
-        victory: terminal_clear_rate >= 100.0,
+        victory: environment.victory(),
         truncated,
         illegal_actions,
         action_mismatches,
@@ -3004,7 +3004,7 @@ impl TrainingBudget {
 }
 
 /// Budget consumed by a run up to `iteration` (inclusive).
-fn budget_until(history: &[IterationRecord], iteration: usize) -> TrainingBudget {
+pub(crate) fn budget_until(history: &[IterationRecord], iteration: usize) -> TrainingBudget {
     let mut budget = TrainingBudget::default();
     for record in history
         .iter()
@@ -3036,6 +3036,10 @@ fn parent_budget(iteration_dir: &Path) -> Result<TrainingBudget> {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PpoRunMetadata {
+    #[serde(default)]
+    pub environment: Option<super::retraining::EnvironmentContract>,
+    #[serde(default)]
+    pub transfer: Option<super::retraining::NumericTransfer>,
     pub schema_version: u32,
     pub policy_candidate_set_version: u32,
     pub candidate_encoder_version: u32,
@@ -3112,6 +3116,7 @@ fn write_checkpoint(
     std::fs::write(
         directory.join("ppo-actor.json"),
         serde_json::to_vec_pretty(&PpoActorFile {
+            environment: metadata.environment.clone(),
             schema_version: SEMANTIC_PPO_CHECKPOINT_SCHEMA_VERSION,
             policy_representation_version: POLICY_REPRESENTATION_VERSION,
             kind_mode: learner.actor.mode,
@@ -3133,6 +3138,8 @@ fn write_checkpoint(
 /// Identifies a PPO iteration directory's `actor.bin` for policy loading.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PpoActorFile {
+    #[serde(default)]
+    pub environment: Option<super::retraining::EnvironmentContract>,
     pub schema_version: u32,
     /// Absent (1, flat) in checkpoints written before policy v2.
     #[serde(default = "flat_policy_representation")]
@@ -3177,6 +3184,21 @@ pub fn load_ppo_actor_as<B: Backend>(
     iteration_dir: &Path,
     device: &B::Device,
 ) -> Result<PolicyNet<B>> {
+    load_actor_as(iteration_dir, device, false)
+}
+
+pub(crate) fn load_transfer_actor_as<B: Backend>(
+    iteration_dir: &Path,
+    device: &B::Device,
+) -> Result<PolicyNet<B>> {
+    load_actor_as(iteration_dir, device, true)
+}
+
+fn load_actor_as<B: Backend>(
+    iteration_dir: &Path,
+    device: &B::Device,
+    transferring: bool,
+) -> Result<PolicyNet<B>> {
     let file: PpoActorFile = serde_json::from_slice(
         &std::fs::read(iteration_dir.join("ppo-actor.json"))
             .with_context(|| format!("read {}", iteration_dir.join("ppo-actor.json").display()))?,
@@ -3184,12 +3206,18 @@ pub fn load_ppo_actor_as<B: Backend>(
     if file.schema_version != SEMANTIC_PPO_CHECKPOINT_SCHEMA_VERSION
         || file.policy_candidate_set_version != POLICY_CANDIDATE_SET_VERSION
         || file.candidate_encoder_version != SEMANTIC_CANDIDATE_ENCODER_VERSION
-        || file.game_rules_epoch != GAME_RULES_EPOCH
+        || (!transferring && file.game_rules_epoch != GAME_RULES_EPOCH)
     {
         bail!(
             "{}: incompatible PPO actor checkpoint",
             iteration_dir.display()
         );
+    }
+    if let Some(environment) = &file.environment {
+        if environment.game_rules_epoch != file.game_rules_epoch {
+            bail!("actor metadata and environment rules epoch disagree");
+        }
+        environment.check_encoding()?;
     }
     load_policy_file::<B>(
         file.policy_representation_version,
@@ -3259,6 +3287,8 @@ pub fn load_build_option_head_as<B: Backend>(
 }
 
 pub struct PpoRunInput {
+    /// Explicit initialization for a new numeric-balance retraining run.
+    pub transfer: Option<super::retraining::NumericTransfer>,
     pub config: PpoConfig,
     pub init_bc_run: PathBuf,
     pub init_critic_run: Option<PathBuf>,
@@ -3657,6 +3687,7 @@ pub fn development_evaluation(
     current: PolicyNet<InferenceBackend>,
     current_build_option_head: Option<TypedCandidateScorer<InferenceBackend>>,
     position_reference: Option<&SemanticPolicy>,
+    init_name: &str,
 ) -> Result<DevEvaluation> {
     let started = Instant::now();
     let seeds = split.seeds(Some(seed_count))?;
@@ -3671,7 +3702,7 @@ pub fn development_evaluation(
     let policies = vec![
         EvalPolicy::Canonical,
         EvalPolicy::Learned {
-            name: "bc_init".to_string(),
+            name: init_name.to_string(),
             policy: Box::new(init.clone()),
         },
         EvalPolicy::Learned {
@@ -3688,8 +3719,8 @@ pub fn development_evaluation(
     }
     let mut comparisons = vec![
         ("ppo".to_string(), "canonical".to_string()),
-        ("ppo".to_string(), "bc_init".to_string()),
-        ("bc_init".to_string(), "canonical".to_string()),
+        ("ppo".to_string(), init_name.to_string()),
+        (init_name.to_string(), "canonical".to_string()),
     ];
     if position_reference.is_some() {
         comparisons.push(("ppo".to_string(), "a1_prime".to_string()));
@@ -3697,7 +3728,25 @@ pub fn development_evaluation(
     }
     let report = evaluate_policies(game_config, split.name(), &seeds, &policies, &comparisons)?;
     let (greedy_build_option_decisions, greedy_build_option_outside_v1_top8) =
-        current_policy_stats.greedy_build_option_usage();
+        if init.candidate_mode() == CandidateMode::AllBuildOptions {
+            let episodes = report
+                .episodes
+                .iter()
+                .filter(|episode| episode.policy == "ppo");
+            episodes.fold((0, 0), |(decisions, outside), episode| {
+                (
+                    decisions
+                        + episode
+                            .chosen_kind_counts
+                            .get("build_tower")
+                            .copied()
+                            .unwrap_or(0),
+                    outside + episode.build_options_outside_top8,
+                )
+            })
+        } else {
+            current_policy_stats.greedy_build_option_usage()
+        };
     let greedy_build_option_choices = current_policy_stats.greedy_build_option_choices();
     Ok(DevEvaluation {
         iteration,
@@ -3765,13 +3814,41 @@ pub fn train_ppo_run(
     }
     std::fs::create_dir_all(run_dir)?;
     let device = default_policy_device();
-    let (bc_metadata, init_actor) =
-        load_selected_model::<TrainBackend>(&input.init_bc_run, &device)?;
-    for provenance in &bc_metadata.train_provenance {
-        if provenance.game_rules_epoch != GAME_RULES_EPOCH {
-            bail!("BC initialization was trained under a different game rules epoch");
+    let (bc_metadata, init_actor) = match &input.transfer {
+        Some(transfer) => {
+            transfer.validate(&game_config)?;
+            if input.init_ppo_iteration.is_some()
+                || input.init_critic_run.is_some()
+                || input.position_reference_actor.is_some()
+                || config.actor_update_mode != ActorUpdateMode::Full
+            {
+                bail!("numeric transfer must be the only initializer and use full-actor updates");
+            }
+            (
+                transfer.source_bc_metadata.clone(),
+                load_transfer_actor_as::<TrainBackend>(&transfer.source_checkpoint, &device)?,
+            )
+        }
+        None => load_selected_model::<TrainBackend>(&input.init_bc_run, &device)?,
+    };
+    if input.transfer.is_none() {
+        for provenance in &bc_metadata.train_provenance {
+            provenance.check_current(&game_config)?;
+        }
+        if let Some(directory) = &input.init_ppo_iteration {
+            let actor_file: PpoActorFile =
+                serde_json::from_slice(&std::fs::read(directory.join("ppo-actor.json"))?)?;
+            if let Some(environment) = actor_file.environment {
+                environment.check_run(&game_config)?;
+            }
         }
     }
+    let run_candidate_mode = input
+        .transfer
+        .as_ref()
+        .map_or(bc_metadata.config.candidate_mode, |transfer| {
+            transfer.target_candidate_mode
+        });
     let option_only = config.actor_update_mode == ActorUpdateMode::BuildOptionOnly;
     if option_only
         && (bc_metadata.config.candidate_mode != CandidateMode::Top8
@@ -3820,8 +3897,7 @@ pub fn train_ppo_run(
             .with_build_option_head(option_head_initial.clone().valid())
             .with_build_option_greedy_from_a1(option_only)
     } else {
-        SemanticPolicy::new(init_actor.clone().valid())
-            .with_candidate_mode(bc_metadata.config.candidate_mode)
+        SemanticPolicy::new(init_actor.clone().valid()).with_candidate_mode(run_candidate_mode)
     };
     if config.actor_update_mode == ActorUpdateMode::PositionOnly
         && bc_metadata.config.candidate_mode != CandidateMode::FullPositionA1Marginal
@@ -3927,7 +4003,30 @@ pub fn train_ppo_run(
     let (mut metadata, mut learner) = if run_dir.join("ppo.json").exists() {
         let metadata: PpoRunMetadata =
             serde_json::from_slice(&std::fs::read(run_dir.join("ppo.json"))?)?;
+        if let Some(environment) = &metadata.environment {
+            environment.check_run(&game_config)?;
+        } else {
+            for provenance in &metadata.init_bc_metadata.train_provenance {
+                provenance.check_current(&game_config)?;
+            }
+        }
+        if input.transfer.is_some() && input.iterations < metadata.completed_iterations {
+            bail!("requested iterations precede the latest completed retraining checkpoint");
+        }
         if metadata.config != config
+            || metadata.transfer != input.transfer
+            || metadata.init_ppo_iteration
+                != input
+                    .init_ppo_iteration
+                    .as_ref()
+                    .map(|path| path.display().to_string())
+            || metadata.init_critic_run
+                != input
+                    .init_critic_run
+                    .as_ref()
+                    .map(|path| path.display().to_string())
+            || metadata.evaluate_every != input.evaluate_every
+            || metadata.development_seeds != input.development_seeds
             || metadata.init_bc_run != input.init_bc_run.display().to_string()
             || metadata.position_reference_actor
                 != input
@@ -3954,16 +4053,27 @@ pub fn train_ppo_run(
         );
         (metadata, learner)
     } else {
-        let (actor, critic) = match &input.init_ppo_iteration {
-            Some(directory) => (
-                load_ppo_actor_as::<TrainBackend>(directory, &device)?,
+        let (actor, critic) = if let Some(transfer) = &input.transfer {
+            (
+                init_actor.clone(),
                 Some(load_model_file::<TrainBackend>(
                     model_config,
-                    &directory.join("critic.bin"),
+                    &transfer.source_checkpoint.join("critic.bin"),
                     &device,
                 )?),
-            ),
-            None => (init_actor.clone(), None),
+            )
+        } else {
+            match &input.init_ppo_iteration {
+                Some(directory) => (
+                    load_ppo_actor_as::<TrainBackend>(directory, &device)?,
+                    Some(load_model_file::<TrainBackend>(
+                        model_config,
+                        &directory.join("critic.bin"),
+                        &device,
+                    )?),
+                ),
+                None => (init_actor.clone(), None),
+            }
         };
         if option_only && module_to_bytes(actor.clone())? != init_actor_bytes {
             bail!(
@@ -3981,13 +4091,19 @@ pub fn train_ppo_run(
                     .transpose()?;
                 (
                     critic,
-                    parent.map_or(CriticInputs::SquashAll, |parent| parent.critic_inputs),
+                    input.transfer.as_ref().map_or_else(
+                        || parent.map_or(CriticInputs::SquashAll, |parent| parent.critic_inputs),
+                        |transfer| transfer.critic_inputs,
+                    ),
                 )
             }
             (None, Some(path)) => {
                 let (critic_metadata, critic) = load_critic(path, &device)?;
                 if critic_metadata.model_config != model_config {
                     bail!("critic model config differs from the actor's");
+                }
+                if let Some(provenance) = &critic_metadata.train_provenance {
+                    provenance.check_current(&game_config)?;
                 }
                 (critic, critic_metadata.config.inputs)
             }
@@ -4001,6 +4117,10 @@ pub fn train_ppo_run(
             learner.build_option_head = Box::new(option_head_initial.clone());
         }
         let mut metadata = PpoRunMetadata {
+            environment: Some(super::retraining::EnvironmentContract::capture(
+                &game_config,
+            )),
+            transfer: input.transfer.clone(),
             schema_version: SEMANTIC_PPO_CHECKPOINT_SCHEMA_VERSION,
             policy_candidate_set_version: POLICY_CANDIDATE_SET_VERSION,
             candidate_encoder_version: SEMANTIC_CANDIDATE_ENCODER_VERSION,
@@ -4026,7 +4146,7 @@ pub fn train_ppo_run(
             candidate_mode: if option_only {
                 CandidateMode::BuildOptionA1Marginal
             } else {
-                bc_metadata.config.candidate_mode
+                run_candidate_mode
             },
             train_split: Phase4Split::PpoTrain,
             development_split: Phase4Split::PpoDevelopment,
@@ -4045,6 +4165,11 @@ pub fn train_ppo_run(
                 learner.actor_inference(),
                 option_only.then(|| (*learner.build_option_head).clone().valid()),
                 position_reference.as_ref(),
+                if input.transfer.is_some() {
+                    "source_init"
+                } else {
+                    "bc_init"
+                },
             )?;
             log_evaluation(&evaluation);
             metadata.history.push(IterationRecord {
@@ -4090,6 +4215,15 @@ pub fn train_ppo_run(
             &seeds,
             metadata.candidate_mode,
         )?;
+        if input.transfer.is_some()
+            && (rollout_stats.illegal_actions != 0
+                || rollout_stats.action_mismatches != 0
+                || rollout_stats.nonfinite_values != 0)
+        {
+            bail!(
+                "invalid retraining rollout at iteration {iteration}; retained the previous completed checkpoint"
+            );
+        }
         if matches!(
             config.actor_update_mode,
             ActorUpdateMode::PositionOnly | ActorUpdateMode::BuildOptionOnly
@@ -4131,6 +4265,11 @@ pub fn train_ppo_run(
         let update_started = Instant::now();
         let update_actor = iteration > config.critic_warmup_iterations;
         let update = learner.update(&transitions, &config, iteration, update_actor)?;
+        if input.transfer.is_some() && update.nonfinite_skips != 0 {
+            bail!(
+                "nonfinite retraining update at iteration {iteration}; retained the previous completed checkpoint"
+            );
+        }
         let update_seconds = update_started.elapsed().as_secs_f64();
         let frozen_actor_invariant_passed = matches!(
             config.actor_update_mode,
@@ -4189,7 +4328,10 @@ pub fn train_ppo_run(
                 ) / count;
             }
         }
-        let evaluation = if input.evaluate_every > 0 && iteration % input.evaluate_every == 0 {
+        let evaluation = if input.evaluate_every > 0
+            && (iteration % input.evaluate_every == 0
+                || (input.transfer.is_some() && iteration == input.iterations))
+        {
             let evaluation = development_evaluation(
                 Arc::clone(&game_config),
                 Phase4Split::PpoDevelopment,
@@ -4199,6 +4341,11 @@ pub fn train_ppo_run(
                 learner.actor_inference(),
                 option_only.then(|| (*learner.build_option_head).clone().valid()),
                 position_reference.as_ref(),
+                if input.transfer.is_some() {
+                    "source_init"
+                } else {
+                    "bc_init"
+                },
             )?;
             log_evaluation(&evaluation);
             Some(evaluation)
@@ -5436,6 +5583,7 @@ mod tests {
             game_config(),
             &run_dir,
             PpoRunInput {
+                transfer: None,
                 config: PpoConfig {
                     entropy_scheme: EntropyScheme::NormalizedPerHead,
                     entropy_coefficient: 0.02,
@@ -5814,6 +5962,7 @@ mod tests {
             game_config(),
             &run_dir,
             PpoRunInput {
+                transfer: None,
                 config: PpoConfig {
                     entropy_scheme: EntropyScheme::NormalizedPerHead,
                     entropy_coefficient: 0.02,
@@ -5865,6 +6014,224 @@ mod tests {
     }
 
     #[test]
+    fn numeric_retraining_workflow_preserves_weights_and_resumes_deterministically() {
+        std::thread::Builder::new()
+            .name("numeric-retraining-test".to_string())
+            .stack_size(8 * 1024 * 1024)
+            .spawn(numeric_retraining_workflow_inner)
+            .unwrap()
+            .join()
+            .unwrap();
+    }
+
+    fn numeric_retraining_workflow_inner() {
+        use crate::ml::retraining::{
+            RetrainingSpec, prepare_transfer, run_spec, write_json_atomic,
+        };
+        let bc_dir = tiny_bc_run("numeric-retraining-bc");
+        let root = temp_dir("numeric-retraining");
+        let source_dir = root.join("source");
+        let source = train_ppo_run(
+            game_config(),
+            &source_dir,
+            PpoRunInput {
+                config: tiny_ppo_config(),
+                transfer: None,
+                init_bc_run: bc_dir.clone(),
+                init_critic_run: None,
+                init_ppo_iteration: None,
+                iterations: 1,
+                evaluate_every: 0,
+                development_seeds: 2,
+                position_reference_actor: None,
+            },
+        )
+        .unwrap();
+        let checkpoint = iteration_dir(&source_dir, 1);
+        let source_actor = std::fs::read(checkpoint.join("actor.bin")).unwrap();
+        let source_critic = std::fs::read(checkpoint.join("critic.bin")).unwrap();
+        let mut target = (*game_config()).clone();
+        target.player.starting_gold += 1;
+        target.towers.entries[0].damage_raw += 1_000;
+        target.write_jsonc(root.join("target.jsonc")).unwrap();
+        let mut spec = RetrainingSpec {
+            schema_version: 1,
+            candidate_mode: None,
+            source_checkpoint: checkpoint.clone(),
+            source_config: None,
+            target_config: PathBuf::from("target.jsonc"),
+            run_dir: PathBuf::from("resumed"),
+            iterations: 1,
+            train_seed_start: 5_100_000,
+            seed: 42,
+            ppo: Some(tiny_ppo_config()),
+            evaluate_every: 1,
+            development_seeds: 2,
+        };
+        let spec_path = root.join("spec.json");
+        // Transfer uses the frozen source checkpoint, not a surviving BC directory.
+        std::fs::remove_dir_all(&bc_dir).unwrap();
+        write_json_atomic(&spec_path, &spec).unwrap();
+        run_spec(&spec_path).unwrap();
+        let resumed = root.join("resumed");
+        assert_eq!(
+            std::fs::read(iteration_dir(&resumed, 0).join("actor.bin")).unwrap(),
+            source_actor
+        );
+        assert_eq!(
+            std::fs::read(iteration_dir(&resumed, 0).join("critic.bin")).unwrap(),
+            source_critic
+        );
+        assert_ne!(
+            std::fs::read(iteration_dir(&resumed, 0).join("actor-optimizer.bin")).unwrap(),
+            std::fs::read(checkpoint.join("actor-optimizer.bin")).unwrap()
+        );
+        let metadata: PpoRunMetadata =
+            serde_json::from_slice(&std::fs::read(resumed.join("ppo.json")).unwrap()).unwrap();
+        assert_eq!(metadata.environment.as_ref().unwrap().game_config, target);
+        assert_eq!(
+            metadata.transfer.as_ref().unwrap().source_budget,
+            source.history[0].cumulative
+        );
+        assert_eq!(metadata.history[0].cumulative, TrainingBudget::default());
+        assert_eq!(metadata.history[1].cumulative.episodes, 2);
+        assert!(
+            metadata.history[0]
+                .evaluation
+                .as_ref()
+                .unwrap()
+                .summaries
+                .iter()
+                .any(|summary| summary.policy == "source_init")
+        );
+        for record in &metadata.history {
+            assert_eq!(record.rollout.illegal_actions, 0);
+            assert_eq!(record.rollout.action_mismatches, 0);
+            assert_eq!(record.update.nonfinite_skips, 0);
+        }
+        spec.iterations = 2;
+        write_json_atomic(&spec_path, &spec).unwrap();
+        run_spec(&spec_path).unwrap();
+        spec.run_dir = PathBuf::from("continuous");
+        write_json_atomic(&spec_path, &spec).unwrap();
+        run_spec(&spec_path).unwrap();
+        for file in ["actor.bin", "critic.bin"] {
+            assert!(
+                std::fs::read(iteration_dir(&resumed, 2).join(file)).unwrap()
+                    == std::fs::read(iteration_dir(&root.join("continuous"), 2).join(file))
+                        .unwrap(),
+                "resumed {file} differs from continuous training"
+            );
+        }
+        let saved: PpoRunMetadata =
+            serde_json::from_slice(&std::fs::read(resumed.join("ppo.json")).unwrap()).unwrap();
+        let resumed_learner = load_learner(
+            &resumed,
+            2,
+            &saved.config,
+            saved.model_config,
+            saved.critic_inputs,
+        )
+        .unwrap();
+        let continuous_learner = load_learner(
+            &root.join("continuous"),
+            2,
+            &saved.config,
+            saved.model_config,
+            saved.critic_inputs,
+        )
+        .unwrap();
+        assert!(
+            optimizer_record_bytes(&resumed_learner.actor_optimizer)
+                == optimizer_record_bytes(&continuous_learner.actor_optimizer),
+            "actor Adam state differs after resume"
+        );
+        let critic_state = |learner: &PpoLearner| {
+            let recorder = burn::record::BinBytesRecorder::<FullPrecisionSettings>::default();
+            let mut states = learner
+                .critic_optimizer
+                .to_record()
+                .into_iter()
+                .map(|(id, state)| (id.val(), recorder.record(state, ()).unwrap()))
+                .collect::<Vec<_>>();
+            states.sort_by(|left, right| left.0.cmp(&right.0));
+            states
+        };
+        assert!(
+            critic_state(&resumed_learner) == critic_state(&continuous_learner),
+            "critic Adam state differs after resume"
+        );
+        let mut changed = target.clone();
+        changed.player.starting_gold += 1;
+        let saved: PpoRunMetadata =
+            serde_json::from_slice(&std::fs::read(resumed.join("ppo.json")).unwrap()).unwrap();
+        assert!(saved.environment.unwrap().check_run(&changed).is_err());
+        assert_eq!(
+            std::fs::read(checkpoint.join("actor.bin")).unwrap(),
+            source_actor
+        );
+        let report: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(resumed.join("retraining-report.json")).unwrap())
+                .unwrap();
+        assert_eq!(report["speedup_verified"], false);
+        assert_eq!(report["post_change_budget"]["episodes"], 4);
+
+        // Widen construction while reusing every actor/critic weight, then resume.
+        spec.run_dir = PathBuf::from("all-options");
+        spec.candidate_mode = Some(CandidateMode::AllBuildOptions);
+        spec.train_seed_start = 5_200_000;
+        spec.iterations = 1;
+        write_json_atomic(&spec_path, &spec).unwrap();
+        run_spec(&spec_path).unwrap();
+        let all_dir = root.join("all-options");
+        let all: PpoRunMetadata =
+            serde_json::from_slice(&std::fs::read(all_dir.join("ppo.json")).unwrap()).unwrap();
+        assert_eq!(all.candidate_mode, CandidateMode::AllBuildOptions);
+        assert_eq!(
+            std::fs::read(iteration_dir(&all_dir, 0).join("actor.bin")).unwrap(),
+            source_actor
+        );
+        spec.iterations = 2;
+        write_json_atomic(&spec_path, &spec).unwrap();
+        run_spec(&spec_path).unwrap();
+        let actor: PpoActorFile = serde_json::from_slice(
+            &std::fs::read(iteration_dir(&all_dir, 2).join("ppo-actor.json")).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(actor.candidate_mode, CandidateMode::AllBuildOptions);
+
+        // Historical checkpoints need a matching explicit source configuration.
+        let mut actor: PpoActorFile =
+            serde_json::from_slice(&std::fs::read(checkpoint.join("ppo-actor.json")).unwrap())
+                .unwrap();
+        actor.environment = None;
+        write_json_atomic(&checkpoint.join("ppo-actor.json"), &actor).unwrap();
+        let mut legacy = source;
+        legacy.environment = None;
+        legacy.init_bc_metadata.train_provenance.push(
+            DatasetProvenance::new(
+                &game_config(),
+                SourcePolicy::Canonical,
+                Phase4Split::Phase4bCanonicalTrain,
+                None,
+            )
+            .unwrap(),
+        );
+        write_json_atomic(&source_dir.join("ppo.json"), &legacy).unwrap();
+        assert!(
+            prepare_transfer(&checkpoint, None, &target)
+                .unwrap_err()
+                .to_string()
+                .contains("source_config")
+        );
+        assert!(prepare_transfer(&checkpoint, Some(&target), &target).is_err());
+        let (transfer, _) = prepare_transfer(&checkpoint, Some(&game_config()), &target).unwrap();
+        assert!(transfer.legacy_source_contract);
+        assert_eq!(transfer.changes.len(), 2);
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
     fn ppo_update_is_finite_and_resume_is_deterministic() {
         std::thread::Builder::new()
             .name("ppo-resume-test".to_string())
@@ -5878,6 +6245,7 @@ mod tests {
     fn ppo_update_is_finite_and_resume_is_deterministic_inner() {
         let bc_dir = tiny_bc_run("ppo-resume-bc");
         let input = |iterations| PpoRunInput {
+            transfer: None,
             config: tiny_ppo_config(),
             init_bc_run: bc_dir.clone(),
             init_critic_run: None,

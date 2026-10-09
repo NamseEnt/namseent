@@ -32,6 +32,8 @@ pub mod policy_v2;
 #[cfg(feature = "simulator")]
 pub mod ppo;
 #[cfg(feature = "simulator")]
+pub mod retraining;
+#[cfg(feature = "simulator")]
 pub mod rollout;
 pub mod seed;
 #[cfg(feature = "simulator")]

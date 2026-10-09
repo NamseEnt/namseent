@@ -336,6 +336,9 @@ pub enum Command {
     },
     #[command(about = "Phase 4A canonical BC and teacher distillation")]
     Phase4 {
+        /// Game configuration used by dataset generation, training, and evaluation.
+        #[arg(long, global = true)]
+        config: Option<PathBuf>,
         #[command(subcommand)]
         command: super::phase4_cli::Phase4Command,
     },
@@ -408,10 +411,51 @@ pub fn run() -> Result<()> {
     run_command(Cli::parse().command)
 }
 
+#[cfg(test)]
+mod phase4_config_tests {
+    use super::*;
+
+    #[test]
+    fn phase4_config_is_global_for_training_and_evaluation() {
+        for arguments in [
+            vec![
+                "td-simulator",
+                "phase4",
+                "--config",
+                "balance.jsonc",
+                "terminal-eval",
+                "--split",
+                "ppo-development",
+                "--output",
+                "report.json",
+            ],
+            vec![
+                "td-simulator",
+                "phase4",
+                "terminal-eval",
+                "--split",
+                "ppo-development",
+                "--output",
+                "report.json",
+                "--config",
+                "balance.jsonc",
+            ],
+        ] {
+            let cli = Cli::try_parse_from(arguments).unwrap();
+            let Command::Phase4 { config, .. } = cli.command else {
+                panic!("expected Phase4")
+            };
+            assert_eq!(config, Some(PathBuf::from("balance.jsonc")));
+        }
+    }
+}
+
 pub fn run_command(command: Command) -> Result<()> {
     println!("ML inference backend: {}", policy_backend_description());
     match command {
-        Command::Phase4 { command } => super::phase4_cli::run(command),
+        Command::Phase4 { command, config } => {
+            super::phase4_cli::run_with_config(command, config.as_deref())
+        }
         Command::CollectTeacher {
             output,
             seed_start,
