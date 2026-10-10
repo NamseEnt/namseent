@@ -310,6 +310,7 @@ mod purchase_tests {
     fn core_state() -> crate::CoreState {
         crate::CoreState::new_initial(
             crate::GameConfigState {
+                treasures: Default::default(),
                 player: crate::PlayerConfigState {
                     max_hp_raw: 60_000,
                     starting_gold: 100,
