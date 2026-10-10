@@ -41,7 +41,20 @@ pub struct SpatialEpisodeKind {
 }
 
 #[derive(Clone, Debug, Serialize)]
+pub struct TreasureDecision {
+    /// PPO probabilities conditional on the SelectTreasure action family.
+    pub option_probabilities: BTreeMap<String, f64>,
+    pub stage: usize,
+    pub options: Vec<String>,
+    pub chosen: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
 pub struct PolicyEpisode {
+    pub treasure_decisions: Vec<TreasureDecision>,
+    pub treasure_offers: BTreeMap<String, usize>,
+    pub treasure_selections: BTreeMap<String, usize>,
+    pub build_options_outside_top8: usize,
     pub seed: u64,
     pub policy: String,
     pub terminal_clear_rate: f32,
@@ -77,6 +90,10 @@ pub fn run_policy_episode(
     let mut environment = GameEnvironment::new(config, seed);
     let mut episode = PolicyEpisode {
         seed,
+        treasure_decisions: Vec::new(),
+        treasure_offers: BTreeMap::new(),
+        treasure_selections: BTreeMap::new(),
+        build_options_outside_top8: 0,
         policy: policy.name().to_string(),
         terminal_clear_rate: 0.0,
         final_stage: 0,
@@ -108,6 +125,7 @@ pub fn run_policy_episode(
         }
         let decision_started = Instant::now();
         let mut sampled_action_id = None;
+        let mut treasure_probabilities = BTreeMap::new();
         let action = match policy {
             EvalPolicy::Canonical => {
                 let action = canonical_scripted_semantic_action(&environment)?;
@@ -118,6 +136,38 @@ pub fn run_policy_episode(
                 Ok(choice) => {
                     episode.forward_seconds += choice.forward_seconds;
                     sampled_action_id = Some(choice.action.action_id());
+                    for (candidate, log_probability) in
+                        choice.candidates.candidates.iter().zip(&choice.log_probs)
+                    {
+                        if let crate::environment::AgentAction::SelectTreasure { option_index } =
+                            candidate.action
+                        {
+                            if let Some(key) = choice
+                                .candidates
+                                .observation
+                                .treasure_options
+                                .get(option_index)
+                            {
+                                treasure_probabilities
+                                    .insert(key.clone(), (*log_probability as f64).exp());
+                            }
+                        }
+                    }
+                    let select_mass: f64 = treasure_probabilities.values().sum();
+                    if select_mass > 0.0 {
+                        for probability in treasure_probabilities.values_mut() {
+                            *probability /= select_mass;
+                        }
+                    }
+                    if choice
+                        .candidates
+                        .build_option_info
+                        .get(choice.index)
+                        .and_then(Option::as_ref)
+                        .is_some_and(|info| info.outside_v1_top8)
+                    {
+                        episode.build_options_outside_top8 += 1;
+                    }
                     if let Some((cells, cell)) = &choice.cell {
                         episode.spatial_decisions += 1;
                         episode.spatial_outside_heuristic_top_k +=
@@ -169,13 +219,28 @@ pub fn run_policy_episode(
             .chosen_kind_counts
             .entry(action.kind().wire_name().to_string())
             .or_insert(0) += 1;
+        if let crate::environment::AgentAction::SelectTreasure { option_index } = &action {
+            let observation = environment.snapshot();
+            for kind in &observation.treasure_options {
+                *episode.treasure_offers.entry(kind.clone()).or_default() += 1;
+            }
+            if let Some(kind) = observation.treasure_options.get(*option_index) {
+                *episode.treasure_selections.entry(kind.clone()).or_default() += 1;
+                episode.treasure_decisions.push(TreasureDecision {
+                    option_probabilities: treasure_probabilities,
+                    stage: observation.stage,
+                    options: observation.treasure_options.clone(),
+                    chosen: kind.clone(),
+                });
+            }
+        }
         episode.decisions += 1;
         if step_to_next_decision(&mut environment, action)? {
             break;
         }
     }
     episode.terminal_clear_rate = environment.clear_rate();
-    episode.victory = episode.terminal_clear_rate >= 100.0;
+    episode.victory = environment.victory();
     episode.final_stage = environment.snapshot().stage;
     episode.final_state_hash = environment.state_hash();
     episode.wall_seconds = started.elapsed().as_secs_f64();
@@ -184,6 +249,12 @@ pub fn run_policy_episode(
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PolicySummary {
+    #[serde(default)]
+    pub treasure_offers: BTreeMap<String, usize>,
+    #[serde(default)]
+    pub treasure_selections: BTreeMap<String, usize>,
+    #[serde(default)]
+    pub build_options_outside_top8: usize,
     pub policy: String,
     pub episodes: usize,
     pub mean_terminal_clear_rate: f64,
@@ -277,7 +348,22 @@ pub fn summarize_policy(policy: &str, episodes: &[&PolicyEpisode]) -> PolicySumm
             *chosen_kind_counts.entry(kind.clone()).or_insert(0) += value;
         }
     }
+    let merge = |get: fn(&PolicyEpisode) -> &BTreeMap<String, usize>| {
+        let mut result = BTreeMap::new();
+        for episode in episodes {
+            for (kind, count) in get(episode) {
+                *result.entry(kind.clone()).or_default() += count;
+            }
+        }
+        result
+    };
     PolicySummary {
+        treasure_offers: merge(|episode| &episode.treasure_offers),
+        treasure_selections: merge(|episode| &episode.treasure_selections),
+        build_options_outside_top8: episodes
+            .iter()
+            .map(|episode| episode.build_options_outside_top8)
+            .sum(),
         policy: policy.to_string(),
         episodes: episodes.len(),
         mean_terminal_clear_rate: episodes
@@ -396,6 +482,8 @@ pub fn paired(
 
 #[derive(Debug, Serialize)]
 pub struct TerminalEvaluationReport {
+    pub checkpoint_config_override: bool,
+    pub environment: super::retraining::EnvironmentContract,
     pub split: String,
     pub seeds: Vec<u64>,
     pub policies: Vec<String>,
@@ -451,6 +539,8 @@ pub fn evaluate_policies(
         .map(|(policy, reference)| paired(policy, reference, &by_seed))
         .collect();
     Ok(TerminalEvaluationReport {
+        checkpoint_config_override: false,
+        environment: super::retraining::EnvironmentContract::capture(&config),
         split: split.to_string(),
         seeds: seeds.to_vec(),
         policies: names,

@@ -72,6 +72,7 @@ impl SimRecorder {
                 total_towers_placed INTEGER DEFAULT 0,
                 total_items_used INTEGER DEFAULT 0,
                 total_damage_taken REAL DEFAULT 0,
+                total_damage_dealt REAL DEFAULT 0,
                 total_gold_earned INTEGER DEFAULT 0,
                 runner_kind TEXT NOT NULL DEFAULT 'legacy',
                 policy_kind TEXT NOT NULL DEFAULT 'legacy',
@@ -168,6 +169,18 @@ impl SimRecorder {
         );
         let _ = conn.execute("ALTER TABLE simulations ADD COLUMN seed_schedule TEXT", []);
 
+        let _ = conn.execute(
+            "ALTER TABLE simulations ADD COLUMN total_damage_dealt REAL DEFAULT 0",
+            [],
+        );
+        Ok(())
+    }
+
+    pub fn record_damage_dealt(&self, sim_id: &str, amount: f32) -> anyhow::Result<()> {
+        self.conn.lock().unwrap().execute(
+            "UPDATE simulations SET total_damage_dealt = ?2 WHERE id = ?1",
+            params![sim_id, amount as f64],
+        )?;
         Ok(())
     }
 

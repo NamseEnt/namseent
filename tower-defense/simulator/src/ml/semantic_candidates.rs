@@ -126,6 +126,9 @@ pub enum CandidateMode {
     /// heuristic-best position. A1' family/non-BuildTower probabilities are
     /// projected unchanged; BuildTower option probabilities are trainable.
     BuildOptionA1Marginal,
+    /// Every legal card subset / tower option at its scripted best cell.
+    /// The complete actor, including treasure choices, remains trainable.
+    AllBuildOptions,
 }
 
 impl PolicyCandidates {
@@ -258,6 +261,12 @@ pub fn policy_candidates_with(
     }
     if mode == CandidateMode::BuildOptionA1Marginal {
         return policy_build_options_a1_marginal(environment);
+    }
+    if mode == CandidateMode::AllBuildOptions {
+        let mut set = policy_build_options_a1_marginal(environment)?;
+        // Use the ordinary trainable family and candidate distributions.
+        set.a1_marginal = None;
+        return Ok(set);
     }
     let observation = environment.snapshot();
     let mut candidates = Vec::new();
@@ -1178,6 +1187,32 @@ mod tests {
             assert_eq!(observed_pairs, legal_pairs);
             assert!(observed_pairs.len() > 8);
             assert!(candidates.a1_marginal.is_some());
+            let full =
+                policy_candidates_with(&environment, CandidateMode::AllBuildOptions).unwrap();
+            assert!(
+                full.a1_marginal.is_none(),
+                "full actor must not freeze A1 probabilities"
+            );
+            assert_eq!(
+                full.candidates
+                    .iter()
+                    .map(|c| &c.action_id)
+                    .collect::<Vec<_>>(),
+                candidates
+                    .candidates
+                    .iter()
+                    .map(|c| &c.action_id)
+                    .collect::<Vec<_>>()
+            );
+            assert_eq!(
+                full.build_option_info
+                    .iter()
+                    .flatten()
+                    .map(|i| (i.subset_index, i.hand_slot_index))
+                    .collect::<std::collections::HashSet<_>>(),
+                observed_pairs
+            );
+
             assert!(
                 candidates
                     .build_option_info

@@ -1,106 +1,123 @@
-# 목표와 승인 기준
+# Goals and Acceptance Criteria
 
-## 문제 정의
+## Current implementation goals (2026-10-09)
 
-이 프로젝트의 1차 산출물은 현재 게임 규칙에서 높은 확률로 끝까지 클리어하는 AI와, 기획 변경 후 기존 학습 결과를 활용해 빠르고 쉽게 재학습하는 경로다. 사람처럼 보이는 행동, 수학적인 최적성 증명, 모든 밸런스 버전에 즉시 적응하는 범용 정책은 1차 목표가 아니다.
+Per the user's direction, the current scope is to run the AI through multiple simulator games and save and query metrics at the existing `all-stats` level. Balance changes and methodology work belong to the content and level-design phase. The learning and retraining goals below remain follow-up requirements.
 
-게임의 의사결정에는 다음 요소가 함께 작용한다.
+Current completion criteria:
 
-- 개별 카드의 영구 강화와 engraving
-- 카드 조합으로 만들어지는 족보와 타워
-- 보유 유물과 아이템
-- 타워의 설치 위치와 기존 타워 조합
-- 설치 및 철거에 따른 경로 변화
-- 현재와 이후 웨이브
-- 자원 소비와 장기 run 가치
+1. Run the current PPO/BC model to actual game termination across multiple seeds.
+2. Collect existing progress distributions, damage, and item, treasure, and card-service selection and outcome statistics.
+3. Use the existing SQLite records and `stats` query path, and record model, configuration, and seed provenance.
+4. Keep illegal actions, policy errors, and limit hits out of normal game results.
+5. Do not require human-like behavior, proof of optimality, a particular clear rate, or a new balance methodology for completion.
+6. Allow construction to explore and learn legal card combinations outside the scripted top candidates. Placement may remain scripted.
+7. Document checkpoint retraining after content changes and its supported scope. Changing the representation so a policy can understand a new effect, and verifying adaptation behavior, are follow-up work. See [24](24-construction-and-content-adaptation.md) for supported changes and the boundary for structural migrations.
 
-따라서 높은 포커 족보나 즉시 damage만 최대화하는 정책은 목표를 충족하지 않는다.
+See [`23-batch-simulation-statistics.md`](23-batch-simulation-statistics.md) for detailed scope and [`0010`](decisions/0010-collect-existing-simulator-statistics.md) for the decision.
 
-## 1차 목표
+## Long-term problem definition
 
-고정된 현재 balance configuration에서 다음 값을 최대화한다.
+The long-term deliverables are strong play under current game rules and a fast, convenient retraining path that reuses valid learning after design changes. Following the user's explanation on 2026-10-09, development assumes the current balance is not designed to permit a full clear. A full-clear rate is not a required acceptance criterion for the current AI. This is not a mathematical proof that a full clear is impossible. Human-like behavior, mathematical proof of optimality, and immediate adaptation to every balance version are not first-stage goals.
 
-```text
-P(full clear | fixed balance configuration, held-out seed distribution)
-```
+Game decisions depend on several interacting factors:
 
-최종 모델 비교에서는 full-clear 여부를 가장 먼저 사용한다. 승률이 낮은 정책을 잔여 HP나 평균 진행도가 높다는 이유로 선택하지 않는다.
+- Permanent card upgrades and engraving
+- Tower combinations formed by cards
+- Owned treasures and items
+- Tower placement and existing tower combinations
+- Path changes caused by placement and demolition
+- Current and upcoming waves
+- Resource use and long-term run value
 
-## 기획 변경 후 재학습 목표
+Therefore, a policy that only maximizes poker-hand strength or immediate damage does not meet the goal.
 
-수치 조정, 아이템 효과 추가, 광역공격 같은 전투 규칙 변경 후에도 기존 checkpoint의 유효한 학습 결과를 재사용해 새 규칙에 적응할 수 있어야 한다. 이 목표는 현재 개발의 설계 요구사항에 포함한다. 재학습 효과는 비교에 사용할 기준 checkpoint를 확보한 뒤 변경 유형별로 검증한다.
+## Play-performance research goals
 
-- 입력과 행동의 의미가 유지되는 수치 변경은 기존 모델에서 추가 학습하는 경로를 제공한다.
-- 기존 효과의 조합으로 표현되는 새 아이템은 효과의 종류, 대상, 수치를 정책 입력으로 전달하고 기존 모델의 재사용 가능성을 확인한다.
-- 새로운 효과나 행동이 필요한 변경은 authoritative core, simulator, 관측, legal action을 먼저 확장한다. 호환되는 모델 부분을 이관하고 새 입력이나 출력에 필요한 부분을 학습한다.
-- 변경된 규칙에서 새 rollout을 생성한다. 이전 규칙의 trajectory, reward, teacher label을 새 규칙의 정답으로 그대로 사용하지 않는다.
-- 원본 checkpoint를 보존하고 새 학습 run에 출처와 이관 내용을 기록한다. 같은 규칙의 실행 재개와 규칙 변경 후 모델 이관을 구분한다.
-- 변경 내용과 원본 checkpoint를 지정해 호환성 확인, 모델 이관, 학습, 평가를 반복 실행할 수 있는 절차를 제공한다. 변경마다 모델을 수동으로 다시 구성하는 작업을 줄인다.
+Improve a preselected game outcome under a fixed balance configuration and held-out seed distribution. Under the current balance, mean progress over games that reach a real terminal state is the default primary metric. The existing artifact field `terminal_clear_rate` means progress from 0 to 100, not full-clear rate.
 
-빠른 재학습의 성공 여부는 변경 후 처음부터 학습하는 대조군과 비교해 판단한다. 새 규칙에서 사전에 정한 성능에 도달하기까지의 게임 수, wall time, 준비 작업을 기록하며, 동일 예산에서의 full-clear 성능도 비교한다. 구체적인 변경 시나리오와 평가 절차는 [`09-balance-experiments.md`](09-balance-experiments.md)의 재학습 검증 계약에서 관리한다. 단순히 checkpoint를 읽는 데 성공한 것만으로 이 목표를 달성했다고 판단하지 않는다.
+- Compare progress differences against heuristics and existing strong checkpoints using the same configuration and seeds.
+- Also report stage reach rates, elimination distribution, median progress, and lower quantiles. Check that a few large gains do not hide regressions on many seeds.
+- When full clears are possible, full-clear rate may be selected as the primary metric in advance. Do not switch to a more favorable metric after seeing results.
+- Fix the metric definition and version, minimum improvement, and allowed regression before the experiment. Exact values will be set when a comparison is designed; no numeric acceptance threshold has been approved yet.
 
-## 학습 신호와 평가 목적의 구분
+A reproducible improvement over a strong baseline is evidence of better AI performance, not proof of optimal play. AI failure alone does not show that a balance is impossible, and raw progress changes across balance versions must not be interpreted as AI improvement. See [`08-evaluation.md`](08-evaluation.md) for the evaluation contract and [`decisions/0009-balance-appropriate-evaluation.md`](decisions/0009-balance-appropriate-evaluation.md) for the decision.
 
-학습 안정화를 위해 다음 값을 reward shaping이나 auxiliary target으로 사용할 수 있다.
+## Retraining after design changes
 
-- 웨이브 진행도
-- 잔여 HP와 shield
-- 적 누수 피해
-- boss clear
-- 자원 효율
-- value prediction target
+After numeric tuning, adding item effects, or changing combat rules such as area attacks, the system should reuse valid learning from an existing checkpoint and adapt to the new rules. This remains a design requirement. Verify retraining effectiveness by change type after establishing a baseline checkpoint for comparison.
 
-이 값들은 학습을 돕기 위한 수단이다. 최종 평가 목적은 full-clear 확률이다. shaping을 변경할 때마다 정책이 shaping 지표만 최적화하고 승률을 잃지 않았는지 held-out seed로 확인한다.
+- Provide continued training from an existing model for numeric changes that preserve input and action meaning.
+- For new items expressible as combinations of existing effects, expose effect type, target, and value to the policy, then verify whether the existing model can be reused.
+- For changes that need new effects or actions, first extend the authoritative core, simulator, observations, and legal actions. Transfer compatible model components and train components needed for new inputs or outputs.
+- Generate new rollouts under the changed rules. Do not treat trajectories, rewards, or teacher labels from the old rules as ground truth under the new rules.
+- Preserve the source checkpoint and record its provenance and transfer details in a new training run. Distinguish resuming under the same rules from transferring a model after a rule change.
+- Provide a repeatable procedure that selects the change and source checkpoint, checks compatibility, transfers the model, trains, and evaluates it. Reduce the manual work needed for each change.
 
-## 비목표
+Measure retraining success against a model trained from scratch under the changed rules. Record games, wall time, and setup work needed to reach a preselected target, and compare performance under a fixed budget using a preselected metric. The retraining validation contract is maintained in [`09-balance-experiments.md`](09-balance-experiments.md). Loading a checkpoint successfully does not by itself demonstrate retraining effectiveness.
 
-1차 구현에서 다음을 목표로 삼지 않는다.
+## Separate learning signals from evaluation goals
 
-- 수학적 최적성 증명
-- 매 행동마다 full MCTS 실행
-- UI 버튼 조작을 사람처럼 흉내 내기
-- 임의의 미래 balance configuration에 대한 무제한 일반화
-- 무작위 action noise로 인간 실력을 흉내 내기
-- 전체 게임 규칙을 재구현하는 범용 Effect DSL
-- 보드 이미지를 입력으로 받는 범용 vision agent
+The following values may be used for reward shaping or auxiliary targets to stabilize learning:
 
-## 운영 제약
+- Wave progress
+- Remaining HP and shield
+- Damage from enemy leaks
+- Boss clears
+- Resource efficiency
+- Value prediction targets
 
-- 학습과 시뮬레이션은 Apple M1 16GB에서 실행 가능해야 한다.
-- 원격 머신에서도 같은 dataset, checkpoint, seed 계약으로 실행할 수 있어야 한다.
-- 원격 머신의 실제 사양은 연결 가능한 시점에 별도로 측정하며 문서에 추측으로 기록하지 않는다.
-- M1에서는 WGPU의 Metal backend를 GPU 학습과 batch inference 후보로 사용한다.
-- 원격 머신은 실제 GPU 종류를 확인한 뒤 지원되는 CUDA 또는 WGPU backend를 선택한다.
-- branch가 많은 게임 simulation, legal action, pathfinding은 CPU 최적화를 기본으로 한다.
-- 작은 단건 inference를 무조건 GPU로 보내지 않고 CPU와 batched GPU의 end-to-end 처리량을 비교한다.
-- 대량 밸런스 통계는 search 없이 빠른 distilled policy로 실행하는 것을 기본으로 한다.
-- 실행에 필요한 인증 정보는 설정 파일, dataset, checkpoint, 문서에 저장하지 않는다.
+Training rewards and final evaluation metrics must be defined separately. Under the current balance, wave progress may also be used for evaluation, but an increase in shaping reward alone does not count as an improvement. Whenever shaping changes, use held-out seeds to check whether terminal progress and survival distribution improve. Do not accept a policy that only increases HP, survival time, or decision count without improving game progress.
 
-## 전체 승인 기준
+## Non-goals
 
-새 AI가 완료되었다고 판단하려면 다음 조건을 모두 만족해야 한다.
+The first implementation does not target:
 
-1. UI micro-action 없이 semantic decision 단위로 동작한다.
-2. 불법 행동을 정책이 직접 교정하지 않고 authoritative legal action generator가 차단한다.
-3. 카드 조합과 위치를 결합해 비교하며 카드 조합 하나를 먼저 greedy하게 확정하지 않는다.
-4. 같은 seed와 configuration에서 deterministic replay가 유지된다.
-5. 새 simulator contract에서 normalized throughput이 baseline보다 유의미하게 개선된다.
-6. rollout teacher가 숨겨진 미래 RNG를 보지 않는다.
-7. teacher가 기존 heuristic보다 held-out full-game 승률을 개선한다.
-8. distilled policy가 search 없이 정해진 inference latency 예산을 만족한다.
-9. 최종 정책이 사전에 고정한 held-out seed에서 기존 정책보다 높은 full-clear 승률을 보인다.
-10. 결과가 서로 다른 최소 3회 학습 run에서도 재현되는지 보고한다.
-11. M1 16GB에서 CPU simulator와 GPU learner가 memory limit 안에서 장시간 실행된다.
-12. 기존 AI는 새 경로의 승인 완료 후에만 제거된다.
-13. 대표적인 수치 변경과 새로운 효과 또는 전투 규칙 추가에서 기존 checkpoint를 활용한 재학습을 검증한다. 변경 후 처음부터 학습하는 경우보다 사전 목표 성능에 적은 학습 예산으로 도달하는지 독립 run으로 확인하고, 호환성 판정부터 평가까지의 반복 가능한 절차를 제공한다.
+- Mathematical proof of optimality
+- Running full MCTS on every action
+- Imitating human UI button presses
+- Unbounded generalization to arbitrary future balance configurations
+- Imitating human skill with random action noise
+- A general-purpose Effect DSL that reimplements the entire game
+- A general-purpose vision agent that takes board images as input
 
-승률 차이가 표본 오차 범위에 있을 경우 개선으로 승인하지 않는다. 정확한 seed 수와 통계 검정은 [`08-evaluation.md`](08-evaluation.md)에서 관리한다.
+## Operational constraints
 
-## 후속 목표
+- Training and simulation must run on an Apple M1 with 16 GB of memory.
+- The same dataset, checkpoint, and seed contracts must work on remote machines.
+- Measure remote machine specifications when access is available; do not guess them in documentation.
+- Use WGPU's Metal backend as a candidate for GPU training and batch inference on M1.
+- On remote machines, select CUDA or WGPU after identifying the actual GPU.
+- Optimize branching game simulation, legal actions, and pathfinding for CPU by default.
+- Compare end-to-end throughput on CPU and batched GPU before sending small single inferences to the GPU.
+- Use a fast distilled policy without search by default for large-scale balance statistics.
+- Do not store credentials needed for execution in configuration files, datasets, checkpoints, or documentation.
 
-1차 목표가 검증된 뒤 다음 순서로 확장한다.
+## Long-term AI research acceptance criteria
 
-1. 밸런스 파라미터 민감도 측정
-2. 좁은 범위의 configuration randomization
-3. balance-conditioned policy
-4. 실제 인간 행동 자료에 근거한 잘하는 사용자와 적당한 사용자 모델
+These are acceptance criteria for the broader AI research effort, not prerequisites for completing the current statistics collection feature.
+
+1. Operate at semantic decision granularity without UI micro-actions.
+2. Have the authoritative legal-action generator block illegal actions rather than relying on policy self-correction.
+3. Compare card combinations and positions jointly instead of greedily fixing a card combination first.
+4. Preserve deterministic replay for the same seed and configuration.
+5. Improve normalized throughput over the baseline under the new simulator contract.
+6. Ensure rollout teachers cannot see hidden future RNG state.
+7. Improve preselected held-out full-game outcomes over the existing heuristic.
+8. Meet the specified inference-latency budget without search.
+9. Improve the primary metric over the existing policy on preselected held-out seeds and meet allowed regression limits. A full clear is not required under the current balance.
+10. Report whether results reproduce across at least three independent training runs.
+11. Run the simulator and GPU learner for long periods within the memory limit on an M1 with 16 GB of memory.
+12. Remove the existing AI only after approval of the replacement path.
+13. Validate checkpoint reuse and retraining for representative numeric changes and changes that add effects or combat rules. Use independent runs to determine whether the changed policy reaches a preselected target with less training budget than training from scratch, and provide a repeatable process from compatibility checks through evaluation.
+
+Do not approve an improvement when the primary metric difference is within sampling error. See [`08-evaluation.md`](08-evaluation.md) for exact seed counts and statistical tests.
+
+## Follow-up goals
+
+After validating the first-stage goals, expand in this order:
+
+1. Measure balance-parameter sensitivity.
+2. Add narrow configuration randomization.
+3. Build a balance-conditioned policy.
+4. Model strong and average players using representative human behavior data.
