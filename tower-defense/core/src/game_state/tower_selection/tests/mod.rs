@@ -45,7 +45,6 @@ const ACE: Rank = Rank::Ace;
 
 fn config() -> GameConfigState {
     GameConfigState {
-        treasures: Default::default(),
         player: crate::PlayerConfigState {
             max_hp_raw: 60_000,
             starting_gold: 100,

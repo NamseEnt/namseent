@@ -463,7 +463,6 @@ mod tests {
     #[test]
     fn unknown_raw_item_kind_is_rejected_at_the_state_boundary() {
         let config = crate::GameConfigState {
-            treasures: Default::default(),
             player: crate::PlayerConfigState {
                 max_hp_raw: 60_000,
                 starting_gold: 100,
@@ -493,7 +492,6 @@ mod tests {
     #[test]
     fn applying_each_item_kind_uses_its_raw_codec_contract() {
         let config = crate::GameConfigState {
-            treasures: Default::default(),
             player: crate::PlayerConfigState {
                 max_hp_raw: 60_000,
                 starting_gold: 100,

@@ -125,7 +125,6 @@ mod tests {
     #[test]
     fn core_starts_with_treasure_and_opens_next_act_after_boss() {
         let config = crate::GameConfigState {
-            treasures: Default::default(),
             player: crate::PlayerConfigState {
                 max_hp_raw: 60_000,
                 starting_gold: 100,

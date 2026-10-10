@@ -271,13 +271,8 @@ pub fn numeric_changes(source: &GameConfig, target: &GameConfig) -> Result<Vec<C
                     visit(&format!("{path}/{index}"), left, right, changes)?;
                 }
             }
-            (Value::Number(_), Value::Number(_)) | (Value::Bool(_), Value::Bool(_))
-                if before != after =>
+            (Value::Number(_), Value::Number(_)) if before != after =>
             {
-                ensure!(
-                    before.is_number() || path == "/treasures/black_white_enabled",
-                    "unsupported rule switch at {path}"
-                );
                 ensure!(
                     !path.ends_with("/kind") && !path.ends_with("/stage"),
                     "catalog/stage identity changed at {path}; numeric transfer cannot remap identities"
@@ -298,7 +293,6 @@ pub fn numeric_changes(source: &GameConfig, target: &GameConfig) -> Result<Vec<C
     let mut changes = Vec::new();
     let normalized = |config: &GameConfig| -> Result<Value> {
         let mut value = serde_json::to_value(config)?;
-        value["treasures"] = serde_json::to_value(&config.treasures)?;
         Ok(value)
     };
     visit("", &normalized(source)?, &normalized(target)?, &mut changes)?;
@@ -774,19 +768,6 @@ mod tests {
         target.get_mut("items").unwrap().swap(0, 1);
         assert!(validate_catalog_extension(&source, &target).is_err());
         assert!(validate_catalog_extension(&target, &source).is_err());
-    }
-
-    #[test]
-    fn treasure_rule_switch_is_recorded_and_changes_config_digest() {
-        let source = GameConfig::default_config();
-        let mut target = source.clone();
-        target.treasures.black_white_enabled = false;
-        let changes = numeric_changes(&source, &target).unwrap();
-        assert_eq!(changes.len(), 1);
-        assert_eq!(changes[0].path, "/treasures/black_white_enabled");
-        assert_ne!(config_digest(&source), config_digest(&target));
-        let parsed = GameConfig::from_jsonc_str(&target.to_jsonc_string().unwrap()).unwrap();
-        assert_eq!(parsed, target);
     }
 
     #[test]

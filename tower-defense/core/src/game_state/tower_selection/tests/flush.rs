@@ -80,34 +80,3 @@ fn test_flush_treat_suits_as_same_and_shorten_4cards() {
     assert!(matches!(template.suit, Some(0 | 1)));
     assert_eq!(template.rank, Some(9));
 }
-
-#[test]
-fn black_white_can_be_disabled_without_removing_the_treasure() {
-    let cards = cards(&[
-        (SPADES, SEVEN),
-        (CLUBS, EIGHT),
-        (SPADES, NINE),
-        (CLUBS, TEN),
-        (SPADES, QUEEN),
-    ]);
-    let upgrades =
-        UpgradeCollection::from_entries(vec![crate::generated_upgrade(UpgradeKind::BlackWhite)], 0);
-    let mut config = config();
-    assert_eq!(
-        get_highest_tower_template(&cards, &upgrades, &config, 0)
-            .unwrap()
-            .kind,
-        FLUSH
-    );
-    config.treasures.black_white_enabled = false;
-    let disabled = get_highest_tower_template(&cards, &upgrades, &config, 0).unwrap();
-    let absent = get_highest_tower_template(
-        &cards,
-        &UpgradeCollection::from_entries(vec![], 0),
-        &config,
-        0,
-    )
-    .unwrap();
-    assert_eq!(disabled, absent);
-    assert_eq!(upgrades.entries()[0].kind(), UpgradeKind::BlackWhite);
-}

@@ -49,32 +49,7 @@ pub struct MonsterConfigState {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct TreasureConfigState {
-    /// Black/White's suit equivalence rule; false keeps the treasure collectible
-    /// while removing its effect. Shared by rendered and headless gameplay.
-    #[serde(default = "default_true")]
-    pub black_white_enabled: bool,
-}
-
-fn default_true() -> bool {
-    true
-}
-impl Default for TreasureConfigState {
-    fn default() -> Self {
-        Self {
-            black_white_enabled: true,
-        }
-    }
-}
-fn default_treasures(value: &TreasureConfigState) -> bool {
-    value == &TreasureConfigState::default()
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct GameConfig {
-    #[serde(default, skip_serializing_if = "default_treasures")]
-    pub treasures: TreasureConfigState,
     pub player: PlayerConfigState,
     pub towers: TowerConfigState,
     pub monsters: MonsterConfigState,
@@ -197,7 +172,6 @@ impl GameConfig {
             .collect::<Result<Vec<_>, String>>()?;
 
         let config = Self {
-            treasures: file.treasures,
             player,
             towers: TowerConfigState {
                 entries: tower_entries,
@@ -265,7 +239,6 @@ impl GameConfig {
             .collect::<Result<Vec<_>, String>>()?;
 
         Ok(JsonGameConfig {
-            treasures: self.treasures.clone(),
             player: JsonPlayerConfig {
                 max_hp: amount_value(self.player.max_hp_raw),
                 starting_gold: self.player.starting_gold,
@@ -365,8 +338,6 @@ impl GameConfig {
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 struct JsonGameConfig {
-    #[serde(default, skip_serializing_if = "default_treasures")]
-    treasures: TreasureConfigState,
     player: JsonPlayerConfig,
     monsters: JsonMonsterConfig,
     towers: JsonTowerConfig,
@@ -481,7 +452,6 @@ mod tests {
 
     fn config_with_stage_waves(stage_waves: Vec<StageWaveState>) -> GameConfigState {
         GameConfigState {
-            treasures: Default::default(),
             player: PlayerConfigState {
                 max_hp_raw: 60_000,
                 starting_gold: 100,
