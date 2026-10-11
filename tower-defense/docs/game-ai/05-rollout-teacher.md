@@ -38,7 +38,7 @@ legacy `position_candidate_limit`은 프로덕션 teacher 계약에서 완전히
 
 `candidate_limit=64`에서도 exact-best 보존율이 34%에 그치고 100%를 얻으려면 ≈512가 필요하다는 점, 그리고 rollout 비용이 후보 수에 선형으로 붙는다는 점은 quality와 throughput이 구조적으로 trade-off 관계에 있음을 보여준다. 이 flattened candidate list 표현 자체를 [`11-candidate-architecture-review.md`](11-candidate-architecture-review.md)에서 재검토했으며, vectorized joint scorer로 교체할 것을 권고했다([`decisions/0008-vectorized-joint-action-scoring.md`](decisions/0008-vectorized-joint-action-scoring.md)). 이 절의 flattened-candidate-bias 수치는 legacy 경로에 대한 historical evidence로 유지한다 - 현재 production candidate 표현은 `dense_semantic_candidates`(dense 전체 map `BuildTower` top-K + 모든 non-`BuildTower` action)다.
 
-현재 score는 `stage_progress_v1` 계약으로 stage 진행도와 현재 stage completion을 합산하고, full clear에는 1,000의 terminal victory bonus를 준다. 이 score는 candidate ranking용 fixed-horizon signal이며 최종 승률 평가를 대체하지 않는다.
+현재 score는 `stage_progress_v1` 계약으로 stage 진행도와 현재 stage completion을 합산하고, full clear에는 1,000의 terminal victory bonus를 준다. 이 score는 candidate ranking용 fixed-horizon signal이며 사전에 정한 held-out full-game 평가를 대체하지 않는다.
 
 ### 후속 결함 3: stage horizon이 score signal을 지웠다 (schema v3 -> v4)
 
@@ -255,7 +255,7 @@ full-game rollout이 충분히 싸지기 전에는 fixed horizon을 사용한다
 - endpoint state
 - 후보별 sample mean, variance, standard error
 
-초기 teacher score는 실험 전에 고정하고 dataset metadata에 기록한다. 진행도와 HP를 사용하더라도 최종 teacher 채택은 held-out full-game 승률로 결정한다.
+초기 teacher score는 실험 전에 고정하고 dataset metadata에 기록한다. 진행도와 HP를 사용하더라도 최종 teacher 채택은 [`08-evaluation.md`](08-evaluation.md)의 configuration별 primary metric과 허용 회귀 기준으로 결정한다.
 
 서로 다른 horizon 또는 seed 수에서 선택 action이 자주 바뀌면 label이 안정적이지 않은 것으로 본다. seed 수를 늘렸을 때 상위 후보 순위와 expected return이 수렴하는지 측정한다.
 
@@ -293,7 +293,7 @@ cargo run --release --manifest-path simulator/Cargo.toml --features simulator-wg
   --output artifacts/datasets/semantic-teacher.jsonl
 ```
 
-dataset observation에는 현재 state와 legal macro candidates만 저장한다. candidate rollout의 future result는 label 생성에만 사용하고 observation feature로 저장하지 않는다. `--build-tower-rollout-limit`은 teacher strength를 제한하므로 production dataset에서는 recall과 held-out full-clear 승률을 함께 검증한다.
+dataset observation에는 현재 state와 legal macro candidates만 저장한다. candidate rollout의 future result는 label 생성에만 사용하고 observation feature로 저장하지 않는다. `--build-tower-rollout-limit`은 teacher strength를 제한하므로 production dataset에서는 recall과 사전에 정한 held-out full-game 성과를 함께 검증한다.
 
 ## Stability evaluation harness (`teacher-eval`)
 
@@ -341,5 +341,5 @@ report는 provenance로 teacher score/observation/action schema version, config 
 - seed 수와 horizon 증가에 따른 label 안정성이 보고된다.
 - teacher 계산 비용이 state/action type별로 보고된다.
 - 기존 heuristic의 regret이 측정된다.
-- teacher 행동으로 실행한 held-out full game 승률이 기존 heuristic보다 개선된다.
+- teacher 행동으로 실행한 held-out full game의 사전 지정 primary metric이 기존 heuristic보다 개선된다.
 - 성공하기 전에는 복잡한 search infrastructure를 추가하지 않는다.

@@ -44,6 +44,7 @@ pub use game_state::command::{
 pub use game_state::config::{
     GameConfig, GameConfigState, MonsterConfigEntryState, MonsterConfigState, PlayerConfigState,
     StageWaveEntryState, StageWaveState, TowerConfigEntryState, TowerConfigState,
+    TreasureConfigState,
 };
 pub use game_state::effect::{
     MonsterStatusEffect, MonsterStatusEffectKind, StageModifierTowerCardState,
@@ -1453,6 +1454,7 @@ mod tests {
     #[test]
     fn game_config_state_round_trips_as_one_core_contract() {
         let state = GameConfigState {
+            treasures: Default::default(),
             player: super::PlayerConfigState {
                 max_hp_raw: 60_000,
                 starting_gold: 10,

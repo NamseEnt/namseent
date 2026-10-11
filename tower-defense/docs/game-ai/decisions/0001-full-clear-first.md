@@ -1,6 +1,6 @@
 # 0001: Fixed balance full-clear를 먼저 최적화한다
 
-- 상태: Accepted
+- 상태: Superseded by [0009](0009-balance-appropriate-evaluation.md) (2026-10-09)
 - 결정일: 2026-09-17
 
 ## 결정

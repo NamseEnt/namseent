@@ -20,9 +20,9 @@ pub fn get_highest_tower_template(
     rerolled_count: usize,
 ) -> Option<TowerTemplateState> {
     let straight_result = check_straight(cards, upgrades);
-    let flush_result = check_flush(cards, upgrades);
+    let flush_result = check_flush(cards, upgrades, config.treasures.black_white_enabled);
 
-    let straight_flush_result = flush_groups(cards, upgrades)
+    let straight_flush_result = flush_groups(cards, upgrades, config.treasures.black_white_enabled)
         .into_iter()
         .filter_map(|(suit, flush_cards)| {
             check_straight(&flush_cards, upgrades).map(|straight| (suit, straight))
@@ -101,7 +101,7 @@ pub fn get_highest_tower_template(
     }
 
     if let Some(flush_result) = flush_result {
-        let flush_cards = flush_groups(cards, upgrades)
+        let flush_cards = flush_groups(cards, upgrades, config.treasures.black_white_enabled)
             .into_iter()
             .find(|(suit, _)| *suit == flush_result.suit)
             .map(|(_, cards)| cards)
@@ -299,13 +299,17 @@ pub(crate) fn build_template(
     }
 }
 
-fn flush_groups(cards: &[CardState], upgrades: &UpgradeCollection) -> Vec<(u8, Vec<CardState>)> {
+fn flush_groups(
+    cards: &[CardState],
+    upgrades: &UpgradeCollection,
+    black_white_enabled: bool,
+) -> Vec<(u8, Vec<CardState>)> {
     let flush_card_count = if upgrades.shorten_straight_flush_to_4_cards() {
         4
     } else {
         CARD_COUNT
     };
-    let treat_suits_as_same = upgrades.treat_suits_as_same();
+    let treat_suits_as_same = black_white_enabled && upgrades.treat_suits_as_same();
 
     if cards.len() < flush_card_count {
         return Vec::new();
@@ -401,8 +405,12 @@ fn is_royal(ranks: &[usize], straight_card_count: usize) -> bool {
     straight_card_count == 4 && ranks.iter().all(|rank| royal_ranks.contains(rank))
 }
 
-fn check_flush(cards: &[CardState], upgrades: &UpgradeCollection) -> Option<FlushResult> {
-    flush_groups(cards, upgrades)
+fn check_flush(
+    cards: &[CardState],
+    upgrades: &UpgradeCollection,
+    black_white_enabled: bool,
+) -> Option<FlushResult> {
+    flush_groups(cards, upgrades, black_white_enabled)
         .into_iter()
         .max_by_key(|(_, cards)| cards.iter().map(|card| card.rank.ordinal()).max())
         .map(|(suit, _)| FlushResult { suit })

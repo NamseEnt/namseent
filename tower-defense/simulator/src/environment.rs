@@ -580,9 +580,26 @@ impl GameEnvironment {
                 .expect("derived seed must contain eight bytes"),
         );
         let game_seed = self.seed;
+        // A candidate-restricted card-service selection (Brush/FountainPen/
+        // Tricycle) derives its already-revealed candidate list from
+        // `rng.seed`; reseeding mid-selection would silently change the
+        // public candidates and reject the pending selection.
+        let keeps_revealed_candidates =
+            self.card_service_selection
+                .as_ref()
+                .is_some_and(|selection| {
+                    selection
+                        .candidate_card_ids(
+                            self.game_state.raw_state().deck(),
+                            self.game_state.raw_state().rng(),
+                        )
+                        .is_some()
+                });
         snapshot
             .edit_snapshot(|parts| {
-                parts.rng.seed = scenario_master_seed;
+                if !keeps_revealed_candidates {
+                    parts.rng.seed = scenario_master_seed;
+                }
                 resample_hidden_order(parts, game_seed, scenario_seed);
             })
             .map_err(|_| "rollout scenario seed produced an invalid snapshot".to_string())?;
@@ -744,6 +761,15 @@ impl GameEnvironment {
             observation.damage_trigger_tick,
         ))
         .expect("progress fingerprint serialization should be infallible")
+    }
+
+    /// Core reaches Result either through defeat (HP zero) or clearing the
+    /// configured stages. Progress is a separate metric and may round to 100.
+    pub fn victory(&self) -> bool {
+        matches!(
+            self.game_state.raw_state().flow(),
+            td_core::GameFlowState::Result { .. }
+        ) && self.game_state.hp().raw() > 0
     }
 
     pub fn clear_rate(&self) -> f32 {
@@ -1927,25 +1953,25 @@ impl GameEnvironment {
             .collect()
     }
 
+    /// Card-service selection is monotone: while the current step still
+    /// needs cards, every selectable card that is not already selected is
+    /// offered; once the step is full, only `ConfirmCardServiceSelection` is.
+    /// Deselecting (undo) and selecting into a full step (a no-op) are not
+    /// actions, so a policy can never loop without making progress.
     fn card_service_actions(&self) -> Vec<AgentAction> {
         let Some(selection) = self.card_service_selection() else {
             return Vec::new();
         };
-        let cards = &self.game_state.raw_state().deck().all_cards;
-        let mut actions = cards
-            .iter()
-            .enumerate()
-            .filter(|(_, card)| {
-                raw_card_matches_filter(&selection.steps[selection.current_step].filter, card)
-            })
-            .map(|(card_index, _)| AgentAction::SelectCardServiceCard { card_index })
-            .collect::<Vec<_>>();
-        if selection.selected_card_ids[selection.current_step].len()
-            == selection.steps[selection.current_step].count
-        {
-            actions.push(AgentAction::ConfirmCardServiceSelection);
+        if card_service_step_is_full(selection) {
+            return vec![AgentAction::ConfirmCardServiceSelection];
         }
-        actions
+        let cards = &self.game_state.raw_state().deck().all_cards;
+        let selected = &selection.selected_card_ids[selection.current_step];
+        card_service_selectable_card_indices(self.game_state.raw_state(), selection)
+            .into_iter()
+            .filter(|card_index| !selected.contains(&cards[*card_index].id))
+            .map(|card_index| AgentAction::SelectCardServiceCard { card_index })
+            .collect()
     }
 
     fn card_service_kind_for_action(
@@ -1984,22 +2010,31 @@ impl GameEnvironment {
                     .ok_or_else(|| EnvironmentError::CardServiceRejected {
                         action_id: action.action_id(),
                     })?;
+                let card_id = card.id;
+                let selectable = self
+                    .card_service_selection
+                    .as_ref()
+                    .is_some_and(|selection| {
+                        !card_service_step_is_full(selection)
+                            && !selection.selected_card_ids[selection.current_step]
+                                .contains(&card_id)
+                            && card_service_selectable_card_indices(
+                                self.game_state.raw_state(),
+                                selection,
+                            )
+                            .contains(card_index)
+                    });
+                if !selectable {
+                    return Err(EnvironmentError::CardServiceRejected {
+                        action_id: action.action_id(),
+                    });
+                }
                 let selection = self.card_service_selection.as_mut().ok_or_else(|| {
                     EnvironmentError::CardServiceRejected {
                         action_id: action.action_id(),
                     }
                 })?;
-                if !raw_card_matches_filter(&selection.steps[selection.current_step].filter, card) {
-                    return Err(EnvironmentError::CardServiceRejected {
-                        action_id: action.action_id(),
-                    });
-                }
-                let selected = &mut selection.selected_card_ids[selection.current_step];
-                if let Some(index) = selected.iter().position(|id| *id == card.id) {
-                    selected.remove(index);
-                } else if selected.len() < selection.steps[selection.current_step].count {
-                    selected.push(card.id);
-                }
+                selection.selected_card_ids[selection.current_step].push(card_id);
                 Ok(())
             }
             AgentAction::ConfirmCardServiceSelection => {
@@ -2132,14 +2167,7 @@ fn card_service_observation_raw(
         .iter()
         .filter_map(|card_id| cards.iter().position(|card| card.id == *card_id))
         .collect();
-    let candidate_card_indices = cards
-        .iter()
-        .enumerate()
-        .filter(|(_, card)| {
-            raw_card_matches_filter(&selection.steps[selection.current_step].filter, card)
-        })
-        .map(|(index, _)| index)
-        .collect();
+    let candidate_card_indices = card_service_selectable_card_indices(game_state, selection);
     Some(CardServiceObservation {
         key: selection.service_kind()?.key().to_string(),
         current_step: selection.current_step,
@@ -2150,24 +2178,35 @@ fn card_service_observation_raw(
     })
 }
 
-fn raw_card_matches_filter(
-    filter: &td_core::CardSelectionFilterState,
-    card: &td_core::CardState,
-) -> bool {
-    match filter {
-        td_core::CardSelectionFilterState::Any => true,
-        td_core::CardSelectionFilterState::Face => card.rank.is_face(),
-        td_core::CardSelectionFilterState::Number => card.rank.is_number_card(),
-        td_core::CardSelectionFilterState::Rank(rank) => card.rank == *rank,
-        td_core::CardSelectionFilterState::Engraved => card.engraving.is_some(),
-        td_core::CardSelectionFilterState::NotEngraved => card.engraving.is_none(),
-        td_core::CardSelectionFilterState::And(filters) => filters
-            .iter()
-            .all(|filter| raw_card_matches_filter(filter, card)),
-        td_core::CardSelectionFilterState::Or(filters) => filters
-            .iter()
-            .any(|filter| raw_card_matches_filter(filter, card)),
-    }
+fn card_service_step_is_full(selection: &td_core::CardServiceSelectionState) -> bool {
+    selection.selected_card_ids[selection.current_step].len()
+        >= selection.steps[selection.current_step].count
+}
+
+/// Deck indices the current card-service step may select, taken from the
+/// authoritative core rules: the service's seeded candidate list when it has
+/// one (e.g. Brush/FountainPen/Tricycle offer 3 random matching cards),
+/// otherwise every card matching the step filter.
+fn card_service_selectable_card_indices(
+    game_state: &td_core::CoreState,
+    selection: &td_core::CardServiceSelectionState,
+) -> Vec<usize> {
+    let cards = &game_state.deck().all_cards;
+    let filter = &selection.steps[selection.current_step].filter;
+    let candidate_card_ids = (selection.current_step == 0)
+        .then(|| selection.candidate_card_ids(game_state.deck(), game_state.rng()))
+        .flatten();
+    cards
+        .iter()
+        .enumerate()
+        .filter(|(_, card)| {
+            filter.matches(card)
+                && candidate_card_ids
+                    .as_ref()
+                    .is_none_or(|candidates| candidates.contains(&card.id))
+        })
+        .map(|(index, _)| index)
+        .collect()
 }
 
 #[cfg(test)]
@@ -2191,6 +2230,25 @@ fn card_observation(card: &td_core::CardState) -> CardObservation {
 mod tests {
     use super::*;
     use std::collections::HashSet;
+
+    #[test]
+    fn terminal_victory_is_independent_of_progress_percentage() {
+        let mut environment = environment();
+        assert!(!environment.victory());
+        for (progress, hp, won) in [(td_core::RATIO_SCALE, 0, false), (20_000, 1_000, true)] {
+            let mut snapshot = environment.game_state.core_state_snapshot();
+            snapshot
+                .edit_snapshot(|parts| {
+                    parts.flow = td_core::GameFlowState::Result {
+                        clear_rate_raw: progress,
+                    };
+                    parts.hp_raw = hp;
+                })
+                .unwrap();
+            assert!(environment.game_state.restore_core_state_snapshot(snapshot));
+            assert_eq!(environment.victory(), won);
+        }
+    }
 
     #[test]
     fn default_reward_config_preserves_existing_scales() {
@@ -3824,6 +3882,132 @@ mod tests {
                 .iter()
                 .any(|action| { matches!(action, AgentAction::ConfirmCardServiceSelection) })
         );
+    }
+
+    #[test]
+    fn candidate_card_services_offer_exactly_the_authoritative_candidates() {
+        for kind in [
+            td_core::CardServiceKind::Brush,
+            td_core::CardServiceKind::FountainPen,
+            td_core::CardServiceKind::Tricycle,
+        ] {
+            let mut environment = environment();
+            let slot_index = environment
+                .game_state
+                .add_card_service_shop_slot_of_kind_for_test(kind.raw());
+            let outcome = environment
+                .step(AgentAction::PurchaseShopItem { slot_index })
+                .expect("card service purchase should be legal");
+            let state = environment.game_state.raw_state();
+            let selection = td_core::CardServiceSelectionState::new(kind).unwrap();
+            let candidate_ids = selection
+                .candidate_card_ids(state.deck(), state.rng())
+                .expect("service should restrict to seeded candidates");
+            let expected = state
+                .deck()
+                .all_cards
+                .iter()
+                .enumerate()
+                .filter(|(_, card)| candidate_ids.contains(&card.id))
+                .map(|(index, _)| index)
+                .collect::<Vec<_>>();
+            let offered = environment
+                .legal_actions()
+                .into_iter()
+                .filter_map(|legal| match legal.action {
+                    AgentAction::SelectCardServiceCard { card_index } => Some(card_index),
+                    _ => None,
+                })
+                .collect::<Vec<_>>();
+            assert_eq!(offered, expected, "{kind:?}");
+            assert!(!offered.is_empty() && offered.len() <= 3, "{kind:?}");
+            assert_eq!(
+                outcome
+                    .observation
+                    .card_service
+                    .unwrap()
+                    .candidate_card_indices,
+                expected,
+                "{kind:?}"
+            );
+            environment
+                .step(AgentAction::SelectCardServiceCard {
+                    card_index: offered[offered.len() - 1],
+                })
+                .expect("candidate selection should be legal");
+            environment
+                .step(AgentAction::ConfirmCardServiceSelection)
+                .expect("candidate confirmation should be accepted by core");
+            assert_eq!(
+                environment.decision_point(),
+                DecisionPoint::Shop,
+                "{kind:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn card_service_selection_offers_no_undo_or_noop_actions() {
+        let mut exercised = 0usize;
+        for kind in td_core::CardServiceKind::ALL.iter().copied() {
+            let mut environment = environment();
+            let slot_index = environment
+                .game_state
+                .add_card_service_shop_slot_of_kind_for_test(kind.raw());
+            if environment
+                .step(AgentAction::PurchaseShopItem { slot_index })
+                .is_err()
+            {
+                continue;
+            }
+            exercised += 1;
+            let mut decisions = 0usize;
+            while environment.decision_point() == DecisionPoint::CardServiceSelection {
+                let selection = environment.card_service_selection().unwrap().clone();
+                let selected = &selection.selected_card_ids[selection.current_step];
+                let legal = environment
+                    .legal_actions()
+                    .into_iter()
+                    .map(|legal| legal.action)
+                    .collect::<Vec<_>>();
+                if selected.len() >= selection.steps[selection.current_step].count {
+                    assert_eq!(legal, vec![AgentAction::ConfirmCardServiceSelection]);
+                } else {
+                    assert!(!legal.contains(&AgentAction::ConfirmCardServiceSelection));
+                    for action in &legal {
+                        let AgentAction::SelectCardServiceCard { card_index } = action else {
+                            panic!("unexpected card-service action {action:?}");
+                        };
+                        let card_id =
+                            environment.game_state.raw_state().deck().all_cards[*card_index].id;
+                        assert!(!selected.contains(&card_id), "undo offered for {kind:?}");
+                    }
+                }
+                for (card_index, card) in environment
+                    .game_state
+                    .raw_state()
+                    .deck()
+                    .all_cards
+                    .iter()
+                    .enumerate()
+                {
+                    if selected.contains(&card.id) {
+                        let undo = AgentAction::SelectCardServiceCard { card_index };
+                        assert!(!environment.semantic_action_is_legal(&undo));
+                        let mut probe = identical_clone(&environment);
+                        assert!(probe.step(undo).is_err(), "undo accepted for {kind:?}");
+                    }
+                }
+                let action = legal.last().cloned().expect("card service has an action");
+                environment.step(action).expect("legal card-service action");
+                decisions += 1;
+                assert!(
+                    decisions <= 8,
+                    "card service {kind:?} did not finish monotonically"
+                );
+            }
+        }
+        assert!(exercised >= 8, "only {exercised} card services exercised");
     }
 
     #[test]

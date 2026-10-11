@@ -29,7 +29,7 @@ CNN은 우선순위가 낮다. topology 실패가 확인되면 handcrafted route
 
 기본 inference는 Apple M1 16GB에서 대량 병렬 simulation을 방해하지 않아야 한다.
 
-- 모델 크기보다 decisions/sec와 full-clear 승률의 trade-off를 측정한다.
+- 모델 크기보다 decisions/sec와 사전 지정 플레이 성과의 trade-off를 측정한다.
 - CPU inference를 이식 가능한 baseline으로 유지한다.
 - M1에서는 WGPU Metal backend로 학습과 batched inference를 실행할 수 있게 한다.
 - 원격 머신은 확인된 GPU에 맞는 지원 backend를 사용한다.
@@ -86,7 +86,7 @@ cargo run --release --manifest-path simulator/Cargo.toml --features simulator-wg
 
 확인할 항목은 다음과 같다.
 
-- held-out full-clear 승률
+- held-out primary metric과 full-clear 보조 통계 ([평가 계약](08-evaluation.md))
 - policy entropy와 KL
 - value loss와 explained variance
 - advantage distribution
@@ -129,6 +129,6 @@ search policy는 다음 용도로 별도 유지할 수 있다.
 - M1 16GB에서 학습 또는 최소한 inference와 rollout이 memory limit 안에 동작한다.
 - CPU simulator와 GPU learner를 함께 실행했을 때 장치 utilization과 queue latency가 보고된다.
 - CPU inference와 batched GPU inference의 end-to-end 결과로 기본 경로를 선택한다.
-- PPO가 BC 대비 승률을 개선하는지 분리해 보고한다.
+- PPO가 BC 대비 사전 지정 primary metric을 개선하는지 분리해 보고한다.
 - PPO가 실패할 때만 같은 예산의 off-policy 비교를 시작한다.
 - production policy의 평가 경로에는 rollout search가 없다.

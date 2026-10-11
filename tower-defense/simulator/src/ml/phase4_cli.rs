@@ -24,6 +24,13 @@ use std::sync::Arc;
 
 #[derive(Subcommand)]
 pub enum Phase4Command {
+    /// Start or resume content/configuration retraining from a JSON specification.
+    Retrain {
+        #[arg(long)]
+        spec: PathBuf,
+        #[arg(long, default_value_t = 0)]
+        threads: usize,
+    },
     /// Generate canonical or teacher episodes for a frozen split.
     Collect {
         #[arg(long, value_enum)]
@@ -138,6 +145,9 @@ pub enum Phase4Command {
         comparisons: Vec<String>,
         #[arg(long)]
         output: PathBuf,
+        /// Explicitly evaluate on a changed config (recorded in the report).
+        #[arg(long)]
+        allow_checkpoint_config_change: bool,
         /// Required for the one-time final evaluation.
         #[arg(long)]
         confirm_final: bool,
@@ -347,8 +357,23 @@ fn load_limited(
 }
 
 pub fn run(command: Phase4Command) -> Result<()> {
-    let config = Arc::new(GameConfig::default_config());
+    run_with_config(command, None)
+}
+
+pub fn run_with_config(command: Phase4Command, config_path: Option<&Path>) -> Result<()> {
+    if let Phase4Command::Retrain { spec, threads } = &command {
+        if config_path.is_some() {
+            bail!("retrain uses the target_config in its spec; do not also pass --config");
+        }
+        configure_threads(*threads)?;
+        return super::retraining::run_spec(spec);
+    }
+    let config = Arc::new(match config_path {
+        Some(path) => crate::config::load_jsonc(path)?,
+        None => GameConfig::default_config(),
+    });
     match command {
+        Phase4Command::Retrain { .. } => unreachable!("handled above"),
         Phase4Command::Collect {
             split,
             source,
@@ -609,6 +634,7 @@ pub fn run(command: Phase4Command) -> Result<()> {
             policies,
             comparisons,
             output,
+            allow_checkpoint_config_change,
             confirm_final,
             threads,
         } => {
@@ -632,9 +658,14 @@ pub fn run(command: Phase4Command) -> Result<()> {
                 let (name, directory) = spec
                     .split_once('=')
                     .ok_or_else(|| anyhow::anyhow!("--policy expects name=run_dir"))?;
+                let (policy, _) = crate::simulation::load_semantic_policy(
+                    Path::new(directory),
+                    &config,
+                    allow_checkpoint_config_change,
+                )?;
                 eval_policies.push(EvalPolicy::Learned {
                     name: name.to_string(),
-                    policy: Box::new(SemanticPolicy::from_path(Path::new(directory))?),
+                    policy: Box::new(policy),
                 });
             }
             let comparisons = if comparisons.is_empty() {
@@ -653,8 +684,9 @@ pub fn run(command: Phase4Command) -> Result<()> {
                     .collect::<Result<Vec<_>>>()?
             };
             let seeds = split.seeds(count)?;
-            let report =
+            let mut report =
                 evaluate_policies(config, split.name(), &seeds, &eval_policies, &comparisons)?;
+            report.checkpoint_config_override = allow_checkpoint_config_change;
             for summary in &report.summaries {
                 eprintln!(
                     "{}: mean {:.2} median {:.2} stage {:.2} decisions {:.1} illegal {} fallback {} post_sampling_mutations {} \
@@ -851,7 +883,6 @@ pub fn run(command: Phase4Command) -> Result<()> {
             }
             let init_policy = super::semantic_bc::SemanticPolicy::from_run_dir(&init_run_dir)?;
             let a1_policy = super::semantic_bc::SemanticPolicy::from_path(&a1_actor)?;
-            let config = Arc::new(GameConfig::default_config());
             let device = default_policy_device();
             let development_seeds = Phase4Split::PpoDevelopment.seeds(None)?;
             let mut non_position_decisions = 0usize;
@@ -1082,6 +1113,7 @@ pub fn run(command: Phase4Command) -> Result<()> {
                     evaluate_every,
                     development_seeds,
                     position_reference_actor,
+                    transfer: None,
                 },
             )?;
             eprintln!("completed {} PPO iterations", metadata.completed_iterations);

@@ -81,8 +81,8 @@ oversampling을 사용해도 validation과 최종 평가의 자연 분포는 바
 - 전체 accuracy뿐 아니라 action type별 top-1/top-k accuracy를 보고한다.
 - teacher value 기준 student regret을 보고한다.
 - build-placement candidate recall과 pair ranking 품질을 보고한다.
-- teacher trajectory와 student trajectory의 held-out full-game 승률을 비교한다.
+- teacher trajectory와 student trajectory의 사전 지정 held-out full-game primary metric을 비교한다.
 - student inference latency와 memory를 측정한다.
 - dataset 생성 코드와 loader가 schema mismatch를 거부한다.
 
-BC accuracy가 높아도 teacher 자체의 승률이 낮으면 성공으로 인정하지 않는다. 반대로 teacher action과 일부 다르더라도 full-clear 승률이 같거나 높고 regret이 낮다면 정책 후보로 유지할 수 있다.
+BC accuracy가 높아도 teacher 자체의 플레이 성능이 기준 정책보다 개선되지 않으면 강도 개선으로 인정하지 않는다. 반대로 teacher action과 일부 다르더라도 사전 지정 primary metric의 허용 회귀 기준을 만족하고 regret이 낮다면 정책 후보로 유지할 수 있다. 현재 밸런스의 완주 0회만으로 teacher나 student를 탈락시키지 않는다.

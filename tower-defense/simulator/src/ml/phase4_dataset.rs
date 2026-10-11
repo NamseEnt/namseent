@@ -41,7 +41,7 @@ pub const PHASE4_DATASET_SCHEMA_VERSION: u32 = 2;
 /// selection rewrite and 3-card candidate card services from #1369-#1371).
 pub const GAME_RULES_EPOCH: u32 = 2;
 /// Runaway guard: reaching it is an invariant failure, never a result.
-pub const MAX_EPISODE_DECISIONS: usize = 512;
+pub const MAX_EPISODE_DECISIONS: usize = 10_000;
 /// Game seeds used by the Phase 3 pilot, held-out, post-hoc extension and
 /// terminal gate. Never used for Phase 4 training or tuning.
 pub const PHASE3_RESERVED_GAME_SEEDS: std::ops::RangeInclusive<u64> = 108..=131;
@@ -61,10 +61,12 @@ pub enum Phase4Split {
     PpoDevelopment,
     Phase4bFinal,
     V2Final,
+    /// Reserved before the first content-change adaptation experiment.
+    RetrainingValidation,
 }
 
 impl Phase4Split {
-    pub const ALL: [Self; 11] = [
+    pub const ALL: [Self; 12] = [
         Self::CanonicalTrain,
         Self::CanonicalValidation,
         Self::TeacherTrain,
@@ -76,6 +78,7 @@ impl Phase4Split {
         Self::PpoDevelopment,
         Self::Phase4bFinal,
         Self::V2Final,
+        Self::RetrainingValidation,
     ];
 
     /// Frozen before any Phase 4A data was generated (see
@@ -97,6 +100,7 @@ impl Phase4Split {
             // Policy v2, frozen before any v2 model was trained (see
             // docs/game-ai/15-policy-v2.md).
             Self::V2Final => 4_200_000..=4_200_255,
+            Self::RetrainingValidation => 6_000_000..=6_000_255,
         }
     }
 
@@ -113,7 +117,8 @@ impl Phase4Split {
     pub fn is_evaluation_split(self) -> bool {
         matches!(
             self,
-            Self::DevelopmentEvaluation
+            Self::RetrainingValidation
+                | Self::DevelopmentEvaluation
                 | Self::FinalEvaluation
                 | Self::PpoDevelopment
                 | Self::Phase4bFinal
@@ -141,6 +146,7 @@ impl Phase4Split {
             Self::PpoDevelopment => "ppo_development",
             Self::Phase4bFinal => "phase4b_final",
             Self::V2Final => "v2_final",
+            Self::RetrainingValidation => "retraining_validation",
         }
     }
 
@@ -264,19 +270,42 @@ impl DatasetProvenance {
 }
 
 pub fn core_tree_hash() -> String {
-    std::process::Command::new("git")
-        .args([
-            "-C",
-            env!("CARGO_MANIFEST_DIR"),
-            "rev-parse",
-            "HEAD:tower-defense/core",
-        ])
-        .output()
-        .ok()
-        .filter(|output| output.status.success())
-        .and_then(|output| String::from_utf8(output.stdout).ok())
-        .map(|text| text.trim().to_string())
-        .unwrap_or_else(|| "<git rev-parse failed>".to_string())
+    // Include working-tree rule edits; HEAD's tree alone silently misses them.
+    fn collect(path: &Path, paths: &mut Vec<std::path::PathBuf>) {
+        for entry in std::fs::read_dir(path)
+            .expect("core source directory")
+            .flatten()
+        {
+            let path = entry.path();
+            if path.is_dir()
+                && path
+                    .file_name()
+                    .is_some_and(|name| name != "target" && name != ".git")
+            {
+                collect(&path, paths);
+            } else if path
+                .extension()
+                .is_some_and(|ext| ext == "rs" || ext == "toml")
+            {
+                paths.push(path);
+            }
+        }
+    }
+    use sha2::{Digest, Sha256};
+    let root = Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../core"));
+    let mut paths = Vec::new();
+    collect(root, &mut paths);
+    paths.sort();
+    let mut hash = Sha256::new();
+    for path in paths {
+        let name = path.strip_prefix(root).unwrap().to_string_lossy();
+        hash.update((name.len() as u64).to_le_bytes());
+        hash.update(name.as_bytes());
+        let bytes = std::fs::read(&path).expect("core source file");
+        hash.update((bytes.len() as u64).to_le_bytes());
+        hash.update(bytes);
+    }
+    format!("sha256:{:x}", hash.finalize())
 }
 
 fn git_dirty_paths() -> Vec<String> {

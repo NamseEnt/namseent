@@ -110,6 +110,20 @@ impl Database {
         Ok(Self { conn })
     }
 
+    /// Limit an invocation's report to its games while retaining the shared DB.
+    pub fn open_run(path: &Path, simulation_id_prefix: &str) -> anyhow::Result<Self> {
+        let database = Self::open(path)?;
+        database.conn.execute(
+            "CREATE TEMP TABLE report_simulations AS SELECT id FROM main.simulations WHERE substr(id, 1, ?1) = ?2",
+            params![simulation_id_prefix.len() as i64, simulation_id_prefix],
+        )?;
+        database.conn.execute_batch(
+            "CREATE TEMP VIEW simulations AS SELECT * FROM main.simulations WHERE id IN (SELECT id FROM report_simulations);
+             CREATE TEMP VIEW simulation_events AS SELECT * FROM main.simulation_events WHERE simulation_id IN (SELECT id FROM report_simulations);",
+        )?;
+        Ok(database)
+    }
+
     pub fn list_items(&self) -> anyhow::Result<Vec<SummaryRow>> {
         let summary = self.list_shop_purchase_summaries()?;
         Ok(self.build_known_summary(summary, &item_names()))
@@ -253,7 +267,7 @@ impl Database {
         json_path: &str,
     ) -> anyhow::Result<Vec<(String, String)>> {
         let sql = format!(
-            "SELECT simulation_id, json_extract(event_data, '{}') FROM simulation_events WHERE event_type = ?1",
+            "SELECT simulation_id, json_extract(event_data, '{}') FROM simulation_events WHERE event_type = ?1 AND simulation_id IN (SELECT id FROM simulations WHERE completed_at IS NOT NULL)",
             json_path,
         );
         let mut stmt = self.conn.prepare(&sql)?;

@@ -16,5 +16,5 @@
 - teacher는 실제 미래 RNG를 미리 보지 않는다.
 - 후보별 같은 future scenario seed 집합을 사용한다.
 - seed 수와 horizon에 대한 label 안정성을 측정한다.
-- held-out full-game 승률이 기존 heuristic보다 높을 때만 teacher를 확장한다.
+- held-out full-game의 사전 지정 primary metric이 기존 heuristic보다 개선될 때만 teacher를 확장한다. 지표 선택은 [0009](0009-balance-appropriate-evaluation.md)를 따른다.
 - 성공 후 policy pruning, value bootstrap, 반복 distillation을 단계적으로 추가할 수 있다.

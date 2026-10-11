@@ -97,8 +97,8 @@ jobs:
         run: |
           echo "CLANGCC=${{ github.workspace }}/namui/namui-cli/wasi-sdk/bin/clang" >> $GITHUB_ENV
           echo "CLANGCXX=${{ github.workspace }}/namui/namui-cli/wasi-sdk/bin/clang++" >> $GITHUB_ENV
-          echo "CC=${{ github.workspace }}/namui/namui-cli/wasi-sdk/bin/clang" >> $GITHUB_ENV
-          echo "CXX=${{ github.workspace }}/namui/namui-cli/wasi-sdk/bin/clang++" >> $GITHUB_ENV
+          echo "CC_wasm32_wasip1_threads=${{ github.workspace }}/namui/namui-cli/wasi-sdk/bin/clang" >> $GITHUB_ENV
+          echo "CXX_wasm32_wasip1_threads=${{ github.workspace }}/namui/namui-cli/wasi-sdk/bin/clang++" >> $GITHUB_ENV
           echo "WASI_SDK=${{ github.workspace }}/namui/namui-cli/wasi-sdk" >> $GITHUB_ENV
           echo "WASI_SYSROOT=${{ github.workspace }}/namui/namui-cli/wasi-sdk/share/wasi-sysroot" >> $GITHUB_ENV
           echo "EMSDK_SYSTEM_INCLUDE=${{ github.workspace }}/namui/namui-cli/emscripten/system/include" >> $GITHUB_ENV
