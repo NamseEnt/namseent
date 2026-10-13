@@ -12,6 +12,7 @@ pub use game_state::{
     AttackId, CommandError, EntityId, MonsterId, PlayerCommand, RecordedPlayerCommand, TowerId,
 };
 pub use td_core::{CommandOutput, CoreEvent};
+pub mod atlas;
 pub mod card;
 mod hand;
 mod hand_panel;
