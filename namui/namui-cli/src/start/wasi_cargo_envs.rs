@@ -25,7 +25,7 @@ pub fn wasi_cargo_envs(wasi_type: WasiType) -> [(&'static str, String); 10] {
                 .to_string(),
         ),
         (
-            "CC",
+            "CC_wasm32-wasip1-threads",
             cli_root_path
                 .join("wasi-sdk/bin/clang")
                 .to_str()
@@ -33,7 +33,7 @@ pub fn wasi_cargo_envs(wasi_type: WasiType) -> [(&'static str, String); 10] {
                 .to_string(),
         ),
         (
-            "CXX",
+            "CXX_wasm32-wasip1-threads",
             cli_root_path
                 .join("wasi-sdk/bin/clang++")
                 .to_str()
