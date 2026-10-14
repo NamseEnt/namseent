@@ -7,6 +7,8 @@ use enum_dispatch::enum_dispatch;
 pub(super) mod battery;
 pub(super) mod brush;
 pub(super) mod cactus;
+#[cfg(feature = "experimental-content")]
+pub(super) mod card_polisher;
 pub(super) mod club_sword;
 pub(super) mod copier;
 pub(super) mod eraser;
@@ -47,6 +49,8 @@ pub(crate) trait CardServiceBehavior {
 #[derive(Clone, Copy)]
 pub(crate) enum CardServiceBehaviorImpl {
     Battery(battery::Behavior),
+    #[cfg(feature = "experimental-content")]
+    CardPolisher(card_polisher::Behavior),
     Brush(brush::Behavior),
     Cactus(cactus::Behavior),
     ClubSword(club_sword::Behavior),

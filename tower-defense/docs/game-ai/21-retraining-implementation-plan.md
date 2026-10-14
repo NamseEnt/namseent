@@ -1,13 +1,13 @@
 # 기획 변경 후 재학습 구현 계획
 
-> 현재 범위: AI 반복 실행·기존 통계 수집에 더해, 2026-10-09 후속 요청의 건설 후보 확장·콘텐츠 변경 후 재학습·보물 효과 제거 실험을 구현한다. 밸런스 조정 방법론과 사람 모델은 후속 작업이다. 현재 구현과 검증 범위는 [24](24-construction-and-content-adaptation.md)를 따른다.
+> 현재 범위: AI 반복 실행·기존 통계 수집에 더해, 2026-10-09 후속 요청의 건설 후보 확장·콘텐츠 변경 후 재학습·보물 효과 제거 실험을 구현한다. 밸런스 조정 방법론과 사람 모델은 후속 작업이다. 현재 구현과 검증 범위는 [24](24-construction-and-content-adaptation.md)와 [25](25-effect-inputs-and-retraining-study.md)를 따른다.
 
 
 ## 목표와 현재 상태
 
 [`00-goals-and-acceptance.md`](00-goals-and-acceptance.md)의 재학습 목표를 구현 단위로 나눈다. 성공 판정은 [`09-balance-experiments.md`](09-balance-experiments.md)의 비교 계약을 따른다. 이 문서는 구현 계획이며 아래 기능의 구현 완료나 재학습 속도 개선을 보고하는 문서가 아니다.
 
-수치 변경 경로의 첫 구현과 기술 검증은 [`22-numeric-retraining.md`](22-numeric-retraining.md)에 기록한다. 효과 입력 확장과 재학습 효율 비교는 남아 있다.
+수치 변경 경로의 첫 구현과 기술 검증은 [`22-numeric-retraining.md`](22-numeric-retraining.md)에 기록한다. 효과 입력 확장·정확한 재개와 scratch 3회 반복 비교는 [`25`](25-effect-inputs-and-retraining-study.md)에 기록한다.
 
 계획 수립 시점에 재사용할 수 있었던 기반:
 
@@ -93,7 +93,7 @@
 
 ## 구현 순서
 
-첫 수치 변경 경로의 구현 범위와 사용법은 [`22-numeric-retraining.md`](22-numeric-retraining.md)에 기록한다. 새 효과 입력과 구조 변경 adapter, 재학습 효율의 대조 실험은 후속 작업이다.
+첫 수치 변경 경로의 구현 범위와 사용법은 [`22-numeric-retraining.md`](22-numeric-retraining.md)에 기록한다. 새 효과 입력과 구조 변경 adapter, 재학습 효율의 대조 실험 구현과 결과는 [`25`](25-effect-inputs-and-retraining-study.md)를 따른다.
 
 0. **평가 계약 반영 완료:** 재학습 checkpoint는 개발 평균 진행도로 선택한다. 향후 다른 primary metric이 필요하면 spec의 확장을 별도로 구현한다.
 1. **수치 변경 경로:** 1 → 2의 동일 구조 이관 → 4의 최소 workflow → 5의 수치 변경 비교. 기존 checkpoint 재사용을 가장 작은 변경으로 검증한다.

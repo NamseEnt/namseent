@@ -557,7 +557,7 @@ mod purchase_tests {
             assert_eq!(CardServiceSelectionState::service_key(*kind), kind.key());
         }
         assert!(
-            crate::CardServiceKind::from_raw(16)
+            crate::CardServiceKind::from_raw(crate::CardServiceKind::COUNT as u8)
                 .and_then(definition::card_service_behavior)
                 .is_none()
         );
@@ -689,6 +689,63 @@ mod purchase_tests {
             assert_ne!(state.deck().all_cards, before);
             assert_eq!(state.pending_card_service_kind(), None);
         }
+    }
+
+    #[cfg(feature = "experimental-content")]
+    #[test]
+    fn card_polisher_runs_through_shop_purchase_and_authoritative_commands() {
+        let mut state = core_state();
+        state
+            .edit_snapshot(|parts| {
+                parts.progress.gold = 100;
+                parts.config = crate::GameConfig::default_config();
+                parts.flow = crate::GameFlowState::Shopping(crate::ShopState {
+                    slots: vec![crate::ShopSlotDataState {
+                        id: 77,
+                        slot: crate::ShopSlotState::CardService {
+                            kind: crate::CardServiceKind::CardPolisher.raw(),
+                            cost: 45,
+                        },
+                        purchased: false,
+                    }],
+                });
+            })
+            .expect("valid shop fixture");
+        let mut session = crate::CoreSession::from_state(state).expect("valid session");
+        let before = session.observation(1, crate::ACTION_WIRE_SCHEMA_VERSION, 10, 10);
+        assert_eq!(before.shop[0].key, "card_polisher");
+        assert_eq!(before.shop[0].key_id, 17);
+        assert_eq!(before.shop[0].cost, 45);
+        assert!(session.raw_state().can_purchase_shop_slot(0));
+        session
+            .apply(crate::PlayerCommand::PurchaseShopItem { slot_index: 0 })
+            .expect("purchase command accepted");
+        assert_eq!(session.raw_state().progress().gold, 55);
+        assert!(
+            matches!(session.raw_state().flow(), crate::GameFlowState::Shopping(shop) if shop.slots[0].purchased)
+        );
+        assert_eq!(
+            session.raw_state().pending_card_service_kind_typed(),
+            Some(crate::CardServiceKind::CardPolisher)
+        );
+        let selected_id = session.raw_state().deck().all_cards[0].id;
+        session
+            .apply(crate::PlayerCommand::ConfirmCardServiceSelection {
+                selected_card_ids: vec![vec![selected_id as u64]],
+            })
+            .expect("selection command accepted");
+        let card = session
+            .raw_state()
+            .deck()
+            .get_card(selected_id)
+            .expect("card remains in deck");
+        assert_eq!(card.polish_pct_raw, 3_000_000);
+        assert_eq!(card.suit, crate::Suit::Spades);
+        assert_eq!(session.raw_state().progress().gold, 55);
+        assert_eq!(session.raw_state().pending_card_service_kind_typed(), None);
+        assert!(
+            matches!(session.raw_state().flow(), crate::GameFlowState::Shopping(shop) if shop.slots[0].purchased)
+        );
     }
 
     #[test]

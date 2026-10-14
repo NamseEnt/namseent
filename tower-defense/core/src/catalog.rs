@@ -7,6 +7,7 @@
 /// Version of the raw catalog key and numeric-id contract.
 pub const CATALOG_SCHEMA_VERSION: u32 = 1;
 
+#[cfg(not(feature = "experimental-content"))]
 pub const ITEM_KIND_KEYS: [&str; 11] = [
     "Bread",
     "Candy",
@@ -19,6 +20,22 @@ pub const ITEM_KIND_KEYS: [&str; 11] = [
     "Milk",
     "RubberCone",
     "Gimbap",
+];
+
+#[cfg(feature = "experimental-content")]
+pub const ITEM_KIND_KEYS: [&str; 12] = [
+    "Bread",
+    "Candy",
+    "Cannoli",
+    "Cookie",
+    "Donut",
+    "RiceBall",
+    "LunchBox",
+    "LumpSugar",
+    "Milk",
+    "RubberCone",
+    "Gimbap",
+    "ShieldBerry",
 ];
 
 #[repr(u8)]
@@ -35,6 +52,8 @@ pub enum ItemKind {
     Milk = 8,
     RubberCone = 9,
     Gimbap = 10,
+    #[cfg(feature = "experimental-content")]
+    ShieldBerry = 11,
 }
 
 impl ItemKind {
@@ -50,6 +69,8 @@ impl ItemKind {
         Self::Milk,
         Self::RubberCone,
         Self::Gimbap,
+        #[cfg(feature = "experimental-content")]
+        Self::ShieldBerry,
     ];
     pub const COUNT: usize = Self::ALL.len();
 
@@ -70,6 +91,8 @@ impl ItemKind {
             8 => Self::Milk,
             9 => Self::RubberCone,
             10 => Self::Gimbap,
+            #[cfg(feature = "experimental-content")]
+            11 => Self::ShieldBerry,
             _ => return None,
         })
     }
@@ -83,6 +106,7 @@ impl ItemKind {
     }
 }
 
+#[cfg(not(feature = "experimental-content"))]
 pub const UPGRADE_KIND_KEYS: [&str; 37] = [
     "Apple",
     "Banana",
@@ -121,6 +145,48 @@ pub const UPGRADE_KIND_KEYS: [&str; 37] = [
     "BrokenPottery",
     "Strawberry",
     "Watermelon",
+];
+
+#[cfg(feature = "experimental-content")]
+pub const UPGRADE_KIND_KEYS: [&str; 38] = [
+    "Apple",
+    "Banana",
+    "Carrot",
+    "Cat",
+    "Backpack",
+    "DiceBundle",
+    "EnergyDrink",
+    "PerfectPottery",
+    "FourLeafClover",
+    "Rabbit",
+    "BlackWhite",
+    "Trophy",
+    "Crock",
+    "CupNoodles",
+    "FrenchFries",
+    "Hamburger",
+    "Pizza",
+    "DemolitionHammer",
+    "Metronome",
+    "Tape",
+    "NameTag",
+    "ShoppingBag",
+    "Resolution",
+    "Mirror",
+    "IceCream",
+    "Spanner",
+    "Pea",
+    "SlotMachine",
+    "PiggyBank",
+    "Camera",
+    "GiftBox",
+    "Fang",
+    "Popcorn",
+    "MembershipCard",
+    "BrokenPottery",
+    "Strawberry",
+    "Watermelon",
+    "TrainingMelon",
 ];
 
 #[repr(u8)]
@@ -163,6 +229,8 @@ pub enum UpgradeKind {
     BrokenPottery = 34,
     Strawberry = 35,
     Watermelon = 36,
+    #[cfg(feature = "experimental-content")]
+    TrainingMelon = 37,
 }
 
 impl UpgradeKind {
@@ -204,6 +272,8 @@ impl UpgradeKind {
         Self::BrokenPottery,
         Self::Strawberry,
         Self::Watermelon,
+        #[cfg(feature = "experimental-content")]
+        Self::TrainingMelon,
     ];
     pub const COUNT: usize = Self::ALL.len();
 
@@ -250,6 +320,8 @@ impl UpgradeKind {
             34 => Self::BrokenPottery,
             35 => Self::Strawberry,
             36 => Self::Watermelon,
+            #[cfg(feature = "experimental-content")]
+            37 => Self::TrainingMelon,
             _ => return None,
         })
     }
@@ -263,7 +335,7 @@ impl UpgradeKind {
     }
 }
 
-pub const CARD_SERVICE_KIND_KEYS: [&str; 16] = [
+pub const CARD_SERVICE_KIND_KEYS: &[&str] = &[
     "long_sword",
     "staff",
     "mace",
@@ -280,6 +352,8 @@ pub const CARD_SERVICE_KIND_KEYS: [&str; 16] = [
     "cactus",
     "spinning_top",
     "battery",
+    #[cfg(feature = "experimental-content")]
+    "card_polisher",
 ];
 
 #[repr(u8)]
@@ -301,9 +375,34 @@ pub enum CardServiceKind {
     Cactus = 13,
     SpinningTop = 14,
     Battery = 15,
+    #[cfg(feature = "experimental-content")]
+    CardPolisher = 16,
 }
 
 impl CardServiceKind {
+    /// Authoritative effect contract shared by Core mutation and observation.
+    pub const fn card_enhancement(self) -> Option<(Option<crate::Suit>, i64)> {
+        match self {
+            Self::LongSword => Some((Some(crate::Suit::Spades), 2_000_000)),
+            Self::Staff => Some((Some(crate::Suit::Clubs), 2_000_000)),
+            Self::Mace => Some((Some(crate::Suit::Hearts), 2_000_000)),
+            Self::ClubSword => Some((Some(crate::Suit::Diamonds), 2_000_000)),
+            Self::Brush => Some((Some(crate::Suit::Hearts), 3_000_000)),
+            Self::FountainPen => Some((None, 3_000_000)),
+            Self::Tricycle => Some((None, 2_000_000)),
+            #[cfg(feature = "experimental-content")]
+            Self::CardPolisher => Some((None, 3_000_000)),
+            _ => None,
+        }
+    }
+
+    pub const fn polish_delta_raw(self) -> i64 {
+        match self.card_enhancement() {
+            Some((_, delta)) => delta,
+            None => 0,
+        }
+    }
+
     pub const ALL: &'static [Self] = &[
         Self::LongSword,
         Self::Staff,
@@ -321,6 +420,8 @@ impl CardServiceKind {
         Self::Cactus,
         Self::SpinningTop,
         Self::Battery,
+        #[cfg(feature = "experimental-content")]
+        Self::CardPolisher,
     ];
     pub const COUNT: usize = Self::ALL.len();
 
@@ -346,6 +447,8 @@ impl CardServiceKind {
             13 => Self::Cactus,
             14 => Self::SpinningTop,
             15 => Self::Battery,
+            #[cfg(feature = "experimental-content")]
+            16 => Self::CardPolisher,
             _ => return None,
         })
     }
@@ -383,10 +486,10 @@ pub const MONSTER_KIND_KEYS: [&str; 64] = [
     "Boss10", "Boss11", "Boss12", "Boss13", "Boss14",
 ];
 
-pub const UPGRADE_RARITY_PREFIXES: [&str; 37] = [
+pub const UPGRADE_RARITY_PREFIXES: [&str; 38] = [
     "[C]", "[R]", "[L]", "[E]", "[C]", "[R]", "[C]", "[C]", "[R]", "[R]", "[L]", "[L]", "[E]",
     "[C]", "[C]", "[R]", "[R]", "[L]", "[C]", "[C]", "[E]", "[L]", "[R]", "[R]", "[R]", "[E]",
-    "[R]", "[R]", "[R]", "[L]", "[L]", "[R]", "[R]", "[R]", "[C]", "[C]", "[E]",
+    "[R]", "[R]", "[R]", "[L]", "[L]", "[R]", "[R]", "[R]", "[C]", "[C]", "[E]", "[E]",
 ];
 
 pub fn item_kind_key(raw: u8) -> Option<&'static str> {
@@ -448,8 +551,12 @@ mod tests {
     #[test]
     fn raw_catalogs_are_exhaustive_and_one_based_ids_are_stable() {
         assert_eq!(item_kind_id(0), 1);
-        assert_eq!(item_kind_id(10), ITEM_KIND_KEYS.len() as u16);
-        assert_eq!(upgrade_kind_id(36), UPGRADE_KIND_KEYS.len() as u16);
+        assert_eq!(item_kind_id(10), 11);
+        #[cfg(feature = "experimental-content")]
+        assert_eq!(item_kind_id(11), 12);
+        assert_eq!(upgrade_kind_id(36), 37);
+        #[cfg(feature = "experimental-content")]
+        assert_eq!(upgrade_kind_id(37), 38);
         assert_eq!(tower_kind_id(10), TOWER_KIND_KEYS.len() as u16);
         assert_eq!(monster_kind_id(63), MONSTER_KIND_KEYS.len() as u16);
         assert_eq!(monster_kind_key(64), None);

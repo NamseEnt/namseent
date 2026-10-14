@@ -2,6 +2,8 @@
 pub mod bc;
 #[cfg(feature = "simulator")]
 pub mod cli;
+#[cfg(all(test, feature = "simulator"))]
+mod construction_context_study;
 pub mod contract;
 #[cfg(feature = "simulator")]
 pub mod curriculum;
@@ -57,3 +59,15 @@ pub mod vocabulary;
 
 pub use contract::{ConditionedBalanceParameter, MlContract, MlContractError, PolicyBalanceScope};
 pub use seed::{SeedRange, SeedRangeError, TrainingSeedSchedule};
+
+#[cfg(feature = "simulator")]
+pub mod effect_inputs;
+
+#[cfg(feature = "simulator")]
+pub mod content_teacher;
+
+#[cfg(feature = "simulator")]
+pub mod card_service_inputs;
+
+#[cfg(all(test, feature = "experimental-content"))]
+mod experimental_content_tests;

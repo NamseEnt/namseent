@@ -6,6 +6,46 @@ pub struct ItemEntry {
 }
 
 impl ItemEntry {
+    pub(crate) fn append_observation_effects(
+        &self,
+        source: super::observation::EffectSource,
+        source_index: usize,
+        rows: &mut Vec<super::observation::ContentEffectObservation>,
+    ) {
+        use super::observation::ContentEffectKind as K;
+        let effects = match self.item {
+            ItemRuntimeState::Bread(s) => vec![(K::Heal, s.heal_raw), (K::Shield, s.shield_raw)],
+            ItemRuntimeState::Candy(s) => vec![(K::Heal, s.heal_raw)],
+            ItemRuntimeState::Cannoli(s) => vec![(K::Heal, s.heal_raw)],
+            ItemRuntimeState::Cookie(s) => vec![(K::Heal, s.heal_raw)],
+            ItemRuntimeState::Donut(s) => vec![(K::Heal, s.heal_raw)],
+            ItemRuntimeState::Gimbap(s) => vec![(K::Heal, s.heal_raw), (K::Shield, s.shield_raw)],
+            ItemRuntimeState::LunchBox(s) => vec![(K::Heal, s.heal_raw), (K::Shield, s.shield_raw)],
+            ItemRuntimeState::Milk(s) => vec![(K::Shield, s.shield_raw)],
+            ItemRuntimeState::RiceBall(s) => vec![(K::Heal, s.heal_raw), (K::Shield, s.shield_raw)],
+            ItemRuntimeState::LumpSugar(s) => vec![(K::GainRerolls, s.amount as i64)],
+            ItemRuntimeState::RubberCone(s) => vec![(K::ExtraTower, s.count as i64)],
+            #[cfg(feature = "experimental-content")]
+            ItemRuntimeState::ShieldBerry(s) => vec![(K::Shield, s.shield_raw)],
+        };
+        rows.extend(
+            effects
+                .into_iter()
+                .enumerate()
+                .map(|(parameter_index, (kind, value_raw))| {
+                    super::observation::ContentEffectObservation {
+                        source,
+                        source_index,
+                        key_id: self.kind().raw() as u16 + 1,
+                        kind,
+                        parameter_index,
+                        value_raw,
+                        enabled: true,
+                    }
+                }),
+        );
+    }
+
     pub fn id(&self) -> u64 {
         self.id
     }
@@ -35,6 +75,8 @@ impl ItemEntry {
                 [state.heal_raw, state.shield_raw].get(index).copied()
             }
             ItemRuntimeState::LumpSugar(_) | ItemRuntimeState::RubberCone(_) => None,
+            #[cfg(feature = "experimental-content")]
+            ItemRuntimeState::ShieldBerry(state) => [state.shield_raw].get(index).copied(),
         }
     }
 
@@ -104,6 +146,14 @@ impl ItemEntry {
                 _ => return false,
             },
             ItemRuntimeState::LumpSugar(_) | ItemRuntimeState::RubberCone(_) => return false,
+            #[cfg(feature = "experimental-content")]
+            ItemRuntimeState::ShieldBerry(state) => {
+                if index == 0 {
+                    state.shield_raw = value
+                } else {
+                    return false;
+                }
+            }
         }
         true
     }
@@ -618,8 +668,62 @@ mod tests {
                         ItemUseEffect::GainShield { amount_raw: 9_000 }
                     ]
                 ),
+                #[cfg(feature = "experimental-content")]
+                11 => assert_eq!(
+                    output.effects,
+                    vec![ItemUseEffect::GainShield { amount_raw: 12_000 }]
+                ),
                 _ => unreachable!(),
             }
         }
+    }
+
+    #[cfg(feature = "experimental-content")]
+    #[test]
+    fn shield_berry_observes_legal_inventory_use_and_consumes_into_core_shield() {
+        let config = crate::GameConfigState::default_config();
+        let mut state = crate::CoreState::new_initial(config, 812_041);
+        state.start_stage(1);
+        state.hp_raw = 50_000;
+        state
+            .grant_inventory_item(generated_item(crate::ItemKind::ShieldBerry).unwrap())
+            .unwrap();
+        assert_eq!(state.items()[3].kind(), crate::ItemKind::ShieldBerry);
+        assert_eq!(state.items().len(), 4);
+        assert_eq!(state.items()[3].id(), 4);
+        assert!(state.can_use_inventory_item(3));
+
+        let before = state.observation(1, 1, 9, 9);
+        assert_eq!(before.inventory[3].key, "shield_berry");
+        assert_eq!(before.inventory[3].key_id, 12);
+        assert!(before.content_effects.iter().any(|effect| {
+            effect.source == crate::EffectSource::Inventory
+                && effect.source_index == 3
+                && effect.key_id == 12
+                && effect.kind == crate::ContentEffectKind::Shield
+                && effect.value_raw == 12_000
+        }));
+        let hp_before = state.hp_raw;
+        assert_eq!(state.shield_raw, 0);
+
+        let mut session = crate::CoreSession::from_state(state)
+            .expect("granted item state must be a valid Core session");
+        let receipt = session
+            .apply(crate::PlayerCommand::UseInventoryItem { item_index: 3 })
+            .expect("legal inventory use command must be accepted");
+        assert_eq!(
+            receipt.command,
+            crate::PlayerCommand::UseInventoryItem { item_index: 3 }
+        );
+        assert_eq!(session.hp_raw, hp_before);
+        assert_eq!(session.shield_raw, 12_000);
+        assert_eq!(session.items().len(), 3);
+        assert!(
+            session
+                .items()
+                .iter()
+                .all(|item| item.kind() != crate::ItemKind::ShieldBerry)
+        );
+        assert!(session.progress().item_used);
     }
 }

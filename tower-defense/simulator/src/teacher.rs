@@ -83,6 +83,8 @@ impl Default for RolloutTeacherConfig {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct RolloutCandidateEstimate {
+    #[serde(default)]
+    pub total_decisions: usize,
     pub action: AgentAction,
     pub action_id: String,
     pub sample_count: usize,
@@ -124,6 +126,7 @@ pub struct RolloutTeacherEpisode {
 
 #[derive(Default)]
 struct EstimateAccumulator {
+    total_decisions: usize,
     count: usize,
     mean: f32,
     squared_delta_sum: f32,
@@ -133,7 +136,15 @@ struct EstimateAccumulator {
 }
 
 impl EstimateAccumulator {
-    fn record(&mut self, score: f32, victory: bool, clear_rate: f32, stage: usize) {
+    fn record(
+        &mut self,
+        score: f32,
+        victory: bool,
+        clear_rate: f32,
+        stage: usize,
+        decisions: usize,
+    ) {
+        self.total_decisions += decisions;
         self.count += 1;
         let delta = score - self.mean;
         self.mean += delta / self.count as f32;
@@ -150,6 +161,7 @@ impl EstimateAccumulator {
             0.0
         };
         RolloutCandidateEstimate {
+            total_decisions: self.total_decisions,
             action_id: action.action_id(),
             action,
             sample_count: self.count,
@@ -519,6 +531,7 @@ pub(crate) fn evaluate_semantic_candidate_set_with_baseline(
                     sample.victory,
                     sample.clear_rate,
                     sample.final_stage,
+                    sample.decisions_consumed,
                 );
             }
             Ok(accumulator.finish(candidate.action.clone()))
@@ -840,6 +853,7 @@ mod tests {
 
     fn estimate(action_id: &str, mean_score: f32) -> RolloutCandidateEstimate {
         RolloutCandidateEstimate {
+            total_decisions: 0,
             action: AgentAction::Continue,
             action_id: action_id.to_string(),
             sample_count: 1,
@@ -1781,6 +1795,9 @@ mod tests {
     fn dense_semantic_candidates_finds_build_tower_actions_outside_legacy_position_limit() {
         use crate::policy_runner::{rank_build_tower_actions_by_heuristic, scripted_expert_action};
 
+        // The historical 32-cell proposal excluded the best coverage; the
+        // production 64-cell workaround now covers these sampled states.
+        let former_position_limit = 32;
         let mut found_case = false;
         for seed in 0..24u64 {
             let mut environment = card_decision_environment(seed);
@@ -1798,9 +1815,7 @@ mod tests {
                         .first()
                         .expect("non-empty oracle candidates rank at least one");
                     let legacy_limited = environment
-                        .semantic_legal_actions_with_position_limit(Some(
-                            DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT,
-                        ))
+                        .semantic_legal_actions_with_position_limit(Some(former_position_limit))
                         .into_iter()
                         .any(|legal| legal.action == oracle_best.action);
                     if !legacy_limited {
@@ -1957,6 +1972,7 @@ mod tests {
                             sample.victory,
                             sample.clear_rate,
                             sample.final_stage,
+                            sample.decisions_consumed,
                         );
                     }
                     accumulator.finish(candidate.action.clone())

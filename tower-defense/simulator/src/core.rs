@@ -832,7 +832,15 @@ mod tests {
 
     #[test]
     fn direct_core_commands_preserve_flow_and_replay_progression() {
-        let mut core = GameCore::new(GameConfig::default_config(), 7);
+        let mut fixture = GameConfig::default_config();
+        fixture
+            .monsters
+            .stats
+            .iter_mut()
+            .find(|entry| entry.kind == 0)
+            .unwrap()
+            .base_hp_raw = 35_520;
+        let mut core = GameCore::new(fixture, 7);
 
         core.apply(PlayerCommand::StartSelectingTower)
             .expect("start selecting tower should be accepted");
@@ -999,7 +1007,15 @@ mod tests {
 
     #[test]
     fn raw_damage_updates_defense_progress_by_applied_hp() {
-        let mut core = GameCore::new(GameConfig::default_config(), 7);
+        let mut fixture = GameConfig::default_config();
+        fixture
+            .monsters
+            .stats
+            .iter_mut()
+            .find(|entry| entry.kind == 0)
+            .unwrap()
+            .base_hp_raw = 35_520;
+        let mut core = GameCore::new(fixture, 7);
         core.apply(PlayerCommand::StartSelectingTower)
             .expect("start selecting tower should be accepted");
         core.apply(PlayerCommand::SelectTower {
@@ -1077,7 +1093,15 @@ mod tests {
 
     #[test]
     fn step_resolves_base_damage_from_raw_monster_escape() {
-        let mut core = GameCore::new(GameConfig::default_config(), 7);
+        let mut fixture = GameConfig::default_config();
+        fixture
+            .monsters
+            .stats
+            .iter_mut()
+            .find(|entry| entry.kind == 0)
+            .unwrap()
+            .base_hp_raw = 35_520;
+        let mut core = GameCore::new(fixture, 7);
         core.apply(PlayerCommand::StartSelectingTower)
             .expect("start selecting tower should be accepted");
         core.apply(PlayerCommand::SelectTower {
@@ -1151,7 +1175,15 @@ mod tests {
 
     #[test]
     fn raw_base_damage_syncs_escape_state_when_damage_is_reduced_to_zero() {
-        let mut core = GameCore::new(GameConfig::default_config(), 7);
+        let mut fixture = GameConfig::default_config();
+        fixture
+            .monsters
+            .stats
+            .iter_mut()
+            .find(|entry| entry.kind == 0)
+            .unwrap()
+            .base_hp_raw = 35_520;
+        let mut core = GameCore::new(fixture, 7);
         core.apply(PlayerCommand::StartSelectingTower)
             .expect("start selecting tower should be accepted");
         core.apply(PlayerCommand::SelectTower {
