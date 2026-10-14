@@ -2628,6 +2628,21 @@ impl GameState {
                         ProjectileTrail::None => {}
                     }
                 }
+                PresentationEvent::SpawnTowerAttackVisualEffect {
+                    tower_kind,
+                    start_xy,
+                    end_xy,
+                } => {
+                    if matches!(tower_kind, tower::TowerKind::High) {
+                        field_particle::emitter::attack::spawn_tower_attack_visual_effect(
+                            field_particle::emitter::attack::AttackVisualEffect::HighProjectile {
+                                start_xy: (start_xy[0], start_xy[1]),
+                                end_xy: (end_xy[0], end_xy[1]),
+                            },
+                            presentation_now,
+                        );
+                    }
+                }
                 PresentationEvent::SpawnProjectileHitEffect(hit_effect, impact_xy) => {
                     let impact_xy = MapCoordF32::new(impact_xy[0], impact_xy[1]);
                     use crate::game_state::attack::ProjectileHitEffect;

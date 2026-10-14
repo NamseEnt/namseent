@@ -1,3 +1,4 @@
+pub mod attack;
 mod black_smoke;
 mod blue_spark;
 mod burning_trail;

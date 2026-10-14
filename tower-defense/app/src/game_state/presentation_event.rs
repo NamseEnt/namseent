@@ -65,6 +65,11 @@ pub enum PresentationEvent {
         sim_tick: crate::SimTick,
     },
     SpawnParticle(ParticleSpawnRequest),
+    SpawnTowerAttackVisualEffect {
+        tower_kind: crate::game_state::tower::TowerKind,
+        start_xy: [f32; 2],
+        end_xy: [f32; 2],
+    },
     SpawnGoldReward {
         position: [f32; 2],
         amount: usize,

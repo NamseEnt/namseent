@@ -65,6 +65,7 @@ pub struct TowerState {
 pub struct TowerAttackOutput {
     pub area_damage_events: Vec<crate::AreaDamageEvent>,
     pub area_damage_sources: Vec<crate::AttackSourceState>,
+    pub immediate_damage_events: Vec<(u64, crate::DamageHit)>,
     pub events: Vec<crate::CoreEvent>,
 }
 
@@ -323,6 +324,7 @@ pub(crate) fn generate_tower_attacks(
     let mut new_attacks = Vec::new();
     let mut area_damage_events = Vec::new();
     let mut area_damage_sources = Vec::new();
+    let mut immediate_damage_events = Vec::new();
     let mut events = Vec::new();
 
     for tower in towers.iter_mut() {
@@ -357,6 +359,7 @@ pub(crate) fn generate_tower_attacks(
             TowerAttackKind::Laser => 1,
             TowerAttackKind::FullHouseRain => 2,
             TowerAttackKind::RoyalStraightFlush => 3,
+            TowerAttackKind::InstantDamage => 4,
         };
         let source = crate::AttackSourceState {
             tower_id,
@@ -378,6 +381,21 @@ pub(crate) fn generate_tower_attacks(
 
         let key = (tower_id << 32) ^ sim_tick ^ target.id;
         match tower_attack_kind(tower.template.kind) {
+            TowerAttackKind::InstantDamage => {
+                tower.cooldown = tower.shoot_interval_ticks();
+                let source_index = area_damage_sources.len();
+                area_damage_sources.push(source);
+                immediate_damage_events.push((
+                    target.id,
+                    crate::DamageHit {
+                        target_index,
+                        damage_raw,
+                        at_xy: target_xy,
+                        source_index,
+                        splashes: tower.on_hit_splashes.clone(),
+                    },
+                ));
+            }
             TowerAttackKind::Direct { speed_raw } => {
                 tower.cooldown = tower.shoot_interval_ticks();
                 new_attacks.push(crate::InFlightAttackState {
@@ -468,6 +486,9 @@ pub(crate) fn generate_tower_attacks(
             tower_id,
             target_id: target.id,
             attack_kind,
+            tower_kind: tower.template.kind,
+            start_xy: tower_head_xy(tower),
+            end_xy: target_xy,
             attack_ids,
             projectile_attack_ids,
         });
@@ -485,6 +506,7 @@ pub(crate) fn generate_tower_attacks(
     TowerAttackOutput {
         area_damage_events,
         area_damage_sources,
+        immediate_damage_events,
         events,
     }
 }
@@ -492,6 +514,7 @@ pub(crate) fn generate_tower_attacks(
 #[derive(Clone, Copy)]
 enum TowerAttackKind {
     Direct { speed_raw: i64 },
+    InstantDamage,
     Laser,
     FullHouseRain,
     RoyalStraightFlush,
@@ -509,6 +532,7 @@ const ROYAL_STRAIGHT_FLUSH_HIT_DELAY_TICKS: u64 = 26;
 
 fn tower_attack_kind(kind: u8) -> TowerAttackKind {
     match kind {
+        1 => TowerAttackKind::InstantDamage,
         4 | 6 | 8 | 9 => TowerAttackKind::Direct {
             speed_raw: FAST_PROJECTILE_SPEED_RAW,
         },
@@ -668,7 +692,7 @@ mod tests {
 
     #[test]
     fn generated_attack_uses_deterministic_target_and_cooldown() {
-        let mut towers = vec![tower(1)];
+        let mut towers = vec![tower(0)];
         let monsters = vec![
             monster(9, [2 * crate::WORLD_UNITS_PER_TILE, 0], 10),
             monster(4, [2 * crate::WORLD_UNITS_PER_TILE, 0], 10),
@@ -698,6 +722,55 @@ mod tests {
                 ..
             })
         ));
+    }
+
+    #[test]
+    fn high_tower_generates_immediate_damage_without_in_flight_projectile() {
+        let mut towers = vec![tower(1)];
+        let monsters = vec![monster(4, [2 * crate::WORLD_UNITS_PER_TILE, 0], 10)];
+        let mut attacks = Vec::new();
+        let mut allocator = crate::EntityIdAllocator::from_next_id(20);
+
+        let output = generate_tower_attacks(
+            &mut towers,
+            &monsters,
+            &mut attacks,
+            &mut allocator,
+            12,
+            &[],
+            &[],
+        );
+
+        assert!(attacks.is_empty());
+        assert_eq!(towers[0].cooldown, 7);
+        assert_eq!(output.immediate_damage_events.len(), 1);
+        assert_eq!(output.immediate_damage_events[0].0, 4);
+        assert_eq!(output.immediate_damage_events[0].1.damage_raw, 100);
+        assert!(output.events.iter().any(|event| matches!(
+            event,
+            crate::CoreEvent::TowerAttack {
+                tower_id: 1,
+                tower_kind: 1,
+                attack_kind: 4,
+                ..
+            }
+        )));
+    }
+
+    #[test]
+    fn high_tower_damage_is_applied_in_the_same_simulation_tick() {
+        let mut state = crate::CoreState::new_initial(crate::GameConfig::default_config(), 7);
+        let mut target = monster(4, [2 * crate::WORLD_UNITS_PER_TILE, 0], 10);
+        target.move_on_route.route = state.route.clone();
+        target.hp_raw = 500;
+        target.max_hp_raw = 500;
+        state.monsters.push(target);
+        state.towers.push(tower(1));
+
+        state.step_sim_tick();
+
+        assert_eq!(state.monsters()[0].hp_raw, 400);
+        assert!(state.in_flight_attacks().is_empty());
     }
 
     #[test]
@@ -733,7 +806,7 @@ mod tests {
 
     #[test]
     fn generated_damage_combines_status_and_upgrade_multipliers_once() {
-        let mut tower = tower(1);
+        let mut tower = tower(0);
         tower.damage_multiplier_raw = 2 * crate::RATIO_SCALE;
         tower.status_effects = vec![
             TowerStatusEffect {

@@ -1,3 +1,4 @@
+pub mod attack;
 mod black_smoke;
 mod burning_trail;
 mod card_burst;

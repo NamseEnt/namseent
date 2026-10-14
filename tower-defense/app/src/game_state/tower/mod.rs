@@ -265,12 +265,7 @@ impl Tower {
                 projectile_group: ProjectileGroup::Trash,
                 hit_effect: attack::ProjectileHitEffect::TrashBounce,
             },
-            TowerKind::High => AttackType::Projectile {
-                speed: PROJECTILE_SPEED,
-                trail: ProjectileTrail::None,
-                projectile_group: ProjectileGroup::Trash,
-                hit_effect: attack::ProjectileHitEffect::TrashBounce,
-            },
+            TowerKind::High => AttackType::InstantDamage,
             TowerKind::OnePair => AttackType::Projectile {
                 speed: PROJECTILE_SPEED,
                 trail: ProjectileTrail::None,

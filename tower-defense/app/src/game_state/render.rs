@@ -1,4 +1,6 @@
 use super::*;
+use crate::asset::image::ATTACK_ATLAS;
+use crate::game_state::field_particle::ATTACK_VISUAL;
 use crate::game_state::tick::scheduler::RenderFrame;
 use crate::headed_game::HeadedGame;
 
@@ -548,6 +550,29 @@ fn render_field_particles(ctx: &RenderCtx, _game_state: &GameState) {
     let digits = crate::asset::image::PARTICLE_DIGITS;
     let dust = crate::asset::image::ui::particle::DUST;
     let screen_paint = Some(Paint::new(Color::WHITE).set_blend_mode(BlendMode::Screen));
+
+    {
+        let sprites = ATTACK_VISUAL.latest_sprites();
+        if !sprites.is_empty() {
+            let cloned = Arc::unwrap_or_clone(sprites);
+            ctx.add(RenderingTree::Node(DrawCommand::Image {
+                command: arena_alloc(ImageDrawCommand {
+                    image: ATTACK_ATLAS,
+                    sprites: cloned.clone(),
+                    paint: screen_paint.clone(),
+                    sprite_colors_blend_mode: BlendMode::Modulate,
+                }),
+            }));
+            ctx.add(RenderingTree::Node(DrawCommand::Image {
+                command: arena_alloc(ImageDrawCommand {
+                    image: ATTACK_ATLAS,
+                    sprites: cloned,
+                    paint: None,
+                    sprite_colors_blend_mode: BlendMode::Modulate,
+                }),
+            }));
+        }
+    }
 
     ctx.add(namui::particle::RenderEmitter {
         emitter: &field_particle::ATTACK_PARTICLES,

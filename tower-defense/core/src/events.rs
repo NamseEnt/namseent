@@ -20,6 +20,12 @@ pub enum CoreEvent {
         tower_id: u64,
         target_id: u64,
         attack_kind: u8,
+        #[serde(default)]
+        tower_kind: u8,
+        #[serde(default)]
+        start_xy: [i64; 2],
+        #[serde(default)]
+        end_xy: [i64; 2],
         attack_ids: Vec<u64>,
         projectile_attack_ids: Vec<u64>,
     },

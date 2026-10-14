@@ -1721,17 +1721,32 @@ impl CoreState {
 
         // 3. Tower attacks.
         let tower_output = self.generate_tower_attacks();
+        let area_damage_sources: Vec<Option<crate::AttackSourceState>> = tower_output
+            .area_damage_sources
+            .into_iter()
+            .map(Some)
+            .collect();
         if !tower_output.area_damage_events.is_empty() {
-            let area_damage_sources: Vec<Option<crate::AttackSourceState>> = tower_output
-                .area_damage_sources
-                .into_iter()
-                .map(Some)
-                .collect();
             let deaths = self
                 .apply_area_damage_events(tower_output.area_damage_events, &area_damage_sources);
             if !deaths.is_empty() {
                 self.trigger_monster_death_upgrades();
             }
+        }
+        let mut immediate_damage_deaths = Vec::new();
+        for (target_id, mut hit) in tower_output.immediate_damage_events {
+            let Some(target_index) = self
+                .monsters
+                .iter()
+                .position(|monster| monster.id == target_id)
+            else {
+                continue;
+            };
+            hit.target_index = target_index;
+            immediate_damage_deaths.extend(self.apply_damage_hits(vec![hit], &area_damage_sources));
+        }
+        if !immediate_damage_deaths.is_empty() {
+            self.trigger_monster_death_upgrades();
         }
 
         // 4. Resolve base damage from escaped monsters.

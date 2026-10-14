@@ -138,6 +138,8 @@ impl<T: namui::particle::Particle> Default for EmitterWrapper<T> {
     }
 }
 
+pub static ATTACK_VISUAL: EmitterWrapper<particle::attack::NewAttackParticle> =
+    EmitterWrapper::new();
 pub static PROJECTILES: EmitterWrapper<ProjectileParticle> = EmitterWrapper::new();
 pub static TRASHES: EmitterWrapper<TrashParticle> = EmitterWrapper::new();
 pub static CARDS: EmitterWrapper<CardParticle> = EmitterWrapper::new();
@@ -151,6 +153,7 @@ pub static BLACK_SMOKES: EmitterWrapper<BlackSmokeParticle> = EmitterWrapper::ne
 pub static DUSTS: EmitterWrapper<DustParticle> = EmitterWrapper::new();
 
 pub fn tick_all_emitters(now: Instant, dt: Duration) {
+    ATTACK_VISUAL.tick(now, dt);
     ATTACK_PARTICLES.tick(now, dt);
     PROJECTILES.tick(now, dt);
     TRASHES.tick(now, dt);

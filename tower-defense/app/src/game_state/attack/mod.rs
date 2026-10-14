@@ -76,6 +76,7 @@ impl ProjectileGroup {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum AttackType {
+    InstantDamage,
     Projectile {
         speed: WorldSpeed,
         trail: ProjectileTrail,
