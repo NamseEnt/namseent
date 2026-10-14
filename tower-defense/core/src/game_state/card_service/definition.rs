@@ -1,3 +1,5 @@
+#[cfg(feature = "experimental-content")]
+use super::behaviors::card_polisher;
 use super::behaviors::{
     CardServiceBehavior, CardServiceBehaviorImpl, battery, brush, cactus, club_sword, copier,
     eraser, fountain_pen, long_sword, mace, magic_wand, magnet, pliers, screwdriver, spinning_top,
@@ -21,6 +23,8 @@ pub(crate) static CARD_SERVICE_BEHAVIORS: [CardServiceBehaviorImpl; crate::CardS
     CardServiceBehaviorImpl::Cactus(cactus::Behavior),
     CardServiceBehaviorImpl::SpinningTop(spinning_top::Behavior),
     CardServiceBehaviorImpl::Battery(battery::Behavior),
+    #[cfg(feature = "experimental-content")]
+    CardServiceBehaviorImpl::CardPolisher(card_polisher::Behavior),
 ];
 
 pub(crate) fn card_service_behavior(

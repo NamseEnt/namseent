@@ -63,10 +63,11 @@ pub enum Phase4Split {
     V2Final,
     /// Reserved before the first content-change adaptation experiment.
     RetrainingValidation,
+    EffectAdaptationValidation,
 }
 
 impl Phase4Split {
-    pub const ALL: [Self; 12] = [
+    pub const ALL: [Self; 13] = [
         Self::CanonicalTrain,
         Self::CanonicalValidation,
         Self::TeacherTrain,
@@ -79,6 +80,7 @@ impl Phase4Split {
         Self::Phase4bFinal,
         Self::V2Final,
         Self::RetrainingValidation,
+        Self::EffectAdaptationValidation,
     ];
 
     /// Frozen before any Phase 4A data was generated (see
@@ -101,6 +103,7 @@ impl Phase4Split {
             // docs/game-ai/15-policy-v2.md).
             Self::V2Final => 4_200_000..=4_200_255,
             Self::RetrainingValidation => 6_000_000..=6_000_255,
+            Self::EffectAdaptationValidation => 7_000_000..=7_000_255,
         }
     }
 
@@ -118,6 +121,7 @@ impl Phase4Split {
         matches!(
             self,
             Self::RetrainingValidation
+                | Self::EffectAdaptationValidation
                 | Self::DevelopmentEvaluation
                 | Self::FinalEvaluation
                 | Self::PpoDevelopment
@@ -129,7 +133,11 @@ impl Phase4Split {
     pub fn is_final_split(self) -> bool {
         matches!(
             self,
-            Self::FinalEvaluation | Self::Phase4bFinal | Self::V2Final
+            Self::FinalEvaluation
+                | Self::Phase4bFinal
+                | Self::V2Final
+                | Self::RetrainingValidation
+                | Self::EffectAdaptationValidation
         )
     }
 
@@ -147,7 +155,28 @@ impl Phase4Split {
             Self::Phase4bFinal => "phase4b_final",
             Self::V2Final => "v2_final",
             Self::RetrainingValidation => "retraining_validation",
+            Self::EffectAdaptationValidation => "effect_adaptation_validation",
         }
+    }
+
+    /// A contiguous seed window that starts at an explicit value inside this split.
+    pub fn seeds_starting_at(self, start: u64, count: usize) -> Result<Vec<u64>> {
+        let range = self.range();
+        if count == 0 {
+            bail!("{} requires at least one seed", self.name());
+        }
+        let end = start
+            .checked_add(count as u64 - 1)
+            .context("development seed range overflow")?;
+        if start < *range.start() || end > *range.end() {
+            bail!(
+                "{} seed window {start}..={end} is outside {}..={}",
+                self.name(),
+                range.start(),
+                range.end()
+            );
+        }
+        Ok((start..=end).collect())
     }
 
     /// The first `count` seeds of this split, or the whole split for `None`.
@@ -1090,6 +1119,26 @@ mod tests {
 
     fn provenance(split: Phase4Split) -> DatasetProvenance {
         DatasetProvenance::new(&config(), SourcePolicy::Canonical, split, None).expect("provenance")
+    }
+
+    #[test]
+    fn explicit_seed_window_stays_inside_the_named_split() {
+        assert_eq!(
+            Phase4Split::PpoDevelopment
+                .seeds_starting_at(4_000_002, 3)
+                .unwrap(),
+            vec![4_000_002, 4_000_003, 4_000_004]
+        );
+        assert!(
+            Phase4Split::PpoDevelopment
+                .seeds_starting_at(4_100_000, 1)
+                .is_err()
+        );
+        assert!(
+            Phase4Split::PpoDevelopment
+                .seeds_starting_at(4_000_127, 2)
+                .is_err()
+        );
     }
 
     #[test]

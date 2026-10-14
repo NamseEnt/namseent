@@ -61,6 +61,8 @@ fn legacy_card_service_key(kind: crate::CardServiceKind) -> &'static str {
         crate::CardServiceKind::Cactus => "Battery",
         crate::CardServiceKind::SpinningTop => "Cactus",
         crate::CardServiceKind::Battery => "SpinningTop",
+        #[cfg(feature = "experimental-content")]
+        crate::CardServiceKind::CardPolisher => "CardPolisher",
     }
 }
 
@@ -79,6 +81,8 @@ fn card_service_rarity(kind: crate::CardServiceKind) -> u8 {
         crate::CardServiceKind::Brush
         | crate::CardServiceKind::FountainPen
         | crate::CardServiceKind::Tricycle => COMMON,
+        #[cfg(feature = "experimental-content")]
+        crate::CardServiceKind::CardPolisher => COMMON,
         crate::CardServiceKind::LongSword
         | crate::CardServiceKind::Staff
         | crate::CardServiceKind::Mace

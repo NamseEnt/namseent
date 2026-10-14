@@ -141,16 +141,14 @@ pub fn run_policy_episode(
                     {
                         if let crate::environment::AgentAction::SelectTreasure { option_index } =
                             candidate.action
-                        {
-                            if let Some(key) = choice
+                            && let Some(key) = choice
                                 .candidates
                                 .observation
                                 .treasure_options
                                 .get(option_index)
-                            {
-                                treasure_probabilities
-                                    .insert(key.clone(), (*log_probability as f64).exp());
-                            }
+                        {
+                            treasure_probabilities
+                                .insert(key.clone(), (*log_probability as f64).exp());
                         }
                     }
                     let select_mass: f64 = treasure_probabilities.values().sum();

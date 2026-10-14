@@ -62,10 +62,10 @@ impl TypedObservation {
             .hand
             .iter()
             .filter_map(|item| match &item.item {
-                HandItemObservation::Tower(tower) => Some(tower_row(tower)),
+                HandItemObservation::Tower(tower) => Some(tower_row(tower, None)),
                 HandItemObservation::Card(_) => None,
             })
-            .collect();
+            .collect::<Vec<_>>();
         let owned_cards = observation
             .deck
             .all_cards
@@ -223,7 +223,10 @@ fn card_row(card: &crate::environment::CardObservation) -> EntityRow {
     )
 }
 
-fn tower_row(tower: &crate::environment::TowerTemplateObservation) -> EntityRow {
+fn tower_row(
+    tower: &crate::environment::TowerTemplateObservation,
+    _extra_tower_slot: Option<usize>,
+) -> EntityRow {
     EntityRow::new(
         [
             tower.kind_id as u32,
@@ -240,6 +243,59 @@ fn tower_row(tower: &crate::environment::TowerTemplateObservation) -> EntityRow 
         vec![
             normalize_rerolled_count(tower.rerolled_count),
             normalize_damage_raw(tower.damage_raw),
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+        ],
+    )
+}
+
+/// Schema-7 inputs are encoded on a side path so legacy entity pooling remains
+/// byte-for-byte equivalent until the zero-initialized residual is trained.
+pub fn state_extensions(observation: &crate::environment::Observation) -> EntitySet {
+    let mut rows = observation
+        .hand
+        .iter()
+        .filter_map(|item| match &item.item {
+            HandItemObservation::Tower(tower) => Some(tower_extension_row(tower, None)),
+            HandItemObservation::Card(_) => None,
+        })
+        .collect::<Vec<_>>();
+    rows.extend(
+        observation
+            .extra_tower_card_templates
+            .iter()
+            .enumerate()
+            .map(|(slot, tower)| tower_extension_row(tower, Some(slot))),
+    );
+    EntitySet::new(rows)
+}
+
+fn tower_extension_row(
+    tower: &crate::environment::TowerTemplateObservation,
+    extra_tower_slot: Option<usize>,
+) -> EntityRow {
+    EntityRow::new(
+        [
+            tower.kind_id as u32,
+            tower
+                .suit
+                .as_deref()
+                .map_or(0, |value| suit_id(value) as u32),
+            tower
+                .rank
+                .as_deref()
+                .map_or(0, |value| rank_id(value) as u32),
+            extra_tower_slot.map_or(tower.used_cards.len() as u32, |slot| 1024 + slot as u32),
+        ],
+        vec![
+            normalize_rerolled_count(tower.rerolled_count),
+            normalize_damage_raw(tower.damage_raw),
+            normalize_range_raw(tower.range_raw),
+            normalize_ticks(tower.shoot_interval_ticks),
+            normalize_damage_raw(tower.effective_damage_raw),
+            (tower.on_hit_splashes.len() + tower.on_attack_splashes.len()) as f32 / 4.0,
         ],
     )
 }
@@ -304,6 +360,7 @@ mod tests {
             route_coords: vec![],
             monsters: vec![],
             treasure_options: vec![],
+            content_effects: vec![],
             card_service: None,
             stage_modifiers: StageModifiersObservation {
                 damage_multiplier_raw: 1000,

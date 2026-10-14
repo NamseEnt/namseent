@@ -39,11 +39,7 @@ impl CardServiceBehavior for Behavior {
         state: &mut crate::CoreState,
         selected_card_ids: &[Vec<usize>],
     ) -> Result<(), crate::CommandError> {
-        apply_enhancement_service(
-            state,
-            selected_card_ids,
-            Some(crate::Suit::Hearts),
-            3_000_000,
-        )
+        let (suit, delta) = crate::CardServiceKind::Brush.card_enhancement().unwrap();
+        apply_enhancement_service(state, selected_card_ids, suit, delta)
     }
 }

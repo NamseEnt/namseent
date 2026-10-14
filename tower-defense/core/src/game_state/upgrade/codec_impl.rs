@@ -16,6 +16,8 @@ impl UpgradeWireEntry {
 }
 
 use super::behaviors::UpgradeRuntimeState;
+#[cfg(feature = "experimental-content")]
+pub use super::behaviors::training_melon::TrainingMelonUpgradeState;
 pub use super::behaviors::{
     apple::AppleUpgradeState, backpack::BackpackUpgradeState, banana::BananaUpgradeState,
     black_white::BlackWhiteUpgradeState, broken_pottery::BrokenPotteryUpgradeState,
@@ -156,6 +158,8 @@ empty_codec!(SpannerUpgradeState, Spanner);
 empty_codec!(StrawberryUpgradeState, Strawberry);
 empty_codec!(TrophyUpgradeState, Trophy);
 empty_codec!(WatermelonUpgradeState, Watermelon);
+#[cfg(feature = "experimental-content")]
+empty_codec!(TrainingMelonUpgradeState, TrainingMelon);
 
 impl BrokenPotteryUpgradeState {
     pub(crate) fn decode<T: UpgradeCodecSource>(entry: &T) -> Result<Self, UpgradeCodecError> {
@@ -486,6 +490,8 @@ impl UpgradeRuntimeState {
             Self::BrokenPottery(_) => crate::UpgradeKind::BrokenPottery,
             Self::Strawberry(_) => crate::UpgradeKind::Strawberry,
             Self::Watermelon(_) => crate::UpgradeKind::Watermelon,
+            #[cfg(feature = "experimental-content")]
+            Self::TrainingMelon(_) => crate::UpgradeKind::TrainingMelon,
         }
     }
 
@@ -571,6 +577,10 @@ impl UpgradeRuntimeState {
             crate::UpgradeKind::Watermelon => {
                 Ok(Self::Watermelon(WatermelonUpgradeState::decode(entry)?))
             }
+            #[cfg(feature = "experimental-content")]
+            crate::UpgradeKind::TrainingMelon => Ok(Self::TrainingMelon(
+                TrainingMelonUpgradeState::decode(entry)?,
+            )),
         }
     }
 
@@ -613,6 +623,8 @@ impl UpgradeRuntimeState {
             Self::BrokenPottery(state) => state.encode(id),
             Self::Strawberry(state) => state.encode(id),
             Self::Watermelon(state) => state.encode(id),
+            #[cfg(feature = "experimental-content")]
+            Self::TrainingMelon(state) => state.encode(id),
         }
     }
 }

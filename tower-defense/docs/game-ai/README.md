@@ -8,7 +8,7 @@
 
 2026-10-09 사용자 지시에 따라 현재는 **AI로 게임을 반복 실행하고 기존 `all-stats` 수준의 통계를 수집하는 기능**을 제공한다. 밸런스 조정·평가 방법론과 사람 플레이 모델은 후속 작업이다. 아래 학습·재학습 계획은 보존하며, 현재 통계 기능의 완료 조건과 구분한다.
 
-후속 요청으로 건설 후보의 scripted top-8 제한 제거와 콘텐츠 변경 후 기존 checkpoint 재학습을 추가했다. 구현·보물 효과 제거 실험은 [`24-construction-and-content-adaptation.md`](24-construction-and-content-adaptation.md)를 따른다.
+Construction exploration and content retraining extend the original statistics workflow. See [24](24-construction-and-content-adaptation.md) for the initial experiment, [25](25-effect-inputs-and-retraining-study.md) for effect inputs and three-repeat comparisons, [26](26-construction-and-content-retraining-plan.md) for implementation evidence and limitations, and [27](27-retraining-quickstart.md) for ordinary/experimental builds, transfer, resume and checkpoint statistics.
 
 현재 PPO/BC 모델의 반복 실행과 SQLite 통계 사용법은 [`23-batch-simulation-statistics.md`](23-batch-simulation-statistics.md), 범위 결정은 [`0010`](decisions/0010-collect-existing-simulator-statistics.md)에 기록한다.
 
@@ -40,7 +40,7 @@ cargo run --release --manifest-path simulator/Cargo.toml -- play --policy teache
 - Neither AI has cleared a full game yet. Full clears are not a required gate for the current balance; see the evaluation contract below. In these historical summaries, “clear rate” means game progress, not win probability.
 - Phase 4A: a search-free neural policy imitates the heuristic almost exactly (BC), but distilling the teacher's labels added almost nothing (+0.11). See [`13-phase4a-bc-distillation.md`](13-phase4a-bc-distillation.md).
 - Phase 4B (latest gameplay rules): PPO starting from the BC policy beats the heuristic by +4.98 clear rate on 256 untouched seeds (about 2.5 more stages, better on 210 of 256 seeds), without search. See [`14-phase4b-ppo.md`](14-phase4b-ppo.md).
-- The selected learned policy uses the heuristic's top 8 placements and builds. Candidate expansion is separate research; the current task is batch execution and statistics collection.
+- The historical selected policy uses the heuristic's top 8 placements and builds. Construction candidate expansion and content retraining are documented in 24 and 25.
 
 ## 학습·재학습 연구 합의 (현재 통계 기능과 별도)
 
@@ -74,15 +74,19 @@ cargo run --release --manifest-path simulator/Cargo.toml -- play --policy teache
 | [`06-dataset-and-distillation.md`](06-dataset-and-distillation.md) | teacher dataset과 빠른 정책 압축 | Proposed |
 | [`07-policy-and-rl.md`](07-policy-and-rl.md) | 표현 구조와 RL fine-tuning | Proposed |
 | [`08-evaluation.md`](08-evaluation.md) | 모델 비교와 최종 평가 | Accepted design |
-| [`09-balance-experiments.md`](09-balance-experiments.md) | 기획 변경 후 재학습과 밸런스 파라미터 실험 | 재학습: 목표 합의, 구현·검증 대기 / 밸런스 자동 최적화: Deferred |
+| [`09-balance-experiments.md`](09-balance-experiments.md) | 기획 변경 후 재학습과 밸런스 파라미터 실험 | Retraining implemented; comparisons in 25 / balance optimization deferred |
 | [`10-human-player-models.md`](10-human-player-models.md) | 실제 인간형 실수를 포함한 실력 모델 | Deferred |
 | [`11-candidate-architecture-review.md`](11-candidate-architecture-review.md) | Phase 1/2 결과에 따른 candidate architecture 재검토 | Proposed |
 | [`12-adaptive-teacher-budget.md`](12-adaptive-teacher-budget.md) | Adaptive teacher rollout budget design | Proposed |
 | [`13-phase4a-bc-distillation.md`](13-phase4a-bc-distillation.md) | Phase 4A canonical BC and selective teacher distillation | Verified (Gate A); Gate B negligible |
 | [`14-phase4b-ppo.md`](14-phase4b-ppo.md) | Phase 4B PPO on the semantic action stack (latest gameplay rules) | Verified (final seeds: PPO +4.98 vs canonical) |
-| [`21-retraining-implementation-plan.md`](21-retraining-implementation-plan.md) | 기획 변경 후 재학습의 구현 항목, 의존성, 완료 조건 | 진행 중: 수치 변경 경로 기술 검증 완료 |
-| [`22-numeric-retraining.md`](22-numeric-retraining.md) | 동일 구조 PPO의 수치 변경 이관·학습·재개·평가 | 구현 및 기술 검증 / 재학습 효율 비교 대기 |
-| [`23-batch-simulation-statistics.md`](23-batch-simulation-statistics.md) | 현재 AI 반복 실행·기존 all-stats·SQLite 통계 | 구현 / 실행 검증 대기 |
+| [`21-retraining-implementation-plan.md`](21-retraining-implementation-plan.md) | 기획 변경 후 재학습의 구현 항목, 의존성, 완료 조건 | Effect inputs, transfer, resume and three-repeat comparison |
+| [`22-numeric-retraining.md`](22-numeric-retraining.md) | 동일 구조 PPO의 수치 변경 이관·학습·재개·평가 | Implemented and verified; comparisons in 25 |
+| [`23-batch-simulation-statistics.md`](23-batch-simulation-statistics.md) | 현재 AI 반복 실행·기존 all-stats·SQLite 통계 | Release execution and SQLite verified |
+| [`24-construction-and-content-adaptation.md`](24-construction-and-content-adaptation.md) | Construction expansion and initial transfer study | Historical results |
+| [`25-effect-inputs-and-retraining-study.md`](25-effect-inputs-and-retraining-study.md) | Effect inputs, exact resume and three-repeat scratch comparison | Implemented and evaluated |
+| [`26-construction-and-content-retraining-plan.md`](26-construction-and-content-retraining-plan.md) | Construction/content retraining evidence and limitations | Implementation and validation |
+| [`27-retraining-quickstart.md`](27-retraining-quickstart.md) | Ordinary/experimental builds, transfer, resume and inference | Usage guide |
 
 상태의 의미는 다음과 같다.
 

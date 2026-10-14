@@ -96,6 +96,10 @@ pub(super) fn encode_runtime(
         super::behaviors::ItemRuntimeState::RubberCone(state) => {
             item.scalar_values = vec![state.count as u64]
         }
+        #[cfg(feature = "experimental-content")]
+        super::behaviors::ItemRuntimeState::ShieldBerry(state) => {
+            item.signed_values = vec![state.shield_raw]
+        }
     }
     item
 }
@@ -117,6 +121,15 @@ pub(super) fn decode_runtime(
         crate::ItemKind::Milk => decode_milk(item),
         crate::ItemKind::RiceBall => decode_rice_ball(item),
         crate::ItemKind::RubberCone => decode_rubber_cone(item),
+        #[cfg(feature = "experimental-content")]
+        crate::ItemKind::ShieldBerry => {
+            validate_shape(item, 0, 1)?;
+            Ok(super::behaviors::ItemRuntimeState::ShieldBerry(
+                super::behaviors::shield_berry::ShieldBerryItemState {
+                    shield_raw: item.signed_values[0],
+                },
+            ))
+        }
     }
 }
 

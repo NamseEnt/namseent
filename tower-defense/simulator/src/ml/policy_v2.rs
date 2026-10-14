@@ -29,7 +29,7 @@ use serde::{Deserialize, Serialize};
 /// 1: flat softmax over candidates (`DeepSetsActorCritic` checkpoint).
 /// 2: family-factorized `PolicyNet` without a cell head (stage A).
 /// 3: family-factorized `PolicyNet` with the spatial cell head (stage B).
-pub const POLICY_REPRESENTATION_VERSION: u32 = 3;
+pub const POLICY_REPRESENTATION_VERSION: u32 = 4;
 pub const FAMILY_COUNT: usize = crate::environment::ActionKind::COUNT;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, clap::ValueEnum)]
@@ -55,6 +55,8 @@ pub struct PolicyNet<B: Backend> {
     pub mode: KindMode,
     #[module(skip)]
     pub inputs: InputContract,
+    #[module(skip)]
+    pub temperature: f32,
 }
 
 /// The learned family/action-kind prediction head, exposed for diagnostics.
@@ -123,6 +125,7 @@ impl<B: Backend> PolicyNet<B> {
             activation: Relu::new(),
             mode,
             inputs: InputContract::Raw,
+            temperature: 1.0,
         }
     }
 
@@ -141,6 +144,12 @@ impl<B: Backend> PolicyNet<B> {
 
     pub fn with_inputs(mut self, inputs: InputContract) -> Self {
         self.inputs = inputs;
+        self
+    }
+
+    pub fn with_temperature(mut self, temperature: f32) -> Self {
+        assert!(temperature.is_finite() && temperature > 0.0);
+        self.temperature = temperature;
         self
     }
 
@@ -190,7 +199,21 @@ pub fn policy_from_bytes<B: Backend>(
 ) -> Result<PolicyNet<B>> {
     let recorder = NamedMpkBytesRecorder::<FullPrecisionSettings>::default();
     let record = recorder.load(bytes, device)?;
-    Ok(PolicyNet::new(config, mode, device).load_record(record))
+    let mut policy = PolicyNet::new(config, mode, device);
+    policy.scorer = policy
+        .scorer
+        .with_effect_adapters(config, device)
+        .with_migration_adapters(config, device)
+        .with_card_service_adapters(config, device);
+    policy = policy.load_record(record);
+    Ok(PolicyNet {
+        scorer: policy
+            .scorer
+            .with_effect_adapters(config, device)
+            .with_migration_adapters(config, device)
+            .with_card_service_adapters(config, device),
+        ..policy
+    })
 }
 
 /// Batched factorized log-probabilities. Padding and masked candidates are
@@ -229,6 +252,10 @@ pub(crate) fn factorized_log_probs<B: Backend>(
             match source.projection.take() {
                 Some(projection) => {
                     source.candidates = projection.source_candidates;
+                    source.candidate_effects = projection.source_candidate_effects;
+                    source.candidate_extensions = projection.source_candidate_extensions;
+                    source.candidate_card_service_effects =
+                        projection.source_candidate_card_service_effects;
                     source.legal_mask = projection.source_legal_mask;
                     source.families = projection.source_families;
                     output_members.push(projection.output_members);
@@ -288,7 +315,36 @@ pub(crate) fn factorized_log_probs<B: Backend>(
         ),
         device,
     );
-    let typed_state = model.scorer.encode_typed_sets(&typed_batches, device);
+    let mut typed_state = model.scorer.encode_typed_sets(&typed_batches, device);
+    let state_extensions = PaddedEntityBatch::from_sets(
+        &decisions
+            .iter()
+            .map(|d| d.state_extensions.clone())
+            .collect::<Vec<_>>(),
+    );
+    typed_state = model
+        .scorer
+        .add_migration_state(typed_state, &state_extensions, device);
+    let service_context = PaddedEntityBatch::from_sets(
+        &decisions
+            .iter()
+            .map(|d| d.card_service_context.clone())
+            .collect::<Vec<_>>(),
+    );
+    typed_state = model
+        .scorer
+        .add_card_service_state(typed_state, &service_context, device);
+    if model.inputs.has_effects() {
+        let effects = PaddedEntityBatch::from_sets(
+            &decisions
+                .iter()
+                .map(|d| d.state_effects.clone())
+                .collect::<Vec<_>>(),
+        );
+        typed_state = model
+            .scorer
+            .add_state_effects(typed_state, &effects, device);
+    }
     let global = tensor_from_rows::<B>(
         &decisions
             .iter()
@@ -296,9 +352,45 @@ pub(crate) fn factorized_log_probs<B: Backend>(
             .collect::<Vec<_>>(),
         device,
     );
-    let encoded_candidates = model
+    let mut encoded_candidates = model
         .scorer
         .encode_candidates(&candidate_batch(decisions), device);
+    let migration_extensions = PaddedEntityBatch::from_sets(
+        &decisions
+            .iter()
+            .flat_map(|d| d.candidate_extensions.iter().cloned())
+            .collect::<Vec<_>>(),
+    );
+    encoded_candidates =
+        model
+            .scorer
+            .add_migration_candidates(encoded_candidates, &migration_extensions, device);
+    let service_effects = PaddedEntityBatch::from_sets(
+        &decisions
+            .iter()
+            .flat_map(|d| d.candidate_card_service_effects.iter().cloned())
+            .collect::<Vec<_>>(),
+    );
+    encoded_candidates =
+        model
+            .scorer
+            .add_card_service_candidates(encoded_candidates, &service_effects, device);
+    if model.inputs.has_effects() {
+        let effects = PaddedEntityBatch::from_sets(
+            &decisions
+                .iter()
+                .flat_map(|d| d.candidate_effects.iter().cloned())
+                .collect::<Vec<_>>(),
+        );
+        let families = decisions
+            .iter()
+            .flat_map(|d| d.families.iter().copied())
+            .collect::<Vec<_>>();
+        encoded_candidates =
+            model
+                .scorer
+                .add_candidate_effects(encoded_candidates, &effects, &families, device);
+    }
     let logits = model.scorer.forward_typed_logits_with_encoded_candidates(
         model
             .scorer
@@ -307,7 +399,7 @@ pub(crate) fn factorized_log_probs<B: Backend>(
         typed_state.clone().select(0, group_of_row),
         &group_sizes,
     );
-    let (padded, invalid) = groups.padded_logits(logits, device);
+    let (padded, invalid) = groups.padded_logits(logits.div_scalar(model.temperature), device);
 
     let mut family_index = vec![0i64; group_count * width];
     let mut one_hot = vec![0.0f32; group_count * width * FAMILY_COUNT];
@@ -373,6 +465,7 @@ pub(crate) fn factorized_log_probs<B: Backend>(
                 .kind_output
                 .forward(model.activation.forward(model.kind_hidden.forward(input)))
                 .reshape([group_count, FAMILY_COUNT])
+                .div_scalar(model.temperature)
         }
     };
     let kind =
@@ -406,6 +499,10 @@ pub(crate) fn build_option_log_probs<B: Backend>(
         .context("BuildTower option decision is missing its A1' projection")?;
     let mut source = decision.clone();
     source.candidates = projection.source_candidates.clone();
+    source.candidate_effects = projection.source_candidate_effects.clone();
+    source.candidate_extensions = projection.source_candidate_extensions.clone();
+    source.candidate_card_service_effects =
+        projection.source_candidate_card_service_effects.clone();
     source.legal_mask = projection.source_legal_mask.clone();
     source.families = projection.source_families.clone();
     source.projection = None;
@@ -423,10 +520,10 @@ pub(crate) fn build_option_log_probs<B: Backend>(
     if option_indices.is_empty() {
         let mut result = vec![-1.0e9; decision.candidates.len()];
         for (index, members) in projection.output_members.iter().enumerate() {
-            if decision.legal_mask[index] {
-                if let Some(source_index) = members.first() {
-                    result[index] = source_joint[*source_index];
-                }
+            if decision.legal_mask[index]
+                && let Some(source_index) = members.first()
+            {
+                result[index] = source_joint[*source_index];
             }
         }
         return Ok(result);
@@ -468,32 +565,79 @@ pub(crate) fn build_option_conditional_log_probs<B: Backend>(
         .context("BuildTower option decision is missing its A1' projection")?;
     let mut source = decision.clone();
     source.candidates = projection.source_candidates.clone();
+    source.candidate_effects = projection.source_candidate_effects.clone();
+    source.candidate_extensions = projection.source_candidate_extensions.clone();
+    source.candidate_card_service_effects =
+        projection.source_candidate_card_service_effects.clone();
     source.legal_mask = projection.source_legal_mask.clone();
     source.families = projection.source_families.clone();
     source.projection = None;
     let contracted;
-    let decision = if frozen.inputs == super::feature_contract::InputContract::Raw {
+    let decision = if matches!(
+        frozen.inputs,
+        super::feature_contract::InputContract::Raw
+            | super::feature_contract::InputContract::RawEffects
+    ) {
         decision
     } else {
         contracted = super::feature_contract::apply_contract(decision, frozen.inputs);
         &contracted
     };
     let source_contracted;
-    let source = if frozen.inputs == super::feature_contract::InputContract::Raw {
+    let source = if matches!(
+        frozen.inputs,
+        super::feature_contract::InputContract::Raw
+            | super::feature_contract::InputContract::RawEffects
+    ) {
         &source
     } else {
         source_contracted = super::feature_contract::apply_contract(&source, frozen.inputs);
         &source_contracted
     };
-    let global = tensor_from_rows::<B>(&[decision.global_features.clone()], device);
+    let global = tensor_from_rows::<B>(std::slice::from_ref(&decision.global_features), device);
     let typed_batches: [PaddedEntityBatch; ENTITY_SET_COUNT] = std::array::from_fn(|set| {
         PaddedEntityBatch::from_sets(&[decision.typed.sets[set].clone()])
     });
-    let typed_state = frozen.scorer.encode_typed_sets(&typed_batches, device);
+    let mut typed_state = frozen.scorer.encode_typed_sets(&typed_batches, device);
+    let state_extensions =
+        PaddedEntityBatch::from_sets(std::slice::from_ref(&decision.state_extensions));
+    typed_state = frozen
+        .scorer
+        .add_migration_state(typed_state, &state_extensions, device);
+    let service_context =
+        PaddedEntityBatch::from_sets(std::slice::from_ref(&decision.card_service_context));
+    typed_state = frozen
+        .scorer
+        .add_card_service_state(typed_state, &service_context, device);
+    if frozen.inputs.has_effects() {
+        let effects = PaddedEntityBatch::from_sets(std::slice::from_ref(&decision.state_effects));
+        typed_state = frozen
+            .scorer
+            .add_state_effects(typed_state, &effects, device);
+    }
     let state = frozen.scorer.encode_state(global);
-    let source_embedded = frozen
+    let mut source_embedded = frozen
         .scorer
         .encode_candidates(&candidate_batch(&[source]), device);
+    let source_extensions = PaddedEntityBatch::from_sets(&source.candidate_extensions);
+    source_embedded =
+        frozen
+            .scorer
+            .add_migration_candidates(source_embedded, &source_extensions, device);
+    let service_effects = PaddedEntityBatch::from_sets(&source.candidate_card_service_effects);
+    source_embedded =
+        frozen
+            .scorer
+            .add_card_service_candidates(source_embedded, &service_effects, device);
+    if frozen.inputs.has_effects() {
+        let effects = PaddedEntityBatch::from_sets(&source.candidate_effects);
+        source_embedded = frozen.scorer.add_candidate_effects(
+            source_embedded,
+            &effects,
+            &source.families,
+            device,
+        );
+    }
     let source_width = source_embedded.dims()[1];
     let context = source_embedded
         .mean_dim(0)
@@ -504,7 +648,35 @@ pub(crate) fn build_option_conditional_log_probs<B: Backend>(
         .map(|index| decision.candidates[*index].clone())
         .collect::<Vec<_>>();
     let option_batch = PaddedEntityBatch::from_sets(&options);
-    let option_embeddings = frozen.scorer.encode_candidates(&option_batch, device);
+    let mut option_embeddings = frozen.scorer.encode_candidates(&option_batch, device);
+    let option_extensions = PaddedEntityBatch::from_sets(
+        &option_indices
+            .iter()
+            .map(|index| decision.candidate_extensions[*index].clone())
+            .collect::<Vec<_>>(),
+    );
+    option_embeddings =
+        frozen
+            .scorer
+            .add_migration_candidates(option_embeddings, &option_extensions, device);
+    if frozen.inputs.has_effects() {
+        let option_effects = PaddedEntityBatch::from_sets(
+            &option_indices
+                .iter()
+                .map(|index| decision.candidate_effects[*index].clone())
+                .collect::<Vec<_>>(),
+        );
+        let option_families = option_indices
+            .iter()
+            .map(|index| decision.families[*index])
+            .collect::<Vec<_>>();
+        option_embeddings = frozen.scorer.add_candidate_effects(
+            option_embeddings,
+            &option_effects,
+            &option_families,
+            device,
+        );
+    }
     let joined = Tensor::cat(
         vec![
             state.repeat_dim(0, option_indices.len()),
@@ -655,15 +827,15 @@ pub(crate) fn cell_contexts<B: Backend>(
     let option_embedding = model
         .scorer
         .encode_candidates(&PaddedEntityBatch::from_sets(&option_sets), device);
-    let context = Tensor::cat(
+
+    Tensor::cat(
         vec![
             model.scorer.encode_state(global),
             typed_state,
             option_embedding,
         ],
         1,
-    );
-    context
+    )
 }
 
 /// Conditional cell distribution using a previously computed frozen context.
@@ -868,6 +1040,10 @@ mod tests {
         let source = decision.projection.as_ref().unwrap();
         let mut source_decision = decision.clone();
         source_decision.candidates = source.source_candidates.clone();
+        source_decision.candidate_effects = source.source_candidate_effects.clone();
+        source_decision.candidate_extensions = source.source_candidate_extensions.clone();
+        source_decision.candidate_card_service_effects =
+            source.source_candidate_card_service_effects.clone();
         source_decision.legal_mask = source.source_legal_mask.clone();
         source_decision.families = source.source_families.clone();
         source_decision.projection = None;
@@ -973,12 +1149,26 @@ mod tests {
         let original = decisions(1).remove(0);
         let mut source = original.clone();
         source.candidates.push(original.candidates[0].clone());
+        source
+            .candidate_effects
+            .push(original.candidate_effects[0].clone());
+        source
+            .candidate_extensions
+            .push(original.candidate_extensions[0].clone());
+        source
+            .candidate_card_service_effects
+            .push(original.candidate_card_service_effects[0].clone());
         source.legal_mask.push(original.legal_mask[0]);
         source.families.push(original.families[0]);
         let mut projected = original.clone();
         projected.projection = Some(
             super::super::semantic_candidates::EncodedCandidateProjection {
                 source_candidates: source.candidates.clone(),
+                source_candidate_effects: source.candidate_effects.clone(),
+                source_candidate_extensions: source.candidate_extensions.clone(),
+                source_candidate_card_service_effects: source
+                    .candidate_card_service_effects
+                    .clone(),
                 source_legal_mask: source.legal_mask.clone(),
                 source_families: source.families.clone(),
                 output_members: (0..original.candidates.len())

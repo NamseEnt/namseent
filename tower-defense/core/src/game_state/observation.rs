@@ -2,6 +2,46 @@ use crate::{
     DecisionPoint, StageModifiersObservation, TowerStatusEffectEnd, TowerStatusEffectKind,
 };
 
+/// Public effects at the current decision. Each row keeps its content owner.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum EffectSource {
+    Inventory,
+    Shop,
+    TreasureOption,
+    OwnedUpgrade,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum ContentEffectKind {
+    Heal,
+    Shield,
+    GainRerolls,
+    ExtraTower,
+    SameSuit,
+    MaxHp,
+    ItemCapacity,
+    TreasureCapacity,
+    ShopSlots,
+    ShopDiscount,
+    FourCardStraightFlush,
+    SkipStraightRank,
+    PreserveShield,
+    ScalarParameter,
+    RatioParameter,
+    BoolParameter,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct ContentEffectObservation {
+    pub source: EffectSource,
+    pub source_index: usize,
+    pub key_id: u16,
+    pub kind: ContentEffectKind,
+    pub parameter_index: usize,
+    pub value_raw: i64,
+    pub enabled: bool,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct CardObservation {
     pub id: usize,
@@ -94,6 +134,17 @@ pub struct BuildTowerCandidateObservation {
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct CardServiceObservation {
     pub key: String,
+    /// Stable Core catalog id for `key`; zero is reserved for unknown/padding.
+    #[serde(default)]
+    pub key_id: u16,
+    /// Core-defined enhancement magnitude, when this service applies a
+    /// supported numeric card enhancement. `None` means no effect contract.
+    #[serde(default)]
+    pub polish_delta_raw: Option<i64>,
+    #[serde(default)]
+    pub suit_change_raw: Option<u8>,
+    #[serde(default)]
+    pub target_filter: Option<crate::CardSelectionFilterState>,
     pub current_step: usize,
     pub step_count: usize,
     pub required_count: usize,
@@ -293,11 +344,59 @@ pub struct Observation {
     pub route_coords: Vec<RouteCoordObservation>,
     pub monsters: Vec<MonsterObservation>,
     pub treasure_options: Vec<String>,
+    #[serde(default)]
+    pub content_effects: Vec<ContentEffectObservation>,
     pub card_service: Option<CardServiceObservation>,
     pub stage_modifiers: StageModifiersObservation,
 }
 
 impl crate::CoreState {
+    fn content_effect_observations(&self) -> Vec<ContentEffectObservation> {
+        let mut rows = Vec::new();
+        for (index, item) in self.items.entries().iter().enumerate() {
+            item.append_observation_effects(EffectSource::Inventory, index, &mut rows);
+        }
+        for (index, upgrade) in self.upgrades.upgrades.iter().enumerate() {
+            upgrade.append_observation_effects(
+                EffectSource::OwnedUpgrade,
+                index,
+                &self.config,
+                &mut rows,
+            );
+        }
+        match &self.flow {
+            crate::GameFlowState::Shopping(shop) => {
+                for (index, slot) in shop.slots.iter().enumerate() {
+                    match &slot.slot {
+                        crate::ShopSlotState::Item { item, .. } => {
+                            item.append_observation_effects(EffectSource::Shop, index, &mut rows)
+                        }
+                        crate::ShopSlotState::Upgrade { upgrade, .. } => upgrade
+                            .append_observation_effects(
+                                EffectSource::Shop,
+                                index,
+                                &self.config,
+                                &mut rows,
+                            ),
+                        crate::ShopSlotState::CardService { .. } => {}
+                    }
+                }
+            }
+            crate::GameFlowState::TreasureSelection { options, .. } => {
+                for (index, upgrade) in options.iter().enumerate() {
+                    upgrade.append_observation_effects(
+                        EffectSource::TreasureOption,
+                        index,
+                        &self.config,
+                        &mut rows,
+                    );
+                }
+            }
+            _ => {}
+        }
+        rows
+    }
+
     pub fn observation(
         &self,
         environment_version: u32,
@@ -508,6 +607,7 @@ impl crate::CoreState {
                 .collect(),
             monsters,
             treasure_options,
+            content_effects: self.content_effect_observations(),
             card_service: None,
             stage_modifiers: stage_modifiers_observation(&self.stage_modifiers),
         }
@@ -964,6 +1064,7 @@ fn monster_kind(value: u8) -> (&'static str, u16) {
 }
 
 fn item_key(value: u8) -> (&'static str, u16) {
+    #[cfg(not(feature = "experimental-content"))]
     const NAMES: [&str; 11] = [
         "bread",
         "candy",
@@ -977,6 +1078,21 @@ fn item_key(value: u8) -> (&'static str, u16) {
         "rubber_cone",
         "gimbap",
     ];
+    #[cfg(feature = "experimental-content")]
+    const NAMES: [&str; 12] = [
+        "bread",
+        "candy",
+        "cannoli",
+        "cookie",
+        "donut",
+        "rice_ball",
+        "lunch_box",
+        "lump_sugar",
+        "milk",
+        "rubber_cone",
+        "gimbap",
+        "shield_berry",
+    ];
     NAMES
         .get(value as usize)
         .copied()
@@ -985,6 +1101,7 @@ fn item_key(value: u8) -> (&'static str, u16) {
 }
 
 fn upgrade_key(value: u8) -> (&'static str, u16) {
+    #[cfg(not(feature = "experimental-content"))]
     const NAMES: [&str; 37] = [
         "apple",
         "banana",
@@ -1024,6 +1141,47 @@ fn upgrade_key(value: u8) -> (&'static str, u16) {
         "strawberry",
         "watermelon",
     ];
+    #[cfg(feature = "experimental-content")]
+    const NAMES: [&str; 38] = [
+        "apple",
+        "banana",
+        "carrot",
+        "cat",
+        "backpack",
+        "dice_bundle",
+        "energy_drink",
+        "perfect_pottery",
+        "four_leaf_clover",
+        "rabbit",
+        "black_white",
+        "trophy",
+        "crock",
+        "cup_noodles",
+        "french_fries",
+        "hamburger",
+        "pizza",
+        "demolition_hammer",
+        "metronome",
+        "tape",
+        "name_tag",
+        "shopping_bag",
+        "resolution",
+        "mirror",
+        "ice_cream",
+        "spanner",
+        "pea",
+        "slot_machine",
+        "piggy_bank",
+        "camera",
+        "gift_box",
+        "fang",
+        "popcorn",
+        "membership_card",
+        "broken_pottery",
+        "strawberry",
+        "watermelon",
+        "training_melon",
+    ];
     NAMES
         .get(value as usize)
         .copied()
@@ -1032,7 +1190,7 @@ fn upgrade_key(value: u8) -> (&'static str, u16) {
 }
 
 fn card_service_key(value: u8) -> (&'static str, u16) {
-    const NAMES: [&str; 16] = [
+    const NAMES: &[&str] = &[
         "long_sword",
         "staff",
         "mace",
@@ -1049,6 +1207,8 @@ fn card_service_key(value: u8) -> (&'static str, u16) {
         "cactus",
         "spinning_top",
         "battery",
+        #[cfg(feature = "experimental-content")]
+        "card_polisher",
     ];
     let Some(name) = NAMES.get(value as usize).copied() else {
         return ("unknown", 0);
@@ -1058,6 +1218,7 @@ fn card_service_key(value: u8) -> (&'static str, u16) {
         "battery" => 14,
         "cactus" => 15,
         "spinning_top" => 16,
+        "card_polisher" => 17,
         _ => value as u16 + 1,
     };
     (name, id)
@@ -1956,5 +2117,41 @@ mod tests {
             kinds_seen.len() >= 8,
             "subset generator should reach most tower kinds, saw {kinds_seen:?}"
         );
+    }
+}
+
+#[cfg(test)]
+mod content_effect_tests {
+    use super::*;
+    #[test]
+    fn offered_treasure_effect_and_inventory_runtime_values_follow_core_rules() {
+        let mut state =
+            crate::CoreState::new_initial(crate::GameConfig::default_config().to_core_state(), 1);
+        let treasure = crate::generated_upgrade(crate::UpgradeKind::BlackWhite);
+        state.flow = crate::GameFlowState::TreasureSelection {
+            options: vec![treasure],
+            pending_selection: None,
+        };
+        let mut item = crate::generated_item(crate::ItemKind::Bread).unwrap();
+        assert!(item.set_value(0, 9876));
+        state.items.entries_mut().push(item);
+        let first = state.content_effect_observations();
+        assert!(first.iter().any(|e| e.source == EffectSource::Inventory
+            && e.kind == ContentEffectKind::Heal
+            && e.value_raw == 9876));
+        let effect = first
+            .iter()
+            .find(|e| e.kind == ContentEffectKind::SameSuit)
+            .unwrap();
+        assert!(effect.enabled);
+        state.config.treasures.black_white_enabled = false;
+        let second = state.content_effect_observations();
+        let changed = second
+            .iter()
+            .find(|e| e.kind == ContentEffectKind::SameSuit)
+            .unwrap();
+        assert!(!changed.enabled);
+        assert_eq!(effect.key_id, changed.key_id);
+        assert_eq!(effect.value_raw, changed.value_raw);
     }
 }

@@ -34,6 +34,8 @@ pub(super) mod spanner;
 pub(super) mod strawberry;
 pub(crate) mod support;
 pub(super) mod tape;
+#[cfg(feature = "experimental-content")]
+pub(super) mod training_melon;
 pub(super) mod trophy;
 pub(super) mod watermelon;
 
@@ -169,6 +171,8 @@ pub(crate) enum UpgradeBehaviorImpl {
     Tape(tape::Behavior),
     Trophy(trophy::Behavior),
     Watermelon(watermelon::Behavior),
+    #[cfg(feature = "experimental-content")]
+    TrainingMelon(training_melon::Behavior),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -210,6 +214,8 @@ pub(crate) enum UpgradeRuntimeState {
     BrokenPottery(broken_pottery::BrokenPotteryUpgradeState),
     Strawberry(strawberry::StrawberryUpgradeState),
     Watermelon(watermelon::WatermelonUpgradeState),
+    #[cfg(feature = "experimental-content")]
+    TrainingMelon(super::codec_impl::TrainingMelonUpgradeState),
 }
 
 impl UpgradeBehaviorImpl {
@@ -254,6 +260,8 @@ impl UpgradeBehaviorImpl {
             crate::UpgradeKind::Tape => Self::Tape(tape::Behavior),
             crate::UpgradeKind::Trophy => Self::Trophy(trophy::Behavior),
             crate::UpgradeKind::Watermelon => Self::Watermelon(watermelon::Behavior),
+            #[cfg(feature = "experimental-content")]
+            crate::UpgradeKind::TrainingMelon => Self::TrainingMelon(training_melon::Behavior),
         }
     }
 }

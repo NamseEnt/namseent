@@ -35,7 +35,7 @@ pub type InferenceBackend = CpuInferenceBackend;
 pub type TrainBackend = CpuTrainBackend;
 pub type PolicyDevice = CpuPolicyDevice;
 
-pub const ENTITY_ENCODER_SCHEMA_VERSION: u32 = 6;
+pub const ENTITY_ENCODER_SCHEMA_VERSION: u32 = 8;
 pub const ENTITY_TYPE_COUNT: usize = ENTITY_SET_COUNT;
 pub const ENTITY_PADDING_ID: u32 = 0;
 
@@ -84,6 +84,13 @@ pub struct DeepSetsActorCritic<B: Backend> {
     entity_hidden: Linear<B>,
     entity_output: Linear<B>,
     activation: Relu,
+    effect_state: Option<Linear<B>>,
+    effect_candidate: Option<Linear<B>>,
+    effect_treasure: Option<Linear<B>>,
+    migration_state: Option<Linear<B>>,
+    migration_candidate: Option<Linear<B>>,
+    card_service_state: Option<Linear<B>>,
+    card_service_candidate: Option<Linear<B>>,
 }
 
 /// The generic typed candidate scorer cloned into the BuildTower option-only
@@ -127,6 +134,311 @@ impl<B: Backend> DeepSetsActorCritic<B> {
             entity_hidden: LinearConfig::new(hidden_size, hidden_size).init(device),
             entity_output: LinearConfig::new(hidden_size, hidden_size).init(device),
             activation: Relu::new(),
+            effect_state: None,
+            effect_candidate: None,
+            effect_treasure: None,
+            migration_state: None,
+            migration_candidate: None,
+            card_service_state: None,
+            card_service_candidate: None,
+        }
+    }
+
+    pub fn with_effect_adapters(mut self, config: ModelConfig, device: &B::Device) -> Self {
+        // Stable identities are required for exact optimizer and checkpoint resume.
+        struct AdapterIds(u64);
+        impl<B: Backend> burn::module::ModuleMapper<B> for AdapterIds {
+            fn map_float<const D: usize>(
+                &mut self,
+                param: burn::module::Param<Tensor<B, D>>,
+            ) -> burn::module::Param<Tensor<B, D>> {
+                let (_, value, mapper) = param.consume();
+                let id = burn::module::ParamId::from(self.0);
+                self.0 += 1;
+                burn::module::Param::from_mapped_value(id, value, mapper)
+            }
+        }
+        let hidden = config.hidden_size.max(8);
+        if self.effect_state.is_none() {
+            self.effect_state = Some(
+                LinearConfig::new(hidden * 2 + 1, hidden)
+                    .with_initializer(burn::nn::Initializer::Zeros)
+                    .init(device)
+                    .map(&mut AdapterIds(0x4546465354410000)),
+            );
+            self.effect_candidate = Some(
+                LinearConfig::new(hidden * 2 + 1, hidden)
+                    .with_initializer(burn::nn::Initializer::Zeros)
+                    .init(device)
+                    .map(&mut AdapterIds(0x45464643414e0000)),
+            );
+            self.effect_treasure = Some(
+                LinearConfig::new(hidden * 2 + 1, hidden)
+                    .with_initializer(burn::nn::Initializer::Zeros)
+                    .init(device)
+                    .map(&mut AdapterIds(0x4546465452450000)),
+            );
+        }
+        self
+    }
+
+    /// Adds zero-initialized residual paths for schema-7 entity rows and
+    /// schema-2 candidate rows without changing learned effect adapters.
+    pub fn with_migration_adapters(mut self, config: ModelConfig, device: &B::Device) -> Self {
+        struct AdapterIds(u64);
+        impl<B: Backend> burn::module::ModuleMapper<B> for AdapterIds {
+            fn map_float<const D: usize>(
+                &mut self,
+                param: burn::module::Param<Tensor<B, D>>,
+            ) -> burn::module::Param<Tensor<B, D>> {
+                let (_, value, mapper) = param.consume();
+                let id = burn::module::ParamId::from(self.0);
+                self.0 += 1;
+                burn::module::Param::from_mapped_value(id, value, mapper)
+            }
+        }
+        let hidden = config.hidden_size.max(8);
+        if self.migration_state.is_none() {
+            self.migration_state = Some(
+                LinearConfig::new(hidden * 2 + 1, hidden)
+                    .with_initializer(burn::nn::Initializer::Zeros)
+                    .init(device)
+                    .map(&mut AdapterIds(0x4d49475253544100)),
+            );
+        }
+        if self.migration_candidate.is_none() {
+            self.migration_candidate = Some(
+                LinearConfig::new(hidden * 2 + 1, hidden)
+                    .with_initializer(burn::nn::Initializer::Zeros)
+                    .init(device)
+                    .map(&mut AdapterIds(0x4d49475243414e00)),
+            );
+        }
+        self
+    }
+
+    /// New service context path, initialized to contribute exactly zero while
+    /// keeping the learned legacy/effect/migration pathways untouched.
+    pub fn with_card_service_adapters(mut self, config: ModelConfig, device: &B::Device) -> Self {
+        struct AdapterIds(u64);
+        impl<B: Backend> burn::module::ModuleMapper<B> for AdapterIds {
+            fn map_float<const D: usize>(
+                &mut self,
+                param: burn::module::Param<Tensor<B, D>>,
+            ) -> burn::module::Param<Tensor<B, D>> {
+                let (_, value, mapper) = param.consume();
+                let id = burn::module::ParamId::from(self.0);
+                self.0 += 1;
+                burn::module::Param::from_mapped_value(id, value, mapper)
+            }
+        }
+        let hidden = config.hidden_size.max(8);
+        if self.card_service_state.is_none() {
+            self.card_service_state = Some(
+                LinearConfig::new(hidden * 2 + 1, hidden)
+                    .with_initializer(burn::nn::Initializer::Zeros)
+                    .init(device)
+                    .map(&mut AdapterIds(0x4353525653540000)),
+            );
+        }
+        if self.card_service_candidate.is_none() {
+            self.card_service_candidate = Some(
+                LinearConfig::new(hidden * 2 + 1, hidden)
+                    .with_initializer(burn::nn::Initializer::Zeros)
+                    .init(device)
+                    .map(&mut AdapterIds(0x4353525643410000)),
+            );
+        }
+        self
+    }
+
+    pub fn add_card_service_state(
+        &self,
+        base: Tensor<B, 2>,
+        context: &PaddedEntityBatch,
+        device: &B::Device,
+    ) -> Tensor<B, 2> {
+        let Some(layer) = &self.card_service_state else {
+            return base;
+        };
+        let present = Tensor::<B, 2>::from_data(
+            TensorData::new(
+                context
+                    .mask
+                    .chunks(context.max_entities)
+                    .map(|row| row.iter().any(|v| *v > 0.0) as u8 as f32)
+                    .collect::<Vec<_>>(),
+                [context.batch_size, 1],
+            ),
+            device,
+        );
+        base + layer.forward(self.encode_typed_batch(context, device)) * present
+    }
+
+    pub fn add_card_service_candidates(
+        &self,
+        base: Tensor<B, 2>,
+        effects: &PaddedEntityBatch,
+        device: &B::Device,
+    ) -> Tensor<B, 2> {
+        let Some(layer) = &self.card_service_candidate else {
+            return base;
+        };
+        let present = Tensor::<B, 2>::from_data(
+            TensorData::new(
+                effects
+                    .mask
+                    .chunks(effects.max_entities)
+                    .map(|row| row.iter().any(|v| *v > 0.0) as u8 as f32)
+                    .collect::<Vec<_>>(),
+                [effects.batch_size, 1],
+            ),
+            device,
+        );
+        base + layer.forward(self.encode_typed_batch(effects, device)) * present
+    }
+
+    pub fn add_migration_state(
+        &self,
+        base: Tensor<B, 2>,
+        extensions: &PaddedEntityBatch,
+        device: &B::Device,
+    ) -> Tensor<B, 2> {
+        match &self.migration_state {
+            Some(layer) => {
+                let present = Tensor::<B, 2>::from_data(
+                    TensorData::new(
+                        extensions
+                            .mask
+                            .chunks(extensions.max_entities)
+                            .map(|row| row.iter().any(|v| *v > 0.0) as u8 as f32)
+                            .collect::<Vec<_>>(),
+                        [extensions.batch_size, 1],
+                    ),
+                    device,
+                );
+                base + layer.forward(self.encode_typed_batch(extensions, device)) * present
+            }
+            None => base,
+        }
+    }
+
+    pub fn add_migration_candidates(
+        &self,
+        base: Tensor<B, 2>,
+        extensions: &PaddedEntityBatch,
+        device: &B::Device,
+    ) -> Tensor<B, 2> {
+        match &self.migration_candidate {
+            Some(layer) => {
+                let present = Tensor::<B, 2>::from_data(
+                    TensorData::new(
+                        extensions
+                            .mask
+                            .chunks(extensions.max_entities)
+                            .map(|row| row.iter().any(|v| *v > 0.0) as u8 as f32)
+                            .collect::<Vec<_>>(),
+                        [extensions.batch_size, 1],
+                    ),
+                    device,
+                );
+                base + layer.forward(self.encode_typed_batch(extensions, device)) * present
+            }
+            None => base,
+        }
+    }
+
+    pub fn candidate_effect_adapter(&self) -> Option<Linear<B>> {
+        self.effect_treasure.clone()
+    }
+    pub fn has_effect_adapters(&self) -> bool {
+        self.effect_state.is_some()
+            && self.effect_candidate.is_some()
+            && self.effect_treasure.is_some()
+    }
+    pub fn has_migration_adapters(&self) -> bool {
+        self.migration_state.is_some() && self.migration_candidate.is_some()
+    }
+    pub fn has_card_service_adapters(&self) -> bool {
+        self.card_service_state.is_some() && self.card_service_candidate.is_some()
+    }
+    #[cfg(test)]
+    pub(crate) fn without_card_service_adapters(mut self) -> Self {
+        self.card_service_state = None;
+        self.card_service_candidate = None;
+        self
+    }
+    #[cfg(test)]
+    pub(crate) fn without_migration_adapters(mut self) -> Self {
+        self.migration_state = None;
+        self.migration_candidate = None;
+        self
+    }
+    pub fn with_candidate_effect_adapter(mut self, layer: Linear<B>) -> Self {
+        self.effect_treasure = Some(layer);
+        self
+    }
+
+    pub fn add_state_effects(
+        &self,
+        base: Tensor<B, 2>,
+        effects: &PaddedEntityBatch,
+        device: &B::Device,
+    ) -> Tensor<B, 2> {
+        match &self.effect_state {
+            Some(layer) => {
+                let present = Tensor::<B, 2>::from_data(
+                    TensorData::new(
+                        effects
+                            .mask
+                            .chunks(effects.max_entities)
+                            .map(|row| row.iter().any(|v| *v > 0.0) as u8 as f32)
+                            .collect::<Vec<_>>(),
+                        [effects.batch_size, 1],
+                    ),
+                    device,
+                );
+                base + layer.forward(self.encode_typed_batch(effects, device)) * present
+            }
+            None => base,
+        }
+    }
+    pub fn add_candidate_effects(
+        &self,
+        base: Tensor<B, 2>,
+        effects: &PaddedEntityBatch,
+        families: &[u8],
+        device: &B::Device,
+    ) -> Tensor<B, 2> {
+        let Some(general) = &self.effect_candidate else {
+            return base;
+        };
+        assert_eq!(families.len(), effects.batch_size);
+        let encoded = self.encode_typed_batch(effects, device);
+        let masks = |treasure: bool| {
+            Tensor::<B, 2>::from_data(
+                TensorData::new(
+                    effects
+                        .mask
+                        .chunks(effects.max_entities)
+                        .zip(families)
+                        .map(|(row, family)| {
+                            (row.iter().any(|v| *v > 0.0)
+                                && ((*family as usize
+                                    == crate::environment::ActionKind::SelectTreasure.index())
+                                    == treasure)) as u8 as f32
+                        })
+                        .collect::<Vec<_>>(),
+                    [effects.batch_size, 1],
+                ),
+                device,
+            )
+        };
+        // Treasure-only preparation cannot change shop, item or construction logits.
+        let base = base + general.forward(encoded.clone()) * masks(false);
+        match &self.effect_treasure {
+            Some(layer) => base + layer.forward(encoded) * masks(true),
+            None => base,
         }
     }
 
@@ -488,7 +800,15 @@ pub fn model_from_full_precision_bytes<B: Backend>(
 ) -> Result<DeepSetsActorCritic<B>> {
     let recorder = NamedMpkBytesRecorder::<FullPrecisionSettings>::default();
     let record = recorder.load(bytes, device)?;
-    Ok(DeepSetsActorCritic::new(config, device).load_record(record))
+    let model = DeepSetsActorCritic::new(config, device)
+        .with_effect_adapters(config, device)
+        .with_migration_adapters(config, device)
+        .with_card_service_adapters(config, device)
+        .load_record(record);
+    Ok(model
+        .with_effect_adapters(config, device)
+        .with_migration_adapters(config, device)
+        .with_card_service_adapters(config, device))
 }
 
 #[cfg(feature = "simulator-wgpu")]
