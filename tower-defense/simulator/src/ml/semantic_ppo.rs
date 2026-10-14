@@ -16,6 +16,7 @@
 //! between consecutive decisions. With `gamma = 1` the return telescopes to
 //! `reward_scale * (terminal - current clear_rate)`.
 
+use super::encoding::EntitySet;
 use super::encoding::{PaddedEntityBatch, observation::ENTITY_SET_COUNT};
 use super::feature_contract::{InputContract, apply_contract};
 use super::model::{
@@ -44,6 +45,8 @@ use crate::config::GameConfig;
 use crate::environment::{DecisionPoint, GameEnvironment};
 use anyhow::{Context, Result, bail};
 use burn::module::{AutodiffModule, Module};
+#[cfg(all(test, feature = "experimental-content"))]
+use burn::module::{ModuleVisitor, Param};
 use burn::optim::adaptor::OptimizerAdaptor;
 use burn::optim::grad_clipping::GradientClippingConfig;
 use burn::optim::{Adam, AdamConfig, GradientsParams, Optimizer};
@@ -106,6 +109,8 @@ pub enum EntropyScheme {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PpoConfig {
+    #[serde(default = "default_policy_temperature")]
+    pub policy_temperature: f32,
     pub episodes_per_iteration: usize,
     pub gamma: f32,
     pub gae_lambda: f32,
@@ -150,9 +155,14 @@ pub struct PpoConfig {
     pub actor_update_mode: ActorUpdateMode,
 }
 
+fn default_policy_temperature() -> f32 {
+    1.0
+}
+
 impl Default for PpoConfig {
     fn default() -> Self {
         Self {
+            policy_temperature: 1.0,
             episodes_per_iteration: 48,
             gamma: 1.0,
             gae_lambda: 0.95,
@@ -195,6 +205,8 @@ pub enum CriticInputs {
     SquashAll,
     /// The policy v2 input normalization contract, shared with the actor.
     Contract,
+    SquashAllEffects,
+    ContractEffects,
 }
 
 /// Critic value `V(s)`: typed value head over the critic's own typed entity
@@ -205,13 +217,21 @@ pub fn critic_values<B: Backend>(
     inputs: CriticInputs,
     device: &B::Device,
 ) -> Tensor<B, 2> {
-    if inputs == CriticInputs::Contract {
+    if matches!(
+        inputs,
+        CriticInputs::Contract | CriticInputs::ContractEffects
+    ) {
         let contracted = decisions
             .iter()
             .map(|decision| apply_contract(decision, InputContract::Normalized))
             .collect::<Vec<_>>();
         let refs = contracted.iter().collect::<Vec<_>>();
-        return critic_forward(critic, &refs, device);
+        return critic_forward(
+            critic,
+            &refs,
+            device,
+            inputs == CriticInputs::ContractEffects,
+        );
     }
     let squashed = decisions
         .iter()
@@ -231,13 +251,19 @@ pub fn critic_values<B: Backend>(
         })
         .collect::<Vec<_>>();
     let refs = squashed.iter().collect::<Vec<_>>();
-    critic_forward(critic, &refs, device)
+    critic_forward(
+        critic,
+        &refs,
+        device,
+        inputs == CriticInputs::SquashAllEffects,
+    )
 }
 
 fn critic_forward<B: Backend>(
     critic: &DeepSetsActorCritic<B>,
     decisions: &[&EncodedDecision],
     device: &B::Device,
+    use_effects: bool,
 ) -> Tensor<B, 2> {
     let typed_batches: [PaddedEntityBatch; ENTITY_SET_COUNT] = std::array::from_fn(|index| {
         PaddedEntityBatch::from_sets(
@@ -247,7 +273,30 @@ fn critic_forward<B: Backend>(
                 .collect::<Vec<_>>(),
         )
     });
-    let typed = critic.encode_typed_sets(&typed_batches, device);
+    let mut typed = critic.encode_typed_sets(&typed_batches, device);
+    let extensions = PaddedEntityBatch::from_sets(
+        &decisions
+            .iter()
+            .map(|d| d.state_extensions.clone())
+            .collect::<Vec<_>>(),
+    );
+    typed = critic.add_migration_state(typed, &extensions, device);
+    let service_context = PaddedEntityBatch::from_sets(
+        &decisions
+            .iter()
+            .map(|d| d.card_service_context.clone())
+            .collect::<Vec<_>>(),
+    );
+    typed = critic.add_card_service_state(typed, &service_context, device);
+    if use_effects {
+        let effects = PaddedEntityBatch::from_sets(
+            &decisions
+                .iter()
+                .map(|d| d.state_effects.clone())
+                .collect::<Vec<_>>(),
+        );
+        typed = critic.add_state_effects(typed, &effects, device);
+    }
     let global = tensor_from_rows::<B>(
         &decisions
             .iter()
@@ -547,6 +596,7 @@ pub fn rollout_episode(
     )
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn rollout_episode_with_build_option_head(
     actor: &PolicyNet<InferenceBackend>,
     build_option_head: Option<&super::model::TypedCandidateScorer<InferenceBackend>>,
@@ -685,15 +735,14 @@ pub fn rollout_episode_with_build_option_head(
             .get(action_index)
             .and_then(Option::as_ref)
             .map(BuildOptionChoice::from);
-        let build_option_conditional_index = Some(
+        let build_option_conditional_index = build_option.is_some().then_some(
             candidates
                 .build_option_info
                 .iter()
                 .take(action_index)
                 .filter(|option| option.is_some())
                 .count(),
-        )
-        .filter(|_| build_option.is_some());
+        );
         let old_build_option_log_prob = build_option.as_ref().map(|_| {
             let build_kind = crate::environment::ActionKind::BuildTower.index();
             let kind_log_prob = factorized
@@ -804,6 +853,10 @@ pub fn compute_gae(
 pub struct UpdateStats {
     /// Total minibatches processed by the iteration (actor and critic schedule).
     pub minibatches: usize,
+    #[serde(default)]
+    pub card_service_context_actor_batch_examples: usize,
+    #[serde(default)]
+    pub card_service_context_critic_batch_examples: usize,
     /// Outer PPO epochs completed; critic updates continue after an actor stop.
     pub epochs_completed: usize,
     /// Legacy epoch-level stop field retained for old artifact deserialization.
@@ -937,7 +990,7 @@ impl PpoLearner {
     ) -> Self {
         let build_option_head = actor.scorer.typed_candidate_scorer();
         Self {
-            actor,
+            actor: actor.with_temperature(config.policy_temperature),
             critic,
             actor_optimizer: new_optimizer(config.max_grad_norm),
             spatial_cell_optimizer: new_optimizer(config.max_grad_norm),
@@ -1913,6 +1966,7 @@ fn build_option_actor_terms(
     }))
 }
 
+#[allow(clippy::too_many_arguments)]
 fn position_only_actor_terms(
     actor: &PolicyNet<TrainBackend>,
     batch: &[&Transition],
@@ -2180,6 +2234,12 @@ impl PpoLearner {
                 stats.minibatches += 1;
                 if update_actor && !actor_epochs_stopped {
                     stats.attempted_actor_minibatches += 1;
+                    if config.actor_update_mode == ActorUpdateMode::Full {
+                        stats.card_service_context_actor_batch_examples += batch
+                            .iter()
+                            .filter(|step| !step.encoded.card_service_context.is_empty())
+                            .count();
+                    }
                     let factor_diagnostics = diagnostics_path
                         .as_ref()
                         .map(|_| {
@@ -2392,6 +2452,10 @@ impl PpoLearner {
                         }
                     }
                 }
+                stats.card_service_context_critic_batch_examples += batch
+                    .iter()
+                    .filter(|step| !step.encoded.card_service_context.is_empty())
+                    .count();
                 match self.critic_step(&batch, config.critic_learning_rate) {
                     Some((loss, norm)) => {
                         if critic_steps == 0 {
@@ -2787,6 +2851,37 @@ pub struct RolloutStats {
     pub spatial_by_kind: BTreeMap<String, SpatialKindStats>,
     pub action_kind_counts: BTreeMap<String, usize>,
     pub action_kind_fractions: BTreeMap<String, f64>,
+    /// Stable treasure names reconstructed from candidate rows in PPO rollout transitions.
+    #[serde(default)]
+    pub treasure_offers: BTreeMap<String, usize>,
+    #[serde(default)]
+    pub treasure_selections: BTreeMap<String, usize>,
+    #[serde(default)]
+    pub shield_berry_observed_decisions: usize,
+    #[serde(default)]
+    pub shield_berry_use_candidates: usize,
+    #[serde(default)]
+    pub shield_berry_actual_uses: usize,
+    #[cfg(feature = "experimental-content")]
+    #[serde(default)]
+    pub card_polisher_shop_offers: usize,
+    #[cfg(feature = "experimental-content")]
+    #[serde(default)]
+    pub card_polisher_purchase_candidates: usize,
+    #[cfg(feature = "experimental-content")]
+    #[serde(default)]
+    pub card_polisher_actual_purchases: usize,
+    #[cfg(feature = "experimental-content")]
+    #[serde(default)]
+    pub card_polisher_target_selections: usize,
+    #[cfg(feature = "experimental-content")]
+    #[serde(default)]
+    pub card_polisher_selection_completions: usize,
+    #[cfg(feature = "experimental-content")]
+    #[serde(default)]
+    pub card_polisher_batch_examples: usize,
+    #[serde(default)]
+    pub card_service_context_decisions: usize,
     pub mean_return: f64,
     pub mean_value: f64,
     pub advantage_mean: f64,
@@ -3059,11 +3154,17 @@ pub struct PpoRunMetadata {
     pub train_split: Phase4Split,
     pub development_split: Phase4Split,
     pub development_seeds: usize,
+    #[serde(default = "default_development_seed_start")]
+    pub development_seed_start: u64,
     pub evaluate_every: usize,
     pub completed_iterations: usize,
     pub history: Vec<IterationRecord>,
     #[serde(default)]
     pub position_reference_actor: Option<String>,
+}
+
+fn default_development_seed_start() -> u64 {
+    *Phase4Split::PpoDevelopment.range().start()
 }
 
 fn iteration_dir(run_dir: &Path, iteration: usize) -> PathBuf {
@@ -3121,6 +3222,7 @@ fn write_checkpoint(
             policy_representation_version: POLICY_REPRESENTATION_VERSION,
             kind_mode: learner.actor.mode,
             input_contract: learner.actor.inputs,
+            policy_temperature: learner.actor.temperature,
             candidate_mode: metadata.candidate_mode,
             policy_candidate_set_version: POLICY_CANDIDATE_SET_VERSION,
             candidate_encoder_version: SEMANTIC_CANDIDATE_ENCODER_VERSION,
@@ -3148,6 +3250,8 @@ pub struct PpoActorFile {
     pub kind_mode: KindMode,
     #[serde(default)]
     pub input_contract: InputContract,
+    #[serde(default = "default_policy_temperature")]
+    pub policy_temperature: f32,
     #[serde(default)]
     pub candidate_mode: CandidateMode,
     pub policy_candidate_set_version: u32,
@@ -3203,9 +3307,12 @@ fn load_actor_as<B: Backend>(
         &std::fs::read(iteration_dir.join("ppo-actor.json"))
             .with_context(|| format!("read {}", iteration_dir.join("ppo-actor.json").display()))?,
     )?;
+    let candidate_encoder_compatible = file.candidate_encoder_version
+        == SEMANTIC_CANDIDATE_ENCODER_VERSION
+        || (transferring && file.candidate_encoder_version == 1);
     if file.schema_version != SEMANTIC_PPO_CHECKPOINT_SCHEMA_VERSION
         || file.policy_candidate_set_version != POLICY_CANDIDATE_SET_VERSION
-        || file.candidate_encoder_version != SEMANTIC_CANDIDATE_ENCODER_VERSION
+        || !candidate_encoder_compatible
         || (!transferring && file.game_rules_epoch != GAME_RULES_EPOCH)
     {
         bail!(
@@ -3217,7 +3324,11 @@ fn load_actor_as<B: Backend>(
         if environment.game_rules_epoch != file.game_rules_epoch {
             bail!("actor metadata and environment rules epoch disagree");
         }
-        environment.check_encoding()?;
+        if transferring {
+            environment.check_transfer_encoding()?;
+        } else {
+            environment.check_encoding()?;
+        }
     }
     load_policy_file::<B>(
         file.policy_representation_version,
@@ -3226,10 +3337,50 @@ fn load_actor_as<B: Backend>(
         &iteration_dir.join("actor.bin"),
         device,
     )
-    .map(|policy| policy.with_inputs(file.input_contract))
+    .map(|policy| {
+        policy
+            .with_inputs(file.input_contract)
+            .with_temperature(file.policy_temperature)
+    })
 }
 
-fn load_learner(
+#[cfg(all(test, feature = "experimental-content"))]
+pub(crate) fn adam_step_counters<M: Module<TrainBackend> + AutodiffModule<TrainBackend>>(
+    optimizer: &OptimizerAdaptor<Adam, M, TrainBackend>,
+    model: &M,
+) -> Result<Vec<(u64, usize)>> {
+    struct Ranks {
+        values: BTreeMap<u64, usize>,
+    }
+    impl ModuleVisitor<TrainBackend> for Ranks {
+        fn visit_float<const D: usize>(&mut self, parameter: &Param<Tensor<TrainBackend, D>>) {
+            self.values.insert(parameter.id.val(), D);
+        }
+    }
+    let mut ranks = Ranks {
+        values: BTreeMap::new(),
+    };
+    model.visit(&mut ranks);
+    let mut counters = optimizer
+        .to_record()
+        .into_iter()
+        .map(|(id, state)| {
+            let rank = ranks.values.get(&id.val()).copied().ok_or_else(|| {
+                anyhow::anyhow!("optimizer parameter {} is missing from model", id.val())
+            })?;
+            let time = match rank {
+                1 => state.into_state::<1>().momentum.time,
+                2 => state.into_state::<2>().momentum.time,
+                _ => anyhow::bail!("unsupported PPO parameter rank {rank}"),
+            };
+            Ok((id.val(), time))
+        })
+        .collect::<Result<Vec<_>>>()?;
+    counters.sort_by_key(|(id, _)| *id);
+    Ok(counters)
+}
+
+pub(crate) fn load_learner(
     run_dir: &Path,
     iteration: usize,
     config: &PpoConfig,
@@ -3298,6 +3449,7 @@ pub struct PpoRunInput {
     pub iterations: usize,
     pub evaluate_every: usize,
     pub development_seeds: usize,
+    pub development_seed_start: u64,
     pub position_reference_actor: Option<PathBuf>,
 }
 
@@ -3442,7 +3594,12 @@ pub fn collect_iteration(
         stats.max_telescoping_error = stats.max_telescoping_error.max(
             (raw_sum - (episode.terminal_clear_rate - episode.initial_clear_rate) as f64).abs(),
         );
+        #[cfg(feature = "experimental-content")]
+        let mut card_polisher_pending_selection = false;
         for (index, step) in episode.transitions.iter_mut().enumerate() {
+            if !step.encoded.card_service_context.is_empty() {
+                stats.card_service_context_decisions += 1;
+            }
             step.value = values[index];
             step.advantage = advantages[index];
             step.return_value = returns[index];
@@ -3450,6 +3607,105 @@ pub fn collect_iteration(
                 .action_kind_counts
                 .entry(step.action_kind.clone())
                 .or_insert(0) += 1;
+            #[cfg(feature = "experimental-content")]
+            {
+                let polisher_row = |row: &super::encoding::EntityRow| {
+                    row.categorical[0] == 3005
+                        && row.categorical[2]
+                            == td_core::CardServiceKind::CardPolisher.id() as u32 + 1
+                };
+                if step.encoded.typed.sets[super::encoding::observation::SHOP]
+                    .rows
+                    .iter()
+                    .any(|row| {
+                        row.categorical[1] == td_core::CardServiceKind::CardPolisher.id() as u32
+                    })
+                {
+                    stats.card_polisher_shop_offers += 1;
+                }
+                let polisher_candidates = step
+                    .encoded
+                    .candidates
+                    .iter()
+                    .map(|candidate| candidate.rows.iter().any(polisher_row))
+                    .collect::<Vec<_>>();
+                stats.card_polisher_purchase_candidates += usize::from(
+                    polisher_candidates
+                        .iter()
+                        .zip(&step.encoded.legal_mask)
+                        .any(|(seen, legal)| *seen && *legal),
+                );
+                stats.card_polisher_batch_examples +=
+                    usize::from(polisher_candidates.iter().any(|seen| *seen));
+                if polisher_candidates
+                    .get(step.action_index)
+                    .copied()
+                    .unwrap_or(false)
+                    && step.action_kind == "purchase_shop_item"
+                {
+                    stats.card_polisher_actual_purchases += 1;
+                    card_polisher_pending_selection = true;
+                }
+                if card_polisher_pending_selection && step.action_kind == "select_card_service_card"
+                {
+                    stats.card_polisher_target_selections += 1;
+                }
+                if card_polisher_pending_selection
+                    && step.action_kind == "confirm_card_service_selection"
+                {
+                    stats.card_polisher_selection_completions += 1;
+                    card_polisher_pending_selection = false;
+                }
+                let shield_berry_candidate = |candidate: &EntitySet| {
+                    candidate.rows.iter().any(|row| {
+                        row.categorical[0] == 3006
+                            && row.categorical[1] == td_core::ItemKind::ShieldBerry.id() as u32 + 1
+                    })
+                };
+                if step.encoded.typed.sets[super::encoding::observation::INVENTORY]
+                    .rows
+                    .iter()
+                    .any(|row| row.categorical[0] == td_core::ItemKind::ShieldBerry.id() as u32)
+                {
+                    stats.shield_berry_observed_decisions += 1;
+                }
+                stats.shield_berry_use_candidates += step
+                    .encoded
+                    .candidates
+                    .iter()
+                    .zip(&step.encoded.legal_mask)
+                    .filter(|(candidate, legal)| **legal && shield_berry_candidate(candidate))
+                    .count();
+                if step
+                    .encoded
+                    .candidates
+                    .get(step.action_index)
+                    .is_some_and(shield_berry_candidate)
+                {
+                    stats.shield_berry_actual_uses += 1;
+                }
+            }
+            if step.action_kind == "select_treasure" {
+                let treasure_name = |candidate: &EntitySet| {
+                    candidate.rows.iter().find_map(|row| {
+                        if row.categorical[0] != 3007 || row.categorical[1] < 2 {
+                            return None;
+                        }
+                        td_core::UpgradeKind::from_raw((row.categorical[1] - 2) as u8)
+                            .map(|kind| kind.key().to_string())
+                    })
+                };
+                for candidate in &step.encoded.candidates {
+                    if let Some(name) = treasure_name(candidate) {
+                        *stats.treasure_offers.entry(name).or_default() += 1;
+                    }
+                }
+                if let Some(candidate) = step.encoded.candidates.get(step.action_index)
+                    && let Some(name) = treasure_name(candidate)
+                {
+                    *stats.treasure_selections.entry(name).or_default() += 1;
+                }
+            }
             stats.mean_behavior_entropy += step.behavior_entropy as f64;
             stats.mean_family_entropy += step.family_entropy as f64;
             let non_greedy = !step.is_greedy();
@@ -3678,10 +3934,12 @@ fn mean_kl(left: &[Vec<f32>], right: &[Vec<f32>], masks: &[&[bool]]) -> f64 {
     total / left.len().max(1) as f64
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn development_evaluation(
     game_config: Arc<GameConfig>,
     split: Phase4Split,
     seed_count: usize,
+    seed_start: u64,
     iteration: usize,
     init: &SemanticPolicy,
     current: PolicyNet<InferenceBackend>,
@@ -3690,7 +3948,7 @@ pub fn development_evaluation(
     init_name: &str,
 ) -> Result<DevEvaluation> {
     let started = Instant::now();
-    let seeds = split.seeds(Some(seed_count))?;
+    let seeds = split.seeds_starting_at(seed_start, seed_count)?;
     let current_policy = {
         let policy = SemanticPolicy::new(current).with_candidate_mode(init.candidate_mode());
         match current_build_option_head {
@@ -3806,7 +4064,8 @@ pub fn train_ppo_run(
     input: PpoRunInput,
 ) -> Result<PpoRunMetadata> {
     let config = input.config.clone();
-    if !(config.gamma > 0.0 && config.gamma <= 1.0)
+    if !(config.policy_temperature.is_finite() && config.policy_temperature > 0.0)
+        || !(config.gamma > 0.0 && config.gamma <= 1.0)
         || config.episodes_per_iteration == 0
         || config.minibatch_size == 0
     {
@@ -3814,7 +4073,7 @@ pub fn train_ppo_run(
     }
     std::fs::create_dir_all(run_dir)?;
     let device = default_policy_device();
-    let (bc_metadata, init_actor) = match &input.transfer {
+    let (bc_metadata, mut init_actor) = match &input.transfer {
         Some(transfer) => {
             transfer.validate(&game_config)?;
             if input.init_ppo_iteration.is_some()
@@ -3826,11 +4085,37 @@ pub fn train_ppo_run(
             }
             (
                 transfer.source_bc_metadata.clone(),
-                load_transfer_actor_as::<TrainBackend>(&transfer.source_checkpoint, &device)?,
+                if transfer.initialization == super::retraining::TransferInitialization::Scratch {
+                    super::semantic_bc::seeded_policy_net::<TrainBackend>(
+                        transfer.source_bc_metadata.model_config,
+                        transfer.source_bc_metadata.config.kind_mode,
+                        config.seed,
+                        &device,
+                    )?
+                    .with_inputs(transfer.source_bc_metadata.config.input_contract)
+                } else {
+                    load_transfer_actor_as::<TrainBackend>(&transfer.source_checkpoint, &device)?
+                },
             )
         }
         None => load_selected_model::<TrainBackend>(&input.init_bc_run, &device)?,
     };
+    if input
+        .transfer
+        .as_ref()
+        .is_some_and(|transfer| transfer.effect_inputs)
+    {
+        init_actor.scorer = init_actor
+            .scorer
+            .with_effect_adapters(bc_metadata.model_config, &device);
+        init_actor.inputs = init_actor.inputs.with_effects();
+    }
+    if input.transfer.is_some() {
+        init_actor.scorer = init_actor
+            .scorer
+            .with_card_service_adapters(bc_metadata.model_config, &device);
+    }
+    init_actor = init_actor.with_temperature(config.policy_temperature);
     if input.transfer.is_none() {
         for provenance in &bc_metadata.train_provenance {
             provenance.check_current(&game_config)?;
@@ -4027,6 +4312,7 @@ pub fn train_ppo_run(
                     .map(|path| path.display().to_string())
             || metadata.evaluate_every != input.evaluate_every
             || metadata.development_seeds != input.development_seeds
+            || metadata.development_seed_start != input.development_seed_start
             || metadata.init_bc_run != input.init_bc_run.display().to_string()
             || metadata.position_reference_actor
                 != input
@@ -4053,14 +4339,25 @@ pub fn train_ppo_run(
         );
         (metadata, learner)
     } else {
-        let (actor, critic) = if let Some(transfer) = &input.transfer {
+        let (mut actor, critic) = if let Some(transfer) = &input.transfer {
             (
                 init_actor.clone(),
-                Some(load_model_file::<TrainBackend>(
-                    model_config,
-                    &transfer.source_checkpoint.join("critic.bin"),
-                    &device,
-                )?),
+                Some(
+                    if transfer.initialization == super::retraining::TransferInitialization::Scratch
+                    {
+                        super::semantic_bc::seeded_materialized_model(
+                            model_config,
+                            config.seed.wrapping_add(1),
+                            &device,
+                        )?
+                    } else {
+                        load_model_file::<TrainBackend>(
+                            model_config,
+                            &transfer.source_checkpoint.join("critic.bin"),
+                            &device,
+                        )?
+                    },
+                ),
             )
         } else {
             match &input.init_ppo_iteration {
@@ -4112,6 +4409,35 @@ pub fn train_ppo_run(
                 CriticInputs::SquashAll,
             ),
         };
+        let critic = if input.transfer.is_some() {
+            critic.with_card_service_adapters(model_config, &device)
+        } else {
+            critic
+        };
+        let (critic, critic_inputs) = if input.transfer.as_ref().is_some_and(|t| t.effect_inputs) {
+            (
+                critic.with_effect_adapters(model_config, &device),
+                match critic_inputs {
+                    CriticInputs::Contract | CriticInputs::ContractEffects => {
+                        CriticInputs::ContractEffects
+                    }
+                    _ => CriticInputs::SquashAllEffects,
+                },
+            )
+        } else {
+            (critic, critic_inputs)
+        };
+        if let Some(transfer) = &input.transfer
+            && let Some(teacher) = &transfer.content_teacher
+        {
+            super::content_teacher::warmup(
+                &mut actor,
+                &transfer.source_environment.game_config,
+                &game_config,
+                teacher,
+                run_dir,
+            )?;
+        }
         let mut learner = PpoLearner::new(actor, critic, critic_inputs, &config);
         if option_only {
             learner.build_option_head = Box::new(option_head_initial.clone());
@@ -4151,6 +4477,7 @@ pub fn train_ppo_run(
             train_split: Phase4Split::PpoTrain,
             development_split: Phase4Split::PpoDevelopment,
             development_seeds: input.development_seeds,
+            development_seed_start: input.development_seed_start,
             evaluate_every: input.evaluate_every,
             completed_iterations: 0,
             history: Vec::new(),
@@ -4160,6 +4487,7 @@ pub fn train_ppo_run(
                 Arc::clone(&game_config),
                 Phase4Split::PpoDevelopment,
                 input.development_seeds,
+                input.development_seed_start,
                 0,
                 &init_policy,
                 learner.actor_inference(),
@@ -4336,6 +4664,7 @@ pub fn train_ppo_run(
                 Arc::clone(&game_config),
                 Phase4Split::PpoDevelopment,
                 input.development_seeds,
+                input.development_seed_start,
                 iteration,
                 &init_policy,
                 learner.actor_inference(),
@@ -5467,7 +5796,10 @@ mod tests {
         let last = metadata.history.last().unwrap();
         assert_eq!(last.validation.nonfinite_predictions, 0);
         assert!(last.mean_train_batch_loss.is_finite());
-        assert!(last.validation.mse < metadata.initial_validation.mse);
+        // The workflow deploys the best validation epoch; the last epoch can
+        // overfit even when the selected checkpoint improves held-out error.
+        let selected = &metadata.history[metadata.selected_epoch - 1].validation;
+        assert!(selected.mse < metadata.initial_validation.mse);
         let (_, critic) = load_critic(&run_dir, &default_policy_device()).unwrap();
         let reloaded = evaluate_critic(
             &critic.valid(),
@@ -5476,7 +5808,6 @@ mod tests {
             &default_policy_device(),
         )
         .unwrap();
-        let selected = &metadata.history[metadata.selected_epoch - 1].validation;
         assert!((reloaded.mse - selected.mse).abs() < 1e-6);
         std::fs::remove_dir_all(run_dir).unwrap();
     }
@@ -5492,7 +5823,11 @@ mod tests {
         )
         .unwrap()
         .with_inputs(InputContract::Normalized);
-        let samples = prepare_samples(&canonical_episodes(&[1]), LabelSource::Canonical, 1.0);
+        let mut samples = prepare_samples(&canonical_episodes(&[1]), LabelSource::Canonical, 1.0);
+        let mut forced = samples[0].clone();
+        forced.encoded.legal_mask.fill(false);
+        forced.encoded.legal_mask[0] = true;
+        samples.insert(0, forced);
         let decisions = samples
             .iter()
             .take(64)
@@ -5549,11 +5884,12 @@ mod tests {
     fn ppo_update_with_policy_v2_options_is_finite_inner() {
         let bc_dir = tiny_bc_run_with("ppo-v2-bc", KindMode::Learned, InputContract::Normalized);
         let critic_samples = value_samples(&canonical_episodes(&[2]), 0.1);
+        let validation_count = critic_samples.len().min(64);
         let critic_dir = temp_dir("ppo-v2-critic");
         pretrain_critic(
             &critic_dir,
             &critic_samples,
-            &critic_samples[..64],
+            &critic_samples[..validation_count],
             CriticCheckpointMetadata {
                 schema_version: CRITIC_CHECKPOINT_SCHEMA_VERSION,
                 candidate_encoder_version: SEMANTIC_CANDIDATE_ENCODER_VERSION,
@@ -5571,7 +5907,7 @@ mod tests {
                 validation_dataset: "tiny".to_string(),
                 train_provenance: None,
                 train_samples: critic_samples.len(),
-                validation_samples: 64,
+                validation_samples: validation_count,
                 initial_validation: ValueMetrics::default(),
                 history: Vec::new(),
                 selected_epoch: 0,
@@ -5596,6 +5932,7 @@ mod tests {
                 iterations: 1,
                 evaluate_every: 0,
                 development_seeds: 4,
+                development_seed_start: default_development_seed_start(),
                 position_reference_actor: None,
             },
         )
@@ -5762,6 +6099,24 @@ mod tests {
                     .as_ref()
                     .unwrap()
                     .source_candidates
+                    .clone(),
+                candidate_effects: encoded
+                    .projection
+                    .as_ref()
+                    .unwrap()
+                    .source_candidate_effects
+                    .clone(),
+                candidate_extensions: encoded
+                    .projection
+                    .as_ref()
+                    .unwrap()
+                    .source_candidate_extensions
+                    .clone(),
+                candidate_card_service_effects: encoded
+                    .projection
+                    .as_ref()
+                    .unwrap()
+                    .source_candidate_card_service_effects
                     .clone(),
                 legal_mask: encoded
                     .projection
@@ -5975,6 +6330,7 @@ mod tests {
                 iterations: 1,
                 evaluate_every: 0,
                 development_seeds: 4,
+                development_seed_start: default_development_seed_start(),
                 position_reference_actor: None,
             },
         )
@@ -6043,6 +6399,7 @@ mod tests {
                 iterations: 1,
                 evaluate_every: 0,
                 development_seeds: 2,
+                development_seed_start: default_development_seed_start(),
                 position_reference_actor: None,
             },
         )
@@ -6055,6 +6412,9 @@ mod tests {
         target.towers.entries[0].damage_raw += 1_000;
         target.write_jsonc(root.join("target.jsonc")).unwrap();
         let mut spec = RetrainingSpec {
+            content_teacher: None,
+            effect_inputs: false,
+            initialization: crate::ml::retraining::TransferInitialization::ReuseWeights,
             schema_version: 1,
             candidate_mode: None,
             source_checkpoint: checkpoint.clone(),
@@ -6067,6 +6427,7 @@ mod tests {
             ppo: Some(tiny_ppo_config()),
             evaluate_every: 1,
             development_seeds: 2,
+            development_seed_start: None,
         };
         let spec_path = root.join("spec.json");
         // Transfer uses the frozen source checkpoint, not a surviving BC directory.
@@ -6154,7 +6515,7 @@ mod tests {
                 .into_iter()
                 .map(|(id, state)| (id.val(), recorder.record(state, ()).unwrap()))
                 .collect::<Vec<_>>();
-            states.sort_by(|left, right| left.0.cmp(&right.0));
+            states.sort_by_key(|left| left.0);
             states
         };
         assert!(
@@ -6200,6 +6561,36 @@ mod tests {
         .unwrap();
         assert_eq!(actor.candidate_mode, CandidateMode::AllBuildOptions);
 
+        // New effect parameters and non-default behavior temperature survive exact resume.
+        spec.run_dir = PathBuf::from("effects-resumed");
+        spec.candidate_mode = Some(CandidateMode::Top8);
+        spec.effect_inputs = true;
+        spec.ppo.as_mut().unwrap().policy_temperature = 1.7;
+        spec.iterations = 1;
+        write_json_atomic(&spec_path, &spec).unwrap();
+        run_spec(&spec_path).unwrap();
+        spec.iterations = 2;
+        write_json_atomic(&spec_path, &spec).unwrap();
+        run_spec(&spec_path).unwrap();
+        spec.run_dir = PathBuf::from("effects-continuous");
+        write_json_atomic(&spec_path, &spec).unwrap();
+        run_spec(&spec_path).unwrap();
+        for file in ["actor.bin", "critic.bin"] {
+            assert_eq!(
+                std::fs::read(iteration_dir(&root.join("effects-resumed"), 2).join(file)).unwrap(),
+                std::fs::read(iteration_dir(&root.join("effects-continuous"), 2).join(file))
+                    .unwrap(),
+                "effect resume {file}"
+            );
+        }
+        let restored = load_ppo_actor(
+            &iteration_dir(&root.join("effects-resumed"), 2),
+            &default_policy_device(),
+        )
+        .unwrap();
+        assert!(restored.inputs.has_effects());
+        assert_eq!(restored.temperature, 1.7);
+
         // Historical checkpoints need a matching explicit source configuration.
         let mut actor: PpoActorFile =
             serde_json::from_slice(&std::fs::read(checkpoint.join("ppo-actor.json")).unwrap())
@@ -6208,15 +6599,24 @@ mod tests {
         write_json_atomic(&checkpoint.join("ppo-actor.json"), &actor).unwrap();
         let mut legacy = source;
         legacy.environment = None;
-        legacy.init_bc_metadata.train_provenance.push(
-            DatasetProvenance::new(
-                &game_config(),
-                SourcePolicy::Canonical,
-                Phase4Split::Phase4bCanonicalTrain,
-                None,
-            )
-            .unwrap(),
-        );
+        let mut historical_provenance = DatasetProvenance::new(
+            &game_config(),
+            SourcePolicy::Canonical,
+            Phase4Split::Phase4bCanonicalTrain,
+            None,
+        )
+        .unwrap();
+        historical_provenance.git_commit = legacy.git_commit.clone();
+        historical_provenance.dataset_schema_version = 2;
+        historical_provenance.observation_schema_version = 9;
+        historical_provenance.catalog_schema_version = 1;
+        historical_provenance.action_wire_schema_version = 4;
+        historical_provenance.environment_action_schema_version = 8;
+        historical_provenance.candidate_encoder_version = 1;
+        legacy
+            .init_bc_metadata
+            .train_provenance
+            .push(historical_provenance);
         write_json_atomic(&source_dir.join("ppo.json"), &legacy).unwrap();
         assert!(
             prepare_transfer(&checkpoint, None, &target)
@@ -6252,6 +6652,7 @@ mod tests {
             iterations,
             evaluate_every: 0,
             development_seeds: 4,
+            development_seed_start: default_development_seed_start(),
             init_ppo_iteration: None,
             position_reference_actor: None,
         };

@@ -1079,6 +1079,7 @@ pub fn run_with_config(command: Phase4Command, config_path: Option<&Path>) -> Re
         } => {
             configure_threads(threads)?;
             let ppo_config = super::semantic_ppo::PpoConfig {
+                policy_temperature: 1.0,
                 episodes_per_iteration,
                 gamma,
                 gae_lambda,
@@ -1112,6 +1113,7 @@ pub fn run_with_config(command: Phase4Command, config_path: Option<&Path>) -> Re
                     iterations,
                     evaluate_every,
                     development_seeds,
+                    development_seed_start: *Phase4Split::PpoDevelopment.range().start(),
                     position_reference_actor,
                     transfer: None,
                 },

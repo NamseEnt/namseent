@@ -1,5 +1,7 @@
 # 수치 변경 후 PPO 재학습
 
+> This is the historical numeric-transfer implementation. See [25](25-effect-inputs-and-retraining-study.md) for effect inputs, deterministic resume and three-repeat scratch comparisons, and [27](27-retraining-quickstart.md) for current usage.
+
 ## 구현 범위
 
 [`21-retraining-implementation-plan.md`](21-retraining-implementation-plan.md)의 첫 구현 단위다. 현재 `GameConfig`로 표현되는 공격력, HP, 사거리, cooldown, 시작 자원 같은 수치를 바꾸고 기존 Top8 PPO actor/critic에서 새 run을 시작한다. 기존 학습 run과 원본 checkpoint는 보존한다.

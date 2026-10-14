@@ -594,6 +594,7 @@ pub fn action_features(action: &AgentAction) -> Vec<f32> {
             map_height: 1,
             route_coords: vec![],
             monsters: vec![],
+            content_effects: vec![],
             treasure_options: vec![],
             card_service: None,
             stage_modifiers: crate::environment::StageModifiersObservation {

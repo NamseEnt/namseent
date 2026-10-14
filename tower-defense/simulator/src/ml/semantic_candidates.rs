@@ -38,7 +38,7 @@ use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
 
 pub const POLICY_CANDIDATE_SET_VERSION: u32 = 2;
-pub const SEMANTIC_CANDIDATE_ENCODER_VERSION: u32 = 1;
+pub const SEMANTIC_CANDIDATE_ENCODER_VERSION: u32 = 2;
 pub const BUILD_TOWER_CANDIDATE_LIMIT: usize = 8;
 pub const PLACE_TOWER_CANDIDATE_LIMIT: usize = 8;
 
@@ -896,12 +896,39 @@ pub fn encode_candidate(observation: &Observation, candidate: &PolicyCandidate) 
     EntitySet::new(rows)
 }
 
+/// Candidate schema-2 rows are kept out of the schema-1 candidate pool and
+/// exposed through the migration residual adapter.
+fn candidate_extensions(observation: &Observation, candidate: &PolicyCandidate) -> EntitySet {
+    let AgentAction::BuildTower { card_ids, .. } = &candidate.action else {
+        return EntitySet::default();
+    };
+    let mut selected_ids = card_ids.clone();
+    selected_ids.sort_unstable();
+    let selects_all_cards = selected_ids.is_empty();
+    EntitySet::new(
+        hand_cards(observation)
+            .into_iter()
+            .filter(|card| selects_all_cards || selected_ids.binary_search(&card.id).is_ok())
+            .map(|card| card_row(card, true))
+            .collect(),
+    )
+}
+
 /// Policy input for one decision state: global features, typed entity sets
 /// and one encoded entity set per candidate, aligned with `legal_mask`.
 #[derive(Clone, Debug, PartialEq)]
 pub struct EncodedDecision {
     pub global_features: Vec<f32>,
     pub typed: TypedObservation,
+    pub state_effects: EntitySet,
+    pub candidate_effects: Vec<EntitySet>,
+    /// Inputs introduced by entity schema 7 / candidate schema 2. Kept out of
+    /// the legacy pools so a migrated model has identical outputs at step 0.
+    pub state_extensions: EntitySet,
+    pub candidate_extensions: Vec<EntitySet>,
+    /// Card-service context on an isolated, zero-initialized residual path.
+    pub card_service_context: EntitySet,
+    pub candidate_card_service_effects: Vec<EntitySet>,
     pub candidates: Vec<EntitySet>,
     pub legal_mask: Vec<bool>,
     /// `ActionKind::index()` of each candidate: the family a factorized
@@ -915,6 +942,9 @@ pub struct EncodedDecision {
 #[derive(Clone, Debug, PartialEq)]
 pub struct EncodedCandidateProjection {
     pub source_candidates: Vec<EntitySet>,
+    pub source_candidate_effects: Vec<EntitySet>,
+    pub source_candidate_extensions: Vec<EntitySet>,
+    pub source_candidate_card_service_effects: Vec<EntitySet>,
     pub source_legal_mask: Vec<bool>,
     pub source_families: Vec<u8>,
     pub output_members: Vec<Vec<usize>>,
@@ -929,6 +959,21 @@ pub fn encode_decision(
     EncodedDecision {
         global_features: observation_features(observation),
         typed: TypedObservation::from_observation(observation),
+        state_effects: super::effect_inputs::state_effects(observation),
+        candidate_effects: candidates
+            .iter()
+            .map(|c| super::effect_inputs::candidate_effects(observation, c))
+            .collect(),
+        state_extensions: super::encoding::observation::state_extensions(observation),
+        candidate_extensions: candidates
+            .iter()
+            .map(|c| candidate_extensions(observation, c))
+            .collect(),
+        card_service_context: super::card_service_inputs::state_context(observation),
+        candidate_card_service_effects: candidates
+            .iter()
+            .map(|c| super::card_service_inputs::candidate_effect(observation, c))
+            .collect(),
         candidates: candidates
             .iter()
             .map(|candidate| encode_candidate(observation, candidate))
@@ -957,6 +1002,21 @@ pub fn encode_projected_decision(
             .source_candidates
             .iter()
             .map(|candidate| encode_candidate(observation, candidate))
+            .collect(),
+        source_candidate_effects: projection
+            .source_candidates
+            .iter()
+            .map(|candidate| super::effect_inputs::candidate_effects(observation, candidate))
+            .collect(),
+        source_candidate_extensions: projection
+            .source_candidates
+            .iter()
+            .map(|candidate| candidate_extensions(observation, candidate))
+            .collect(),
+        source_candidate_card_service_effects: projection
+            .source_candidates
+            .iter()
+            .map(|candidate| super::card_service_inputs::candidate_effect(observation, candidate))
             .collect(),
         source_legal_mask,
         source_families: projection
@@ -1137,6 +1197,290 @@ mod tests {
             }
         }
         assert!(compared > 20);
+    }
+
+    #[test]
+    fn all_build_options_match_core_observation_build_choices() {
+        let config = Arc::new(GameConfig::default_config());
+        let mut environment = GameEnvironment::new(Arc::clone(&config), 0);
+        assert!(environment.semantic_card_decision_available());
+
+        for extra_tower_count in [0, 2] {
+            if extra_tower_count > 0 {
+                environment
+                    .test_only_seed_extra_tower_cards(extra_tower_count)
+                    .expect("seed deterministic extra tower choices");
+            }
+            let core_observation = environment.snapshot();
+            let encoded_state = encode_decision(&core_observation, &[], vec![]);
+            assert_eq!(
+                encoded_state.typed.sets[super::super::encoding::observation::HAND_TOWERS]
+                    .rows
+                    .len(),
+                core_observation
+                    .hand
+                    .iter()
+                    .filter(|item| matches!(
+                        item.item,
+                        crate::environment::HandItemObservation::Tower(_)
+                    ))
+                    .count(),
+                "new extra templates must not enter the legacy tower pool"
+            );
+            assert_eq!(
+                encoded_state.state_extensions.rows.len(),
+                core_observation.extra_tower_card_templates.len()
+                    + core_observation
+                        .hand
+                        .iter()
+                        .filter(|item| matches!(
+                            item.item,
+                            crate::environment::HandItemObservation::Tower(_)
+                        ))
+                        .count(),
+                "new and expanded tower attributes are carried on the extension path"
+            );
+            let core_choices = core_observation
+                .build_tower_candidates
+                .iter()
+                .flat_map(|subset| {
+                    (0..=core_observation.extra_tower_card_templates.len()).map(move |slot| {
+                        let mut card_ids = subset.card_ids.clone();
+                        card_ids.sort_unstable();
+                        (card_ids, slot)
+                    })
+                })
+                .collect::<std::collections::BTreeSet<_>>();
+            let legacy = policy_candidates(&environment).expect("legacy candidates");
+            let all = policy_candidates_with(&environment, CandidateMode::AllBuildOptions)
+                .expect("all build options");
+
+            let actual = all
+                .candidates
+                .iter()
+                .filter_map(|candidate| match &candidate.action {
+                    AgentAction::BuildTower {
+                        card_ids,
+                        hand_slot_index,
+                        left,
+                        top,
+                    } => {
+                        let mut card_ids = card_ids.clone();
+                        card_ids.sort_unstable();
+                        assert!(environment.semantic_action_is_legal(&candidate.action));
+                        assert!(environment.can_place_at(*left, *top));
+                        Some((card_ids, *hand_slot_index))
+                    }
+                    _ => None,
+                })
+                .collect::<Vec<_>>();
+            let actual_set = actual
+                .iter()
+                .cloned()
+                .collect::<std::collections::BTreeSet<_>>();
+            assert_eq!(
+                actual.len(),
+                actual_set.len(),
+                "duplicate construction choice"
+            );
+            assert_eq!(
+                actual_set, core_choices,
+                "Core observation and actor candidates differ"
+            );
+            assert_eq!(
+                all.candidates
+                    .iter()
+                    .filter(|candidate| !matches!(candidate.action, AgentAction::BuildTower { .. }))
+                    .map(|candidate| candidate.action_id.clone())
+                    .collect::<std::collections::BTreeSet<_>>(),
+                legacy
+                    .candidates
+                    .iter()
+                    .filter(|candidate| !matches!(candidate.action, AgentAction::BuildTower { .. }))
+                    .map(|candidate| candidate.action_id.clone())
+                    .collect::<std::collections::BTreeSet<_>>(),
+                "all-build mode must preserve every existing non-build candidate"
+            );
+            let outside_top8_count = all
+                .build_option_info
+                .iter()
+                .flatten()
+                .filter(|info| info.outside_v1_top8)
+                .count();
+            assert!(
+                outside_top8_count > 0,
+                "fixture must include a construction choice outside Top8"
+            );
+            let legal_positions = (0..core_observation.map_height)
+                .flat_map(|top| (0..core_observation.map_width).map(move |left| (left, top)))
+                .filter(|(left, top)| environment.can_place_at(*left, *top))
+                .count();
+            assert!(legal_positions < core_observation.map_width * core_observation.map_height);
+            eprintln!(
+                "fixture extra_towers={extra_tower_count}: core_build_choices={}, actor_build_choices={}, outside_top8={outside_top8_count}, legal_positions={legal_positions}, exact_match=true",
+                core_choices.len(),
+                actual.len()
+            );
+        }
+    }
+
+    #[test]
+    fn all_build_options_match_core_with_owned_poker_rule_treasure() {
+        let config = Arc::new(GameConfig::default_config());
+        let mut environment = GameEnvironment::new(Arc::clone(&config), 0);
+        let mut baseline = GameEnvironment::new(Arc::clone(&config), 0);
+        baseline
+            .test_only_set_cross_suit_straight_flush_hand()
+            .expect("set deterministic cross-suit hand");
+        environment
+            .test_only_set_cross_suit_straight_flush_hand()
+            .expect("set deterministic cross-suit hand");
+        let baseline_observation = baseline.snapshot();
+        environment
+            .test_only_seed_owned_upgrade(td_core::UpgradeKind::BlackWhite)
+            .expect("seed Core Black/White upgrade");
+        environment
+            .test_only_seed_extra_tower_cards(1)
+            .expect("seed extra tower choice");
+        let observation = environment.snapshot();
+        assert!(
+            observation
+                .owned_upgrades
+                .iter()
+                .any(|upgrade| upgrade.key == "black_white")
+        );
+        assert!(observation.content_effects.iter().any(|effect| {
+            effect.source == td_core::EffectSource::OwnedUpgrade
+                && effect.kind == td_core::ContentEffectKind::SameSuit
+                && effect.enabled
+        }));
+        let baseline_towers = baseline_observation
+            .build_tower_candidates
+            .iter()
+            .map(|candidate| (candidate.card_ids.clone(), candidate.template.kind_id))
+            .collect::<Vec<_>>();
+        let treasure_towers = observation
+            .build_tower_candidates
+            .iter()
+            .map(|candidate| (candidate.card_ids.clone(), candidate.template.kind_id))
+            .collect::<Vec<_>>();
+        assert_ne!(
+            baseline_towers, treasure_towers,
+            "fixture must exercise the poker-rule effect"
+        );
+        let expected = observation
+            .build_tower_candidates
+            .iter()
+            .flat_map(|subset| {
+                (0..=observation.extra_tower_card_templates.len()).map(move |slot| {
+                    let mut ids = subset.card_ids.clone();
+                    ids.sort_unstable();
+                    (ids, slot)
+                })
+            })
+            .collect::<std::collections::BTreeSet<_>>();
+        let all = policy_candidates_with(&environment, CandidateMode::AllBuildOptions)
+            .expect("all build options");
+        let actual = all
+            .candidates
+            .iter()
+            .filter_map(|candidate| match &candidate.action {
+                AgentAction::BuildTower {
+                    card_ids,
+                    hand_slot_index,
+                    left,
+                    top,
+                } => {
+                    assert!(environment.semantic_action_is_legal(&candidate.action));
+                    assert!(environment.can_place_at(*left, *top));
+                    let mut ids = card_ids.clone();
+                    ids.sort_unstable();
+                    Some((ids, *hand_slot_index))
+                }
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+        let actual_set = actual
+            .iter()
+            .cloned()
+            .collect::<std::collections::BTreeSet<_>>();
+        assert_eq!(
+            actual.len(),
+            actual_set.len(),
+            "duplicate construction choice"
+        );
+        assert_eq!(
+            actual_set, expected,
+            "treasure state changed Core/model candidate agreement"
+        );
+        let outside_top8 = all
+            .build_option_info
+            .iter()
+            .flatten()
+            .filter(|i| i.outside_v1_top8)
+            .count();
+        assert!(outside_top8 > 0);
+        eprintln!(
+            "fixture owned_black_white=true, extra_towers=1: core_build_choices={}, actor_build_choices={}, outside_top8={outside_top8}, exact_match=true",
+            expected.len(),
+            actual.len()
+        );
+    }
+
+    #[test]
+    fn build_candidate_encoding_identifies_each_used_card() {
+        let config = Arc::new(GameConfig::default_config());
+        let environment = GameEnvironment::new(Arc::clone(&config), 0);
+        let candidates = policy_candidates_with(&environment, CandidateMode::AllBuildOptions)
+            .expect("all build options");
+        let observation = &candidates.observation;
+        let mut saw_empty_means_all = false;
+        let mut saw_explicit_subset = false;
+        for candidate in &candidates.candidates {
+            let AgentAction::BuildTower { card_ids, .. } = &candidate.action else {
+                continue;
+            };
+            saw_empty_means_all |= card_ids.is_empty();
+            saw_explicit_subset |= !card_ids.is_empty();
+            let legacy_encoded = encode_candidate(observation, candidate);
+            assert!(
+                !legacy_encoded
+                    .rows
+                    .iter()
+                    .any(|row| row.categorical[0] == ROW_CARD)
+            );
+            let extension = candidate_extensions(observation, candidate);
+            let encoded_cards = extension
+                .rows
+                .iter()
+                .filter(|row| row.categorical[0] == ROW_CARD)
+                .collect::<Vec<_>>();
+            let expected_ids = if card_ids.is_empty() {
+                hand_cards(observation)
+                    .into_iter()
+                    .map(|card| card.id)
+                    .collect::<Vec<_>>()
+            } else {
+                card_ids.clone()
+            };
+            assert_eq!(encoded_cards.len(), expected_ids.len());
+            assert!(encoded_cards.iter().all(|row| row.numeric[1] == 1.0));
+            for card_id in &expected_ids {
+                let card = hand_cards(observation)
+                    .into_iter()
+                    .find(|card| card.id == *card_id)
+                    .expect("selected card is in hand");
+                assert!(encoded_cards.iter().any(|row| {
+                    row.categorical[1] == suit_id(&card.suit) as u32
+                        && row.categorical[2] == rank_id(&card.rank) as u32
+                        && row.categorical[3]
+                            == card.engraving.as_deref().map_or(0, engraving_key_id) as u32
+                        && row.numeric[0] == card.polish_pct_raw as f32 / 1_000.0
+                }));
+            }
+        }
+        assert!(saw_empty_means_all);
+        assert!(saw_explicit_subset);
     }
 
     #[test]

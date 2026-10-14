@@ -162,6 +162,8 @@ status. Large raw evaluation files and model weights remain local artifacts.
 
 ## Reproduce the comparison
 
+This is the historical observation-9 experiment. Use its recorded revision to reproduce training. Current observation-10 migration and fresh final evaluation are documented in [25](25-effect-inputs-and-retraining-study.md).
+
 The local experiment directory is
 `artifacts/retraining/treasure-ablation-20261009/`. It contains the original and
 disabled JSONC configurations, both retraining specs and all evaluation inputs.
@@ -173,7 +175,7 @@ with `disabled` for the second invocation):
 target/release/td-simulator ml phase4 \
   --config artifacts/retraining/treasure-ablation-20261009/original.jsonc \
   terminal-eval --split retraining-validation --count 256 \
-  --allow-checkpoint-config-change \
+  --allow-checkpoint-config-change --confirm-final \
   --policy source=artifacts/phase4b/kl-epoch-transaction-r2-p2/iter-0200 \
   --policy control=artifacts/retraining/treasure-ablation-20261009/control-run/iter-0020 \
   --policy retrained=artifacts/retraining/treasure-ablation-20261009/disabled-run/iter-0020 \

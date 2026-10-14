@@ -28,7 +28,12 @@ mod tests {
 
     #[test]
     fn decimal_config_values_have_stable_fixed_point_raw_values() {
-        let config = GameConfig::default_config();
+        // Pin decimal inputs: this tests fixed-point parsing, not live balance.
+        let mut source: serde_json::Value =
+            serde_json::from_str(&GameConfig::default_config().to_jsonc_string().unwrap()).unwrap();
+        source["monsters"]["stats"]["Mob01"]["base_hp"] = serde_json::json!(35.52);
+        source["monsters"]["stats"]["Mob02"]["base_hp"] = serde_json::json!(44.25);
+        let config = GameConfig::from_jsonc_str(&source.to_string()).unwrap();
         assert_eq!(config.player.max_hp_raw, 60_000);
         assert_eq!(config.player.starting_hp_raw, 60_000);
         assert_eq!(

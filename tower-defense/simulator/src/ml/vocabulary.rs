@@ -15,6 +15,7 @@ pub const CARD_SERVICE_VOCABULARY: usize = td_core::CardServiceKind::COUNT;
 pub const SHOP_KIND_VOCABULARY: [&str; 3] = ["item", "upgrade", "card_service"];
 
 const ENGRAVING_KEYS: [&str; 4] = ["magnet", "overcharge", "cactus", "spinning_top"];
+#[cfg(not(feature = "experimental-content"))]
 const UPGRADE_SNAKE_KEYS: [&str; 37] = [
     "apple",
     "banana",
@@ -53,6 +54,48 @@ const UPGRADE_SNAKE_KEYS: [&str; 37] = [
     "broken_pottery",
     "strawberry",
     "watermelon",
+];
+
+#[cfg(feature = "experimental-content")]
+const UPGRADE_SNAKE_KEYS: [&str; 38] = [
+    "apple",
+    "banana",
+    "carrot",
+    "cat",
+    "backpack",
+    "dice_bundle",
+    "energy_drink",
+    "perfect_pottery",
+    "four_leaf_clover",
+    "rabbit",
+    "black_white",
+    "trophy",
+    "crock",
+    "cup_noodles",
+    "french_fries",
+    "hamburger",
+    "pizza",
+    "demolition_hammer",
+    "metronome",
+    "tape",
+    "name_tag",
+    "shopping_bag",
+    "resolution",
+    "mirror",
+    "ice_cream",
+    "spanner",
+    "pea",
+    "slot_machine",
+    "piggy_bank",
+    "camera",
+    "gift_box",
+    "fang",
+    "popcorn",
+    "membership_card",
+    "broken_pottery",
+    "strawberry",
+    "watermelon",
+    "training_melon",
 ];
 
 /// 0 is reserved for padding; valid ids start at 1.
@@ -170,7 +213,10 @@ mod tests {
         assert_eq!(rank_id("ace"), 13);
         assert_eq!(engraving_key_id("spinning_top"), 4);
         assert_eq!(shop_kind_id("card_service"), 3);
-        assert_eq!(upgrade_key_id("watermelon"), UPGRADE_VOCABULARY as u16);
+        assert_eq!(upgrade_key_id("watermelon"), 37);
+        assert_eq!(UPGRADE_SNAKE_KEYS.len(), UPGRADE_VOCABULARY);
+        #[cfg(feature = "experimental-content")]
+        assert_eq!(upgrade_key_id("training_melon"), UPGRADE_VOCABULARY as u16);
         assert_eq!(card_service_key_id("copier"), 12);
         assert_eq!(shop_kind_id("future_content"), 0);
     }
@@ -180,7 +226,20 @@ mod tests {
         assert_eq!(tower_kind_id(0), 1);
         assert_eq!(tower_kind_id(10), TOWER_KIND_VOCABULARY as u16);
         assert_eq!(monster_kind_id(63), MONSTER_KIND_VOCABULARY as u16);
-        assert_eq!(item_id(td_core::ItemKind::Gimbap), ITEM_VOCABULARY as u16);
+        assert_eq!(item_id(td_core::ItemKind::Gimbap), 11);
+        assert_eq!(td_core::ItemKind::ALL.len(), ITEM_VOCABULARY);
+        #[cfg(feature = "experimental-content")]
+        assert_eq!(
+            item_id(td_core::ItemKind::ShieldBerry),
+            ITEM_VOCABULARY as u16
+        );
+        assert_eq!(upgrade_id(td_core::UpgradeKind::Watermelon), 37);
+        #[cfg(feature = "experimental-content")]
+        assert_eq!(
+            upgrade_id(td_core::UpgradeKind::TrainingMelon),
+            UPGRADE_VOCABULARY as u16
+        );
+        #[cfg(not(feature = "experimental-content"))]
         assert_eq!(
             upgrade_id(td_core::UpgradeKind::Watermelon),
             UPGRADE_VOCABULARY as u16

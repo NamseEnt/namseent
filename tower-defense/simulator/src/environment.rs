@@ -322,6 +322,11 @@ pub struct GameEnvironment {
 }
 
 impl GameEnvironment {
+    #[cfg(all(feature = "simulator", feature = "experimental-content", test))]
+    pub(crate) fn add_card_service_shop_slot_for_test(&mut self, kind: u8) -> usize {
+        self.game_state
+            .add_card_service_shop_slot_of_kind_for_test(kind)
+    }
     /// Replays an authoritative headed/core command log without constructing
     /// any headed modal, locale, or card-service presentation state.
     pub fn from_core_replay(replay: &td_core::CoreReplay) -> Result<Self, String> {
@@ -641,6 +646,79 @@ impl GameEnvironment {
         self.max_advance_ticks = max_advance_ticks;
     }
 
+    #[cfg(test)]
+    pub(crate) fn test_only_set_cross_suit_straight_flush_hand(&mut self) -> Result<(), String> {
+        let mut snapshot = self.game_state.core_state_snapshot();
+        snapshot
+            .edit_snapshot(|parts| {
+                let mut cards = Vec::new();
+                for (index, slot) in parts
+                    .hand
+                    .slots
+                    .iter_mut()
+                    .filter(|slot| matches!(slot.item, td_core::HandItemState::Card(_)))
+                    .enumerate()
+                {
+                    let td_core::HandItemState::Card(card) = &mut slot.item else {
+                        unreachable!()
+                    };
+                    card.suit = if index % 2 == 0 {
+                        td_core::Suit::Spades
+                    } else {
+                        td_core::Suit::Clubs
+                    };
+                    card.rank = td_core::Rank::Five;
+                    cards.push(card.clone());
+                }
+                assert_eq!(cards.len(), 5, "fixture needs five hand cards");
+                for (index, card) in cards.iter_mut().enumerate() {
+                    card.rank = td_core::Rank::from_raw(3 + index as u8).expect("rank in range");
+                }
+                for card in &cards {
+                    if let Some(deck_card) = parts
+                        .deck
+                        .all_cards
+                        .iter_mut()
+                        .find(|entry| entry.id == card.id)
+                    {
+                        *deck_card = card.clone();
+                    }
+                }
+                for (slot, card) in parts
+                    .hand
+                    .slots
+                    .iter_mut()
+                    .filter_map(|slot| {
+                        matches!(slot.item, td_core::HandItemState::Card(_)).then_some(slot)
+                    })
+                    .zip(cards)
+                {
+                    slot.item = td_core::HandItemState::Card(card);
+                }
+            })
+            .map_err(|error| format!("{error:?}"))?;
+        self.game_state = GameCore::from_core_state_snapshot(snapshot)?;
+        Ok(())
+    }
+
+    #[cfg(test)]
+    pub(crate) fn test_only_seed_owned_upgrade(
+        &mut self,
+        kind: td_core::UpgradeKind,
+    ) -> Result<(), String> {
+        let mut snapshot = self.game_state.core_state_snapshot();
+        snapshot
+            .edit_snapshot(|parts| {
+                let mut upgrades = parts.upgrades.entries().to_vec();
+                upgrades.push(td_core::generated_upgrade(kind));
+                let revision = parts.upgrades.revision().wrapping_add(1);
+                parts.upgrades = td_core::UpgradeCollection::from_entries(upgrades, revision);
+            })
+            .map_err(|error| format!("{error:?}"))?;
+        self.game_state = GameCore::from_core_state_snapshot(snapshot)?;
+        Ok(())
+    }
+
     /// Test-only fixture: seeds `stage_modifiers.extra_tower_cards` with
     /// `count` entries shaped exactly like the Rubber Cone item's real
     /// effect (`kind: 0, suit: None, rank: None` - see
@@ -664,6 +742,25 @@ impl GameEnvironment {
             .map_err(|error| format!("{error:?}"))?;
         self.game_state = GameCore::from_core_state_snapshot(snapshot)?;
         Ok(())
+    }
+
+    #[cfg(test)]
+    pub(crate) fn test_only_move_draw_card_to_discard(&mut self) -> Result<usize, String> {
+        let mut snapshot = self.game_state.core_state_snapshot();
+        let mut moved_id = None;
+        snapshot
+            .edit_snapshot(|parts| {
+                let card = parts
+                    .deck
+                    .draw_pile
+                    .pop()
+                    .expect("deck fixture needs a draw-pile card");
+                moved_id = Some(card.id);
+                parts.deck.discard_pile.push(card);
+            })
+            .map_err(|error| format!("{error:?}"))?;
+        self.game_state = GameCore::from_core_state_snapshot(snapshot)?;
+        Ok(moved_id.expect("one card was moved"))
     }
 
     pub fn reward_config(&self) -> &RewardConfig {
@@ -2170,6 +2267,16 @@ fn card_service_observation_raw(
     let candidate_card_indices = card_service_selectable_card_indices(game_state, selection);
     Some(CardServiceObservation {
         key: selection.service_kind()?.key().to_string(),
+        key_id: selection.service_kind()?.id(),
+        polish_delta_raw: selection
+            .service_kind()?
+            .card_enhancement()
+            .map(|(_, delta)| delta),
+        suit_change_raw: selection
+            .service_kind()?
+            .card_enhancement()
+            .and_then(|(suit, _)| suit.map(|suit| suit.raw())),
+        target_filter: selection.current_step().map(|step| step.filter.clone()),
         current_step: selection.current_step,
         step_count: selection.steps.len(),
         required_count: selection.steps[selection.current_step].count,

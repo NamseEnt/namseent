@@ -9,6 +9,7 @@ simulator = []
 simulator-wgpu = ["simulator", "dep:burn-wgpu"]
 simulator-cuda = ["simulator", "dep:burn-cuda"]
 diagnostics = ["td-core/diagnostics"]
+experimental-content = ["td-core/experimental-content"]
 
 [dependencies]
 anyhow = "1.0.98"
