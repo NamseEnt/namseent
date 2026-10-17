@@ -529,10 +529,11 @@ const HOMING_ACCELERATION_RAW: i64 = 1024 * crate::WORLD_UNITS_PER_TILE;
 const HOMING_TURN_RATE_MIN_RAW: i64 = 2_000_000;
 const HOMING_TURN_RATE_MAX_RAW: i64 = 8_000_000;
 const ROYAL_STRAIGHT_FLUSH_HIT_DELAY_TICKS: u64 = 26;
+const HIGH_TOWER_KIND: u8 = 1;
 
 fn tower_attack_kind(kind: u8) -> TowerAttackKind {
     match kind {
-        1 => TowerAttackKind::InstantDamage,
+        HIGH_TOWER_KIND => TowerAttackKind::InstantDamage,
         4 | 6 | 8 | 9 => TowerAttackKind::Direct {
             speed_raw: FAST_PROJECTILE_SPEED_RAW,
         },
@@ -608,11 +609,10 @@ fn tower_center_xy(tower: &TowerState) -> [i64; 2] {
 }
 
 fn tower_head_xy(tower: &TowerState) -> [i64; 2] {
+    let center_xy = tower_center_xy(tower);
     [
-        (tower.left_top[0] as i64 + 1)
-            .saturating_mul(crate::WORLD_UNITS_PER_TILE)
-            .saturating_add(crate::WORLD_UNITS_PER_TILE / 2),
-        (tower.left_top[1] as i64 + 1) * crate::WORLD_UNITS_PER_TILE,
+        center_xy[0],
+        center_xy[1].saturating_sub(crate::WORLD_UNITS_PER_TILE / 4),
     ]
 }
 
@@ -752,8 +752,10 @@ mod tests {
                 tower_id: 1,
                 tower_kind: 1,
                 attack_kind: 4,
+                start_xy: [start_x, start_y],
                 ..
-            }
+            } if *start_x == 7 * crate::WORLD_UNITS_PER_TILE / 4
+                && *start_y == 3 * crate::WORLD_UNITS_PER_TILE / 2
         )));
     }
 

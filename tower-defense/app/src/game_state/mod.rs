@@ -2635,7 +2635,7 @@ impl GameState {
                 } => {
                     if matches!(tower_kind, tower::TowerKind::High) {
                         field_particle::emitter::attack::spawn_tower_attack_visual_effect(
-                            field_particle::emitter::attack::AttackVisualEffect::HighProjectile {
+                            field_particle::emitter::attack::AttackVisualEffect::High {
                                 start_xy: (start_xy[0], start_xy[1]),
                                 end_xy: (end_xy[0], end_xy[1]),
                             },
