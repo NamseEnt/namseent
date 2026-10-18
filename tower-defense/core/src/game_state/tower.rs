@@ -531,10 +531,13 @@ const HOMING_TURN_RATE_MAX_RAW: i64 = 8_000_000;
 const ROYAL_STRAIGHT_FLUSH_HIT_DELAY_TICKS: u64 = 26;
 const HIGH_TOWER_KIND: u8 = 1;
 const ONE_PAIR_TOWER_KIND: u8 = 2;
+const TWO_PAIR_TOWER_KIND: u8 = 3;
 
 fn tower_attack_kind(kind: u8) -> TowerAttackKind {
     match kind {
-        HIGH_TOWER_KIND | ONE_PAIR_TOWER_KIND => TowerAttackKind::InstantDamage,
+        HIGH_TOWER_KIND | ONE_PAIR_TOWER_KIND | TWO_PAIR_TOWER_KIND => {
+            TowerAttackKind::InstantDamage
+        }
         4 | 6 | 8 | 9 => TowerAttackKind::Direct {
             speed_raw: FAST_PROJECTILE_SPEED_RAW,
         },
@@ -761,8 +764,8 @@ mod tests {
     }
 
     #[test]
-    fn high_and_one_pair_damage_is_applied_in_the_same_simulation_tick() {
-        for tower_kind in [HIGH_TOWER_KIND, ONE_PAIR_TOWER_KIND] {
+    fn high_one_pair_and_two_pair_damage_is_applied_in_the_same_simulation_tick() {
+        for tower_kind in [HIGH_TOWER_KIND, ONE_PAIR_TOWER_KIND, TWO_PAIR_TOWER_KIND] {
             let mut state = crate::CoreState::new_initial(crate::GameConfig::default_config(), 7);
             let mut target = monster(4, [2 * crate::WORLD_UNITS_PER_TILE, 0], 10);
             target.move_on_route.route = state.route.clone();

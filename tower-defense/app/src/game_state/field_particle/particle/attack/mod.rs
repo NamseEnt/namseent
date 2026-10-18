@@ -1,5 +1,6 @@
 pub mod high;
 pub mod one_pair;
+pub mod two_pair;
 
 use crate::animation::CubicBezier;
 use namui::*;
@@ -14,6 +15,10 @@ pub enum NewAttackParticle {
     OnePairProjectile(one_pair::Projectile),
     OnePairTrail(one_pair::Trail),
     OnePairMuzzleRing(one_pair::MuzzleRing),
+    TwoPairProjectile(two_pair::Projectile),
+    TwoPairTrail(two_pair::Trail),
+    TwoPairTrailRing(two_pair::TrailRing),
+    TwoPairMuzzleRing(two_pair::MuzzleRing),
 }
 
 impl namui::particle::Particle for NewAttackParticle {
@@ -24,6 +29,10 @@ impl namui::particle::Particle for NewAttackParticle {
             NewAttackParticle::OnePairProjectile(p) => p.tick(now, dt),
             NewAttackParticle::OnePairTrail(p) => p.tick(now, dt),
             NewAttackParticle::OnePairMuzzleRing(p) => p.tick(now, dt),
+            NewAttackParticle::TwoPairProjectile(p) => p.tick(now, dt),
+            NewAttackParticle::TwoPairTrail(p) => p.tick(now, dt),
+            NewAttackParticle::TwoPairTrailRing(p) => p.tick(now, dt),
+            NewAttackParticle::TwoPairMuzzleRing(p) => p.tick(now, dt),
         }
     }
 
@@ -34,6 +43,10 @@ impl namui::particle::Particle for NewAttackParticle {
             NewAttackParticle::OnePairProjectile(p) => p.render(),
             NewAttackParticle::OnePairTrail(p) => p.render(),
             NewAttackParticle::OnePairMuzzleRing(p) => p.render(),
+            NewAttackParticle::TwoPairProjectile(p) => p.render(),
+            NewAttackParticle::TwoPairTrail(p) => p.render(),
+            NewAttackParticle::TwoPairTrailRing(p) => p.render(),
+            NewAttackParticle::TwoPairMuzzleRing(p) => p.render(),
         }
     }
 
@@ -44,6 +57,10 @@ impl namui::particle::Particle for NewAttackParticle {
             NewAttackParticle::OnePairProjectile(p) => p.is_done(now),
             NewAttackParticle::OnePairTrail(p) => p.is_done(now),
             NewAttackParticle::OnePairMuzzleRing(p) => p.is_done(now),
+            NewAttackParticle::TwoPairProjectile(p) => p.is_done(now),
+            NewAttackParticle::TwoPairTrail(p) => p.is_done(now),
+            NewAttackParticle::TwoPairTrailRing(p) => p.is_done(now),
+            NewAttackParticle::TwoPairMuzzleRing(p) => p.is_done(now),
         }
     }
 }

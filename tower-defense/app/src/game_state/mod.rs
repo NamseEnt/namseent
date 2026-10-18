@@ -2646,6 +2646,12 @@ impl GameState {
                                 end_xy: (end_xy[0], end_xy[1]),
                             },
                         ),
+                        tower::TowerKind::TwoPair => Some(
+                            field_particle::emitter::attack::AttackVisualEffect::TwoPair {
+                                start_xy: (start_xy[0], start_xy[1]),
+                                end_xy: (end_xy[0], end_xy[1]),
+                            },
+                        ),
                         _ => None,
                     };
                     if let Some(effect) = effect {

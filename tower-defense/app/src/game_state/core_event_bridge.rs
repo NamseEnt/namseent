@@ -152,7 +152,8 @@ pub(crate) fn consume_headed(
                 );
                 if let Some(
                     tower_kind @ (crate::game_state::tower::TowerKind::High
-                    | crate::game_state::tower::TowerKind::OnePair),
+                    | crate::game_state::tower::TowerKind::OnePair
+                    | crate::game_state::tower::TowerKind::TwoPair),
                 ) = crate::game_state::tower::TowerKind::from_core_raw(tower_kind_raw)
                 {
                     game_state.push_presentation_event(
@@ -769,6 +770,16 @@ mod tests {
                     attack_ids: Vec::new(),
                     projectile_attack_ids: Vec::new(),
                 },
+                td_core::CoreEvent::TowerAttack {
+                    tower_id: 5,
+                    target_id: 6,
+                    attack_kind: 4,
+                    tower_kind: 3,
+                    start_xy: [9 * units_per_tile, 10 * units_per_tile],
+                    end_xy: [11 * units_per_tile, 12 * units_per_tile],
+                    attack_ids: Vec::new(),
+                    projectile_attack_ids: Vec::new(),
+                },
             ],
             crate::PresentationInstant::zero(),
         );
@@ -785,6 +796,20 @@ mod tests {
                         tower_kind: crate::game_state::tower::TowerKind::High,
                         start_xy: [0.5, 2.0],
                         end_xy: [3.0, 4.0],
+                    }
+                ))
+        );
+        assert!(
+            effects
+                .presentation_events
+                .events
+                .iter()
+                .any(|event| matches!(
+                    event,
+                    crate::game_state::PresentationEvent::SpawnTowerAttackVisualEffect {
+                        tower_kind: crate::game_state::tower::TowerKind::TwoPair,
+                        start_xy: [8.5, 10.0],
+                        end_xy: [11.0, 12.0],
                     }
                 ))
         );
