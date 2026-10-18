@@ -1,8 +1,10 @@
 use crate::game_state::TILE_PX_SIZE;
 use namui::*;
 
+const PROJECTILE_SCALE: f32 = 2.0;
+
 #[derive(Clone)]
-pub struct HighProjectile {
+pub struct Projectile {
     start_x_px: f32,
     start_y_px: f32,
     rotation_cos: f32,
@@ -13,7 +15,7 @@ pub struct HighProjectile {
     progress: f32,
 }
 
-impl HighProjectile {
+impl Projectile {
     pub fn new(start_xy: (f32, f32), end_xy: (f32, f32), created_at: Instant) -> Self {
         let tile_width = TILE_PX_SIZE.width.as_f32();
         let tile_height = TILE_PX_SIZE.height.as_f32();
@@ -31,7 +33,7 @@ impl HighProjectile {
             rotation_sin: angle.sin(),
             length_px,
             created_at,
-            duration: Duration::from_secs_f32(0.1),
+            duration: Duration::from_secs_f32(0.15),
             progress: 0.0,
         }
     }
@@ -47,13 +49,13 @@ impl HighProjectile {
             return sprites;
         }
 
-        let src_rect = crate::atlas::generated::ATTACK_HIGH_PROJECTILE;
+        let src_rect = crate::atlas::generated::ATTACK_ONE_PAIR_PROJECTILE;
         let sprite_width = src_rect.width().as_f32();
         let sprite_height = src_rect.height().as_f32();
         let center_x = px(self.start_x_px + self.rotation_cos * self.length_px * self.progress);
         let center_y = px(self.start_y_px + self.rotation_sin * self.length_px * self.progress);
-        let scos = self.rotation_cos;
-        let ssin = self.rotation_sin;
+        let scos = self.rotation_cos * PROJECTILE_SCALE;
+        let ssin = self.rotation_sin * PROJECTILE_SCALE;
 
         sprites.push(namui::ImageSprite {
             src_rect,
@@ -73,16 +75,16 @@ impl HighProjectile {
     }
 }
 
-impl particle::Particle for HighProjectile {
+impl particle::Particle for Projectile {
     fn tick(&mut self, now: Instant, dt: Duration) {
-        HighProjectile::tick(self, now, dt);
+        Projectile::tick(self, now, dt);
     }
 
     fn render(&self) -> namui::particle::ParticleSprites {
-        HighProjectile::render(self)
+        Projectile::render(self)
     }
 
     fn is_done(&self, now: Instant) -> bool {
-        HighProjectile::is_done(self, now)
+        Projectile::is_done(self, now)
     }
 }

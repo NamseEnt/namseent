@@ -5,7 +5,7 @@ const DURATION: Duration = Duration::from_millis(500);
 const SCALE_MULTIPLIER: f32 = 2.5;
 
 #[derive(Clone)]
-pub struct OnePairMuzzleRing {
+pub struct MuzzleRing {
     center_x_px: f32,
     center_y_px: f32,
     rotation_cos: f32,
@@ -15,7 +15,7 @@ pub struct OnePairMuzzleRing {
     progress: f32,
 }
 
-impl OnePairMuzzleRing {
+impl MuzzleRing {
     pub fn new(
         start_xy: (f32, f32),
         rotation_cos: f32,
@@ -99,17 +99,17 @@ fn center_for_backward_endpoint(
     )
 }
 
-impl particle::Particle for OnePairMuzzleRing {
+impl particle::Particle for MuzzleRing {
     fn tick(&mut self, now: Instant, dt: Duration) {
-        OnePairMuzzleRing::tick(self, now, dt);
+        MuzzleRing::tick(self, now, dt);
     }
 
     fn render(&self) -> namui::particle::ParticleSprites {
-        OnePairMuzzleRing::render(self)
+        MuzzleRing::render(self)
     }
 
     fn is_done(&self, now: Instant) -> bool {
-        OnePairMuzzleRing::is_done(self, now)
+        MuzzleRing::is_done(self, now)
     }
 }
 

@@ -3,7 +3,7 @@ use namui::*;
 const DURATION: Duration = Duration::from_millis(125);
 
 #[derive(Clone)]
-pub struct HighTrail {
+pub struct Trail {
     start_x_px: f32,
     start_y_px: f32,
     length_px: f32,
@@ -17,7 +17,7 @@ pub struct HighTrail {
     scale_variation: f32,
 }
 
-impl HighTrail {
+impl Trail {
     pub const INITIAL_SCALE: f32 = 0.72;
     pub const MAX_SCALE: f32 = 1.5;
     pub const SPACING_RATIO: f32 = 0.75;
@@ -122,17 +122,17 @@ fn trail_scale_and_center_offset(
     (scale, center_offset)
 }
 
-impl particle::Particle for HighTrail {
+impl particle::Particle for Trail {
     fn tick(&mut self, now: Instant, dt: Duration) {
-        HighTrail::tick(self, now, dt);
+        Trail::tick(self, now, dt);
     }
 
     fn render(&self) -> namui::particle::ParticleSprites {
-        HighTrail::render(self)
+        Trail::render(self)
     }
 
     fn is_done(&self, now: Instant) -> bool {
-        HighTrail::is_done(self, now)
+        Trail::is_done(self, now)
     }
 }
 
@@ -169,7 +169,7 @@ mod tests {
         let length_px = 32.0;
         let sprite_width = 128.0;
         let (scale, center_offset) =
-            trail_scale_and_center_offset(length_px, sprite_width, HighTrail::MAX_SCALE, 0.0);
+            trail_scale_and_center_offset(length_px, sprite_width, Trail::MAX_SCALE, 0.0);
 
         assert!((scale * sprite_width - length_px).abs() < 0.001);
         assert!((center_offset - length_px / 2.0).abs() < 0.001);

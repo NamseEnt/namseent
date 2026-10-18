@@ -4,7 +4,7 @@ use namui::*;
 const DURATION: Duration = Duration::from_millis(300);
 
 #[derive(Clone)]
-pub struct OnePairTrail {
+pub struct Trail {
     start_x_px: f32,
     start_y_px: f32,
     length_px: f32,
@@ -18,7 +18,7 @@ pub struct OnePairTrail {
     scale_variation: f32,
 }
 
-impl OnePairTrail {
+impl Trail {
     pub const INITIAL_SCALE: f32 = 0.72;
     pub const MAX_SCALE: f32 = 2.5;
     pub const SPACING_RATIO: f32 = 2.5;
@@ -123,17 +123,17 @@ fn trail_scale_and_center_offset(
     (scale, center_offset)
 }
 
-impl particle::Particle for OnePairTrail {
+impl particle::Particle for Trail {
     fn tick(&mut self, now: Instant, dt: Duration) {
-        OnePairTrail::tick(self, now, dt);
+        Trail::tick(self, now, dt);
     }
 
     fn render(&self) -> namui::particle::ParticleSprites {
-        OnePairTrail::render(self)
+        Trail::render(self)
     }
 
     fn is_done(&self, now: Instant) -> bool {
-        OnePairTrail::is_done(self, now)
+        Trail::is_done(self, now)
     }
 }
 
@@ -153,7 +153,7 @@ mod tests {
     fn one_pair_trail_sprite_edges_align_with_path_endpoints() {
         let length_px = 400.0;
         let sprite_width = 128.0;
-        let desired_scale = OnePairTrail::MAX_SCALE;
+        let desired_scale = Trail::MAX_SCALE;
         let (start_scale, start_offset) =
             trail_scale_and_center_offset(length_px, sprite_width, desired_scale, 0.0);
         let (end_scale, end_offset) =

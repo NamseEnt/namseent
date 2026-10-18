@@ -1,6 +1,6 @@
 use crate::game_state::field_particle::{
     ATTACK_VISUAL,
-    particle::attack::{NewAttackParticle, OnePairMuzzleRing, OnePairProjectile, OnePairTrail},
+    particle::attack::{self, NewAttackParticle},
 };
 use namui::*;
 use rand::Rng;
@@ -18,7 +18,9 @@ pub(super) fn spawn(start_xy: (f32, f32), end_xy: (f32, f32), created_at: Instan
     let trail_width_px = crate::atlas::generated::ATTACK_ONE_PAIR_TRAIL[0]
         .width()
         .as_f32();
-    let spacing_px = trail_width_px * OnePairTrail::INITIAL_SCALE * OnePairTrail::SPACING_RATIO;
+    let spacing_px = trail_width_px
+        * attack::one_pair::Trail::INITIAL_SCALE
+        * attack::one_pair::Trail::SPACING_RATIO;
     let trail_count = if length_px <= f32::EPSILON {
         1
     } else {
@@ -26,13 +28,13 @@ pub(super) fn spawn(start_xy: (f32, f32), end_xy: (f32, f32), created_at: Instan
     };
 
     ATTACK_VISUAL.spawn(NewAttackParticle::OnePairProjectile(
-        OnePairProjectile::new(start_xy, end_xy, created_at),
+        attack::one_pair::Projectile::new(start_xy, end_xy, created_at),
     ));
 
     let mut rng = rand::thread_rng();
     let muzzle_ring_scale = rng.gen_range(0.9..=1.1);
     ATTACK_VISUAL.spawn(NewAttackParticle::OnePairMuzzleRing(
-        OnePairMuzzleRing::new(
+        attack::one_pair::MuzzleRing::new(
             start_xy,
             rotation_cos,
             rotation_sin,
@@ -50,7 +52,7 @@ pub(super) fn spawn(start_xy: (f32, f32), end_xy: (f32, f32), created_at: Instan
         let delay = Duration::from_millis(index as i64 * 3);
         let scale_variation = rng.gen_range(0.85..=1.15);
         ATTACK_VISUAL.spawn(NewAttackParticle::OnePairTrail(
-            OnePairTrail::new(
+            attack::one_pair::Trail::new(
                 start_xy,
                 length_px,
                 progress,

@@ -1,6 +1,6 @@
 use crate::game_state::field_particle::{
     ATTACK_VISUAL,
-    particle::attack::{HighProjectile, HighTrail, NewAttackParticle},
+    particle::attack::{self, NewAttackParticle},
 };
 use namui::*;
 use rand::Rng;
@@ -18,16 +18,17 @@ pub(super) fn spawn(start_xy: (f32, f32), end_xy: (f32, f32), created_at: Instan
     let trail_width_px = crate::atlas::generated::ATTACK_HIGH_TRAIL[0]
         .width()
         .as_f32();
-    let spacing_px = trail_width_px * HighTrail::INITIAL_SCALE * HighTrail::SPACING_RATIO;
+    let spacing_px =
+        trail_width_px * attack::high::Trail::INITIAL_SCALE * attack::high::Trail::SPACING_RATIO;
     let trail_count = if length_px <= f32::EPSILON {
         1
     } else {
         (length_px / spacing_px).ceil() as usize + 1
     };
 
-    ATTACK_VISUAL.spawn(NewAttackParticle::HighProjectile(HighProjectile::new(
-        start_xy, end_xy, created_at,
-    )));
+    ATTACK_VISUAL.spawn(NewAttackParticle::HighProjectile(
+        attack::high::Projectile::new(start_xy, end_xy, created_at),
+    ));
 
     let mut rng = rand::thread_rng();
     for index in 0..trail_count {
@@ -39,7 +40,7 @@ pub(super) fn spawn(start_xy: (f32, f32), end_xy: (f32, f32), created_at: Instan
         let delay = Duration::from_millis(index as i64 * 10);
         let scale_variation = rng.gen_range(0.85..=1.15);
         ATTACK_VISUAL.spawn(NewAttackParticle::HighTrail(
-            HighTrail::new(
+            attack::high::Trail::new(
                 start_xy,
                 length_px,
                 progress,

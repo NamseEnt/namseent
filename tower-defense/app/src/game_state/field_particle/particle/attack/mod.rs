@@ -1,27 +1,19 @@
-mod high_projectile;
-mod high_trail;
-mod one_pair_muzzle_ring;
-mod one_pair_projectile;
-mod one_pair_trail;
+pub mod high;
+pub mod one_pair;
 
 use crate::animation::CubicBezier;
-pub use high_projectile::*;
-pub use high_trail::*;
 use namui::*;
 
 pub(crate) const ATTACK_FRAME_EASE_OUT: CubicBezier = CubicBezier::new(0.0, 0.5, 0.5, 1.0);
-pub use one_pair_muzzle_ring::*;
-pub use one_pair_projectile::*;
-pub use one_pair_trail::*;
 
 #[derive(Clone)]
 /// migrating
 pub enum NewAttackParticle {
-    HighProjectile(HighProjectile),
-    HighTrail(HighTrail),
-    OnePairProjectile(OnePairProjectile),
-    OnePairTrail(OnePairTrail),
-    OnePairMuzzleRing(OnePairMuzzleRing),
+    HighProjectile(high::Projectile),
+    HighTrail(high::Trail),
+    OnePairProjectile(one_pair::Projectile),
+    OnePairTrail(one_pair::Trail),
+    OnePairMuzzleRing(one_pair::MuzzleRing),
 }
 
 impl namui::particle::Particle for NewAttackParticle {
