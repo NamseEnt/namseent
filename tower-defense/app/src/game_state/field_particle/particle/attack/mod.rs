@@ -1,15 +1,27 @@
 mod high_projectile;
 mod high_trail;
+mod one_pair_muzzle_ring;
+mod one_pair_projectile;
+mod one_pair_trail;
 
+use crate::animation::CubicBezier;
 pub use high_projectile::*;
 pub use high_trail::*;
 use namui::*;
+
+pub(crate) const ATTACK_FRAME_EASE_OUT: CubicBezier = CubicBezier::new(0.0, 0.5, 0.5, 1.0);
+pub use one_pair_muzzle_ring::*;
+pub use one_pair_projectile::*;
+pub use one_pair_trail::*;
 
 #[derive(Clone)]
 /// migrating
 pub enum NewAttackParticle {
     HighProjectile(HighProjectile),
     HighTrail(HighTrail),
+    OnePairProjectile(OnePairProjectile),
+    OnePairTrail(OnePairTrail),
+    OnePairMuzzleRing(OnePairMuzzleRing),
 }
 
 impl namui::particle::Particle for NewAttackParticle {
@@ -17,6 +29,9 @@ impl namui::particle::Particle for NewAttackParticle {
         match self {
             NewAttackParticle::HighProjectile(p) => p.tick(now, dt),
             NewAttackParticle::HighTrail(p) => p.tick(now, dt),
+            NewAttackParticle::OnePairProjectile(p) => p.tick(now, dt),
+            NewAttackParticle::OnePairTrail(p) => p.tick(now, dt),
+            NewAttackParticle::OnePairMuzzleRing(p) => p.tick(now, dt),
         }
     }
 
@@ -24,6 +39,9 @@ impl namui::particle::Particle for NewAttackParticle {
         match self {
             NewAttackParticle::HighProjectile(p) => p.render(),
             NewAttackParticle::HighTrail(p) => p.render(),
+            NewAttackParticle::OnePairProjectile(p) => p.render(),
+            NewAttackParticle::OnePairTrail(p) => p.render(),
+            NewAttackParticle::OnePairMuzzleRing(p) => p.render(),
         }
     }
 
@@ -31,6 +49,30 @@ impl namui::particle::Particle for NewAttackParticle {
         match self {
             NewAttackParticle::HighProjectile(p) => p.is_done(now),
             NewAttackParticle::HighTrail(p) => p.is_done(now),
+            NewAttackParticle::OnePairProjectile(p) => p.is_done(now),
+            NewAttackParticle::OnePairTrail(p) => p.is_done(now),
+            NewAttackParticle::OnePairMuzzleRing(p) => p.is_done(now),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn one_pair_particle_atlas_rects_have_expected_dimensions() {
+        let projectile = crate::atlas::generated::ATTACK_ONE_PAIR_PROJECTILE;
+        let trail = crate::atlas::generated::ATTACK_ONE_PAIR_TRAIL[0];
+        let muzzle_ring = crate::atlas::generated::ATTACK_ONE_PAIR_MUZZLE_RING[0];
+
+        assert_eq!(projectile.width().as_f32(), 32.0);
+        assert_eq!(projectile.height().as_f32(), 32.0);
+        assert_eq!(trail.width().as_f32(), 128.0);
+        assert_eq!(trail.height().as_f32(), 64.0);
+        assert_eq!(muzzle_ring.width().as_f32(), 64.0);
+        assert_eq!(muzzle_ring.height().as_f32(), 64.0);
+        assert_eq!(
+            crate::atlas::generated::ATTACK_ONE_PAIR_MUZZLE_RING.len(),
+            7
+        );
     }
 }

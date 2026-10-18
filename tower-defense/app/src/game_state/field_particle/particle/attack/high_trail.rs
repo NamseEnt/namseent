@@ -14,6 +14,7 @@ pub struct HighTrail {
     delay: Duration,
     progress: f32,
     started: bool,
+    scale_variation: f32,
 }
 
 impl HighTrail {
@@ -42,7 +43,13 @@ impl HighTrail {
             delay,
             progress: 0.0,
             started: false,
+            scale_variation: 1.0,
         }
+    }
+
+    pub fn with_scale_variation(mut self, scale_variation: f32) -> Self {
+        self.scale_variation = scale_variation;
+        self
     }
 
     pub fn tick(&mut self, now: Instant, _dt: Duration) {
@@ -64,11 +71,12 @@ impl HighTrail {
 
         let alpha = 1.0 - self.progress;
         let frames = crate::atlas::generated::ATTACK_HIGH_TRAIL;
-        let src_rect = frames[frame_index_for_progress(self.progress)];
+        let src_rect = frames[frame_index_for_progress(self.progress, frames.len())];
         let sprite_width = src_rect.width().as_f32();
         let sprite_height = src_rect.height().as_f32();
-        let desired_scale =
-            Self::INITIAL_SCALE + (Self::MAX_SCALE - Self::INITIAL_SCALE) * self.progress;
+        let desired_scale = (Self::INITIAL_SCALE
+            + (Self::MAX_SCALE - Self::INITIAL_SCALE) * self.progress)
+            * self.scale_variation;
         let (scale, center_offset_px) = trail_scale_and_center_offset(
             self.length_px,
             sprite_width,
@@ -98,8 +106,7 @@ impl HighTrail {
     }
 }
 
-fn frame_index_for_progress(progress: f32) -> usize {
-    let frame_count = crate::atlas::generated::ATTACK_HIGH_TRAIL.len();
+fn frame_index_for_progress(progress: f32, frame_count: usize) -> usize {
     ((progress * frame_count as f32) as usize).min(frame_count - 1)
 }
 
@@ -135,12 +142,12 @@ mod tests {
 
     #[test]
     fn trail_frames_advance_with_progress() {
-        assert_eq!(frame_index_for_progress(0.0), 0);
-        assert_eq!(frame_index_for_progress(0.2), 1);
-        assert_eq!(frame_index_for_progress(0.4), 2);
-        assert_eq!(frame_index_for_progress(0.6), 3);
-        assert_eq!(frame_index_for_progress(0.8), 4);
-        assert_eq!(frame_index_for_progress(0.99), 5);
+        assert_eq!(frame_index_for_progress(0.0, 6), 0);
+        assert_eq!(frame_index_for_progress(0.2, 6), 1);
+        assert_eq!(frame_index_for_progress(0.4, 6), 2);
+        assert_eq!(frame_index_for_progress(0.6, 6), 3);
+        assert_eq!(frame_index_for_progress(0.8, 6), 4);
+        assert_eq!(frame_index_for_progress(0.99, 6), 5);
     }
 
     #[test]

@@ -3,6 +3,7 @@ use crate::game_state::field_particle::{
     particle::attack::{HighProjectile, HighTrail, NewAttackParticle},
 };
 use namui::*;
+use rand::Rng;
 
 pub(super) fn spawn(start_xy: (f32, f32), end_xy: (f32, f32), created_at: Instant) {
     let tile_size = crate::game_state::TILE_PX_SIZE;
@@ -28,6 +29,7 @@ pub(super) fn spawn(start_xy: (f32, f32), end_xy: (f32, f32), created_at: Instan
         start_xy, end_xy, created_at,
     )));
 
+    let mut rng = rand::thread_rng();
     for index in 0..trail_count {
         let progress = if trail_count == 1 {
             0.0
@@ -35,14 +37,18 @@ pub(super) fn spawn(start_xy: (f32, f32), end_xy: (f32, f32), created_at: Instan
             index as f32 / (trail_count - 1) as f32
         };
         let delay = Duration::from_millis(index as i64 * 10);
-        ATTACK_VISUAL.spawn(NewAttackParticle::HighTrail(HighTrail::new(
-            start_xy,
-            length_px,
-            progress,
-            rotation_cos,
-            rotation_sin,
-            created_at,
-            delay,
-        )));
+        let scale_variation = rng.gen_range(0.85..=1.15);
+        ATTACK_VISUAL.spawn(NewAttackParticle::HighTrail(
+            HighTrail::new(
+                start_xy,
+                length_px,
+                progress,
+                rotation_cos,
+                rotation_sin,
+                created_at,
+                delay,
+            )
+            .with_scale_variation(scale_variation),
+        ));
     }
 }

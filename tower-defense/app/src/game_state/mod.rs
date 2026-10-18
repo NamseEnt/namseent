@@ -2633,12 +2633,24 @@ impl GameState {
                     start_xy,
                     end_xy,
                 } => {
-                    if matches!(tower_kind, tower::TowerKind::High) {
-                        field_particle::emitter::attack::spawn_tower_attack_visual_effect(
-                            field_particle::emitter::attack::AttackVisualEffect::High {
+                    let effect = match tower_kind {
+                        tower::TowerKind::High => {
+                            Some(field_particle::emitter::attack::AttackVisualEffect::High {
+                                start_xy: (start_xy[0], start_xy[1]),
+                                end_xy: (end_xy[0], end_xy[1]),
+                            })
+                        }
+                        tower::TowerKind::OnePair => Some(
+                            field_particle::emitter::attack::AttackVisualEffect::OnePair {
                                 start_xy: (start_xy[0], start_xy[1]),
                                 end_xy: (end_xy[0], end_xy[1]),
                             },
+                        ),
+                        _ => None,
+                    };
+                    if let Some(effect) = effect {
+                        field_particle::emitter::attack::spawn_tower_attack_visual_effect(
+                            effect,
                             presentation_now,
                         );
                     }

@@ -530,10 +530,11 @@ const HOMING_TURN_RATE_MIN_RAW: i64 = 2_000_000;
 const HOMING_TURN_RATE_MAX_RAW: i64 = 8_000_000;
 const ROYAL_STRAIGHT_FLUSH_HIT_DELAY_TICKS: u64 = 26;
 const HIGH_TOWER_KIND: u8 = 1;
+const ONE_PAIR_TOWER_KIND: u8 = 2;
 
 fn tower_attack_kind(kind: u8) -> TowerAttackKind {
     match kind {
-        HIGH_TOWER_KIND => TowerAttackKind::InstantDamage,
+        HIGH_TOWER_KIND | ONE_PAIR_TOWER_KIND => TowerAttackKind::InstantDamage,
         4 | 6 | 8 | 9 => TowerAttackKind::Direct {
             speed_raw: FAST_PROJECTILE_SPEED_RAW,
         },
@@ -754,25 +755,27 @@ mod tests {
                 attack_kind: 4,
                 start_xy: [start_x, start_y],
                 ..
-            } if *start_x == 7 * crate::WORLD_UNITS_PER_TILE / 4
-                && *start_y == 3 * crate::WORLD_UNITS_PER_TILE / 2
+            } if *start_x == 3 * crate::WORLD_UNITS_PER_TILE / 2
+                && *start_y == 5 * crate::WORLD_UNITS_PER_TILE / 4
         )));
     }
 
     #[test]
-    fn high_tower_damage_is_applied_in_the_same_simulation_tick() {
-        let mut state = crate::CoreState::new_initial(crate::GameConfig::default_config(), 7);
-        let mut target = monster(4, [2 * crate::WORLD_UNITS_PER_TILE, 0], 10);
-        target.move_on_route.route = state.route.clone();
-        target.hp_raw = 500;
-        target.max_hp_raw = 500;
-        state.monsters.push(target);
-        state.towers.push(tower(1));
+    fn high_and_one_pair_damage_is_applied_in_the_same_simulation_tick() {
+        for tower_kind in [HIGH_TOWER_KIND, ONE_PAIR_TOWER_KIND] {
+            let mut state = crate::CoreState::new_initial(crate::GameConfig::default_config(), 7);
+            let mut target = monster(4, [2 * crate::WORLD_UNITS_PER_TILE, 0], 10);
+            target.move_on_route.route = state.route.clone();
+            target.hp_raw = 500;
+            target.max_hp_raw = 500;
+            state.monsters.push(target);
+            state.towers.push(tower(tower_kind));
 
-        state.step_sim_tick();
+            state.step_sim_tick();
 
-        assert_eq!(state.monsters()[0].hp_raw, 400);
-        assert!(state.in_flight_attacks().is_empty());
+            assert_eq!(state.monsters()[0].hp_raw, 400);
+            assert!(state.in_flight_attacks().is_empty());
+        }
     }
 
     #[test]
