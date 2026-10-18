@@ -159,7 +159,8 @@ pub(crate) fn consume_headed(
                         crate::game_state::PresentationEvent::SpawnTowerAttackVisualEffect {
                             tower_kind,
                             start_xy: [
-                                start_xy[0] as f32 / crate::world::WORLD_UNITS_PER_TILE as f32,
+                                start_xy[0] as f32 / crate::world::WORLD_UNITS_PER_TILE as f32
+                                    - 0.5,
                                 start_xy[1] as f32 / crate::world::WORLD_UNITS_PER_TILE as f32,
                             ],
                             end_xy: [
@@ -740,7 +741,7 @@ mod tests {
     }
 
     #[test]
-    fn tower_attack_visual_presentation_converts_world_coordinates() {
+    fn tower_attack_visual_presentation_aligns_with_tower_sprite_center() {
         let mut game_state = crate::game_state::create_game_state_with_seed(7);
         let _ = game_state.take_pending_action_effects();
         let units_per_tile = crate::world::WORLD_UNITS_PER_TILE;
@@ -782,7 +783,7 @@ mod tests {
                     event,
                     crate::game_state::PresentationEvent::SpawnTowerAttackVisualEffect {
                         tower_kind: crate::game_state::tower::TowerKind::High,
-                        start_xy: [1.0, 2.0],
+                        start_xy: [0.5, 2.0],
                         end_xy: [3.0, 4.0],
                     }
                 ))
@@ -796,7 +797,7 @@ mod tests {
                     event,
                     crate::game_state::PresentationEvent::SpawnTowerAttackVisualEffect {
                         tower_kind: crate::game_state::tower::TowerKind::OnePair,
-                        start_xy: [5.0, 6.0],
+                        start_xy: [4.5, 6.0],
                         end_xy: [7.0, 8.0],
                     }
                 ))
