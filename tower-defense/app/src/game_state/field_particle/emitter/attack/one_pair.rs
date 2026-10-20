@@ -1,4 +1,4 @@
-use super::common::{spawn_bullet_trail, spawn_vapor_ring_trail};
+use super::common::{bullet_trail, vapor_ring};
 use crate::game_state::field_particle::{
     ATTACK_VISUAL,
     particle::attack::{self, NewAttackParticle},
@@ -20,7 +20,7 @@ pub(super) fn spawn(start_xy: (f32, f32), end_xy: (f32, f32), created_at: Instan
     ));
 
     let mut rng = rand::thread_rng();
-    spawn_bullet_trail(
+    bullet_trail::spawn(
         start_xy,
         end_xy,
         created_at,
@@ -28,7 +28,7 @@ pub(super) fn spawn(start_xy: (f32, f32), end_xy: (f32, f32), created_at: Instan
         Duration::from_millis(30),
         0.125,
     );
-    spawn_vapor_ring_trail(
+    vapor_ring::spawn(
         start_xy,
         end_xy,
         created_at,

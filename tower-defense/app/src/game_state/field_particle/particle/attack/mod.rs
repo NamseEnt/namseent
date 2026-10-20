@@ -7,6 +7,7 @@ use crate::animation::CubicBezier;
 use namui::*;
 
 pub(crate) const ATTACK_FRAME_EASE_OUT: CubicBezier = CubicBezier::new(0.0, 0.5, 0.5, 1.0);
+pub(crate) const ATTACK_FRAME_EASE_IN: CubicBezier = CubicBezier::new(0.5, 0.0, 1.0, 0.5);
 
 #[derive(Clone)]
 /// migrating
@@ -16,6 +17,9 @@ pub enum NewAttackParticle {
     TwoPairProjectile(two_pair::Projectile),
     BulletTrail(common::BulletTrail),
     VaporRing(common::VaporRing),
+    DirectionalEmber(common::DirectionalEmber),
+    DirectionalFlash(common::DirectionalFlash),
+    DirectionalVolumeSmoke(common::DirectionalVolumeSmoke),
 }
 
 impl namui::particle::Particle for NewAttackParticle {
@@ -26,6 +30,9 @@ impl namui::particle::Particle for NewAttackParticle {
             NewAttackParticle::TwoPairProjectile(p) => p.tick(now, dt),
             NewAttackParticle::BulletTrail(p) => p.tick(now, dt),
             NewAttackParticle::VaporRing(p) => p.tick(now, dt),
+            NewAttackParticle::DirectionalEmber(p) => p.tick(now, dt),
+            NewAttackParticle::DirectionalFlash(p) => p.tick(now, dt),
+            NewAttackParticle::DirectionalVolumeSmoke(p) => p.tick(now, dt),
         }
     }
 
@@ -36,6 +43,9 @@ impl namui::particle::Particle for NewAttackParticle {
             NewAttackParticle::TwoPairProjectile(p) => p.render(),
             NewAttackParticle::BulletTrail(p) => p.render(),
             NewAttackParticle::VaporRing(p) => p.render(),
+            NewAttackParticle::DirectionalEmber(p) => p.render(),
+            NewAttackParticle::DirectionalFlash(p) => p.render(),
+            NewAttackParticle::DirectionalVolumeSmoke(p) => p.render(),
         }
     }
 
@@ -46,6 +56,9 @@ impl namui::particle::Particle for NewAttackParticle {
             NewAttackParticle::TwoPairProjectile(p) => p.is_done(now),
             NewAttackParticle::BulletTrail(p) => p.is_done(now),
             NewAttackParticle::VaporRing(p) => p.is_done(now),
+            NewAttackParticle::DirectionalEmber(p) => p.is_done(now),
+            NewAttackParticle::DirectionalFlash(p) => p.is_done(now),
+            NewAttackParticle::DirectionalVolumeSmoke(p) => p.is_done(now),
         }
     }
 }
@@ -82,5 +95,21 @@ mod tests {
             crate::atlas::generated::ATTACK_COMMON_VAPOR_RING_02.len(),
             6
         );
+        assert_eq!(
+            crate::atlas::generated::ATTACK_COMMON_DIRECTIONAL_FLASH_00.len(),
+            6
+        );
+        assert_eq!(
+            crate::atlas::generated::ATTACK_COMMON_DIRECTIONAL_VOLUME_SMOKE_00.len(),
+            11
+        );
+        for ember in [
+            crate::atlas::generated::ATTACK_COMMON_EMBER_00,
+            crate::atlas::generated::ATTACK_COMMON_EMBER_01,
+            crate::atlas::generated::ATTACK_COMMON_EMBER_02,
+        ] {
+            assert_eq!(ember.width().as_f32(), 16.0);
+            assert_eq!(ember.height().as_f32(), 16.0);
+        }
     }
 }

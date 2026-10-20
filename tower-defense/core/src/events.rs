@@ -26,8 +26,17 @@ pub enum CoreEvent {
         start_xy: [i64; 2],
         #[serde(default)]
         end_xy: [i64; 2],
+        #[serde(default)]
+        attack_range_raw: i64,
         attack_ids: Vec<u64>,
         projectile_attack_ids: Vec<u64>,
+    },
+    TowerAttackHit {
+        tower_id: u64,
+        target_id: u64,
+        tower_kind: u8,
+        start_xy: [i64; 2],
+        position: [i64; 2],
     },
     ProjectileMoved {
         attack_id: u64,

@@ -268,12 +268,7 @@ impl Tower {
             TowerKind::High => AttackType::InstantDamage,
             TowerKind::OnePair => AttackType::InstantDamage,
             TowerKind::TwoPair => AttackType::InstantDamage,
-            TowerKind::ThreeOfAKind => AttackType::Projectile {
-                speed: FAST_PROJECTILE_SPEED,
-                trail: ProjectileTrail::Burning,
-                projectile_group: ProjectileGroup::Trash,
-                hit_effect: attack::ProjectileHitEffect::TrashBounce,
-            },
+            TowerKind::ThreeOfAKind => AttackType::InstantDamage,
             TowerKind::Straight => AttackType::Laser,
             TowerKind::RoyalFlush => AttackType::RoyalStraightFlush {
                 target_xy: params.target_xy,

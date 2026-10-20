@@ -6,7 +6,7 @@ use namui::*;
 
 const SPACING_TILES: f32 = 0.8;
 
-pub(super) fn spawn(
+pub(in crate::game_state::field_particle::emitter::attack) fn spawn(
     start_xy: (f32, f32),
     end_xy: (f32, f32),
     created_at: Instant,

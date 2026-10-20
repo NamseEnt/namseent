@@ -53,6 +53,13 @@ pub enum BaseAnimationEvent {
 }
 
 #[derive(Clone)]
+pub enum MonsterHitVisualSource {
+    Tower {
+        kind: crate::game_state::tower::TowerKind,
+    },
+}
+
+#[derive(Clone)]
 pub enum PresentationEvent {
     AnimateBase(BaseAnimationEvent),
     ShakeCamera {
@@ -69,6 +76,12 @@ pub enum PresentationEvent {
         tower_kind: crate::game_state::tower::TowerKind,
         start_xy: [f32; 2],
         end_xy: [f32; 2],
+        attack_range_radius: f32,
+    },
+    SpawnMonsterHitVisualEffect {
+        source: MonsterHitVisualSource,
+        start_xy: [f32; 2],
+        impact_xy: [f32; 2],
     },
     SpawnGoldReward {
         position: [f32; 2],

@@ -359,7 +359,7 @@ pub(crate) fn generate_tower_attacks(
             TowerAttackKind::Laser => 1,
             TowerAttackKind::FullHouseRain => 2,
             TowerAttackKind::RoyalStraightFlush => 3,
-            TowerAttackKind::InstantDamage => 4,
+            TowerAttackKind::InstantDamage | TowerAttackKind::ConeDamage => 4,
         };
         let source = crate::AttackSourceState {
             tower_id,
@@ -367,6 +367,7 @@ pub(crate) fn generate_tower_attacks(
             rank: tower.template.rank,
             suit: tower.template.suit,
         };
+        let mut tower_attack_hit_events = Vec::new();
 
         if !tower.on_attack_splashes.is_empty() {
             let source_index = area_damage_sources.len();
@@ -395,6 +396,43 @@ pub(crate) fn generate_tower_attacks(
                         splashes: tower.on_hit_splashes.clone(),
                     },
                 ));
+            }
+            TowerAttackKind::ConeDamage => {
+                tower.cooldown = tower.shoot_interval_ticks();
+                let source_index = area_damage_sources.len();
+                area_damage_sources.push(source);
+                let aim_xy = if target_xy == tower_center {
+                    [tower_center[0], tower_center[1].saturating_sub(1)]
+                } else {
+                    target_xy
+                };
+                let range_raw = tower.attack_range_raw().max(0);
+                for (target_index, monster) in monsters.iter().enumerate() {
+                    let monster_xy = monster_center_xy(monster);
+                    if distance_squared(tower_center, monster_xy)
+                        > (range_raw as u128).saturating_mul(range_raw as u128)
+                        || !within_cone(tower_center, aim_xy, monster_xy)
+                    {
+                        continue;
+                    }
+                    immediate_damage_events.push((
+                        monster.id,
+                        crate::DamageHit {
+                            target_index,
+                            damage_raw,
+                            at_xy: monster_xy,
+                            source_index,
+                            splashes: tower.on_hit_splashes.clone(),
+                        },
+                    ));
+                    tower_attack_hit_events.push(crate::CoreEvent::TowerAttackHit {
+                        tower_id,
+                        target_id: monster.id,
+                        tower_kind: tower.template.kind,
+                        start_xy: tower_head_xy(tower),
+                        position: monster_xy,
+                    });
+                }
             }
             TowerAttackKind::Direct { speed_raw } => {
                 tower.cooldown = tower.shoot_interval_ticks();
@@ -491,7 +529,9 @@ pub(crate) fn generate_tower_attacks(
             end_xy: target_xy,
             attack_ids,
             projectile_attack_ids,
+            attack_range_raw: tower.attack_range_raw(),
         });
+        events.extend(tower_attack_hit_events);
     }
 
     area_damage_events.sort_by_key(|event| {
@@ -515,6 +555,7 @@ pub(crate) fn generate_tower_attacks(
 enum TowerAttackKind {
     Direct { speed_raw: i64 },
     InstantDamage,
+    ConeDamage,
     Laser,
     FullHouseRain,
     RoyalStraightFlush,
@@ -532,13 +573,15 @@ const ROYAL_STRAIGHT_FLUSH_HIT_DELAY_TICKS: u64 = 26;
 const HIGH_TOWER_KIND: u8 = 1;
 const ONE_PAIR_TOWER_KIND: u8 = 2;
 const TWO_PAIR_TOWER_KIND: u8 = 3;
+const THREE_OF_A_KIND_TOWER_KIND: u8 = 4;
 
 fn tower_attack_kind(kind: u8) -> TowerAttackKind {
     match kind {
         HIGH_TOWER_KIND | ONE_PAIR_TOWER_KIND | TWO_PAIR_TOWER_KIND => {
             TowerAttackKind::InstantDamage
         }
-        4 | 6 | 8 | 9 => TowerAttackKind::Direct {
+        THREE_OF_A_KIND_TOWER_KIND => TowerAttackKind::ConeDamage,
+        6 | 8 | 9 => TowerAttackKind::Direct {
             speed_raw: FAST_PROJECTILE_SPEED_RAW,
         },
         5 => TowerAttackKind::Laser,
@@ -573,6 +616,35 @@ fn select_target_index(
         .map(|(index, _)| index)
 }
 
+fn within_cone(origin: [i64; 2], aim: [i64; 2], target: [i64; 2]) -> bool {
+    let direction_x = i128::from(aim[0]) - i128::from(origin[0]);
+    let direction_y = i128::from(aim[1]) - i128::from(origin[1]);
+    let target_x = i128::from(target[0]) - i128::from(origin[0]);
+    let target_y = i128::from(target[1]) - i128::from(origin[1]);
+    let direction_length_squared = distance_squared(origin, aim);
+    let target_length_squared = distance_squared(origin, target);
+
+    if target_length_squared == 0 {
+        return true;
+    }
+    if direction_length_squared == 0 {
+        return false;
+    }
+
+    let dot = direction_x
+        .saturating_mul(target_x)
+        .saturating_add(direction_y.saturating_mul(target_y));
+    if dot <= 0 {
+        return false;
+    }
+
+    let dot_squared = dot.unsigned_abs().saturating_mul(dot.unsigned_abs());
+    dot_squared.saturating_mul(1_000_000)
+        >= direction_length_squared
+            .saturating_mul(target_length_squared)
+            .saturating_mul(933_013)
+}
+
 fn split_damage_evenly(damage_raw: i64, parts: usize, index: usize) -> i64 {
     if parts == 0 {
         return 0;
@@ -603,12 +675,8 @@ fn distance_squared(left: [i64; 2], right: [i64; 2]) -> u128 {
 
 fn tower_center_xy(tower: &TowerState) -> [i64; 2] {
     [
-        (tower.left_top[0] as i64 + 1)
-            .saturating_mul(crate::WORLD_UNITS_PER_TILE)
-            .saturating_add(crate::WORLD_UNITS_PER_TILE / 2),
-        (tower.left_top[1] as i64 + 1)
-            .saturating_mul(crate::WORLD_UNITS_PER_TILE)
-            .saturating_add(crate::WORLD_UNITS_PER_TILE / 2),
+        (tower.left_top[0] as i64 + 1).saturating_mul(crate::WORLD_UNITS_PER_TILE),
+        (tower.left_top[1] as i64 + 1).saturating_mul(crate::WORLD_UNITS_PER_TILE),
     ]
 }
 
@@ -764,8 +832,83 @@ mod tests {
     }
 
     #[test]
-    fn high_one_pair_and_two_pair_damage_is_applied_in_the_same_simulation_tick() {
-        for tower_kind in [HIGH_TOWER_KIND, ONE_PAIR_TOWER_KIND, TWO_PAIR_TOWER_KIND] {
+    fn three_of_a_kind_hits_all_monsters_in_its_range_and_30_degree_cone() {
+        let tile = crate::WORLD_UNITS_PER_TILE;
+        let mut attack_tower = tower(THREE_OF_A_KIND_TOWER_KIND);
+        attack_tower.left_top = [0, 5];
+        let mut towers = vec![attack_tower];
+        let monsters = vec![
+            monster(4, [2 * tile, 5 * tile], 10),
+            monster(5, [3 * tile, 4 * tile], 9),
+            monster(6, [4 * tile, 3 * tile], 8),
+            monster(7, [0, 3 * tile], 7),
+            monster(8, [0, 6 * tile], 6),
+        ];
+        let mut attacks = Vec::new();
+        let mut allocator = crate::EntityIdAllocator::from_next_id(20);
+
+        let output = generate_tower_attacks(
+            &mut towers,
+            &monsters,
+            &mut attacks,
+            &mut allocator,
+            12,
+            &[],
+            &[],
+        );
+
+        assert!(attacks.is_empty());
+        assert_eq!(
+            output
+                .immediate_damage_events
+                .iter()
+                .map(|(target_id, _)| *target_id)
+                .collect::<Vec<_>>(),
+            vec![4, 5]
+        );
+        let hit_events = output
+            .events
+            .iter()
+            .filter_map(|event| match event {
+                crate::CoreEvent::TowerAttackHit {
+                    target_id,
+                    position,
+                    ..
+                } => Some((*target_id, *position)),
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            hit_events,
+            vec![
+                (4, monster_center_xy(&monsters[0])),
+                (5, monster_center_xy(&monsters[1])),
+            ]
+        );
+        assert!(
+            output
+                .immediate_damage_events
+                .iter()
+                .all(|(_, hit)| hit.damage_raw == 100)
+        );
+        assert_eq!(towers[0].cooldown, 7);
+    }
+
+    #[test]
+    fn three_of_a_kind_cone_includes_15_degree_boundary_and_excludes_outside_angle() {
+        assert!(within_cone([0, 0], [0, -1_000], [267, -1_000]));
+        assert!(!within_cone([0, 0], [0, -1_000], [268, -1_000]));
+        assert!(!within_cone([0, 0], [0, -100], [0, 1]));
+    }
+
+    #[test]
+    fn immediate_damage_towers_apply_damage_in_the_same_simulation_tick() {
+        for tower_kind in [
+            HIGH_TOWER_KIND,
+            ONE_PAIR_TOWER_KIND,
+            TWO_PAIR_TOWER_KIND,
+            THREE_OF_A_KIND_TOWER_KIND,
+        ] {
             let mut state = crate::CoreState::new_initial(crate::GameConfig::default_config(), 7);
             let mut target = monster(4, [2 * crate::WORLD_UNITS_PER_TILE, 0], 10);
             target.move_on_route.route = state.route.clone();

@@ -2632,6 +2632,7 @@ impl GameState {
                     tower_kind,
                     start_xy,
                     end_xy,
+                    attack_range_radius,
                 } => {
                     let effect = match tower_kind {
                         tower::TowerKind::High => {
@@ -2652,6 +2653,13 @@ impl GameState {
                                 end_xy: (end_xy[0], end_xy[1]),
                             },
                         ),
+                        tower::TowerKind::ThreeOfAKind => Some(
+                            field_particle::emitter::attack::AttackVisualEffect::ThreeOfAKind {
+                                start_xy: (start_xy[0], start_xy[1]),
+                                end_xy: (end_xy[0], end_xy[1]),
+                                attack_range_radius,
+                            },
+                        ),
                         _ => None,
                     };
                     if let Some(effect) = effect {
@@ -2661,6 +2669,24 @@ impl GameState {
                         );
                     }
                 }
+                PresentationEvent::SpawnMonsterHitVisualEffect {
+                    source,
+                    start_xy,
+                    impact_xy,
+                } => match source {
+                    presentation_event::MonsterHitVisualSource::Tower { kind } => match kind {
+                        tower::TowerKind::ThreeOfAKind => {
+                            field_particle::emitter::attack::spawn_tower_attack_visual_effect(
+                                field_particle::emitter::attack::AttackVisualEffect::ThreeOfAKindHit {
+                                    start_xy: (start_xy[0], start_xy[1]),
+                                    impact_xy: (impact_xy[0], impact_xy[1]),
+                                },
+                                presentation_now,
+                            );
+                        }
+                        _ => {}
+                    },
+                },
                 PresentationEvent::SpawnProjectileHitEffect(hit_effect, impact_xy) => {
                     let impact_xy = MapCoordF32::new(impact_xy[0], impact_xy[1]);
                     use crate::game_state::attack::ProjectileHitEffect;

@@ -5,7 +5,7 @@ use crate::game_state::field_particle::{
 use namui::*;
 use rand::Rng;
 
-use super::common::{spawn_bullet_trail, spawn_vapor_ring_trail};
+use super::common::{bullet_trail, vapor_ring};
 
 pub(super) fn spawn(start_xy: (f32, f32), end_xy: (f32, f32), created_at: Instant) {
     let mut rng = rand::thread_rng();
@@ -22,7 +22,7 @@ pub(super) fn spawn(start_xy: (f32, f32), end_xy: (f32, f32), created_at: Instan
                 .with_start_delay(bundle_delay),
         ));
 
-        spawn_bullet_trail(
+        bullet_trail::spawn(
             projectile_start_xy,
             end_xy,
             created_at,
@@ -30,7 +30,7 @@ pub(super) fn spawn(start_xy: (f32, f32), end_xy: (f32, f32), created_at: Instan
             Duration::from_millis(10),
             0.1,
         );
-        spawn_vapor_ring_trail(
+        vapor_ring::spawn(
             projectile_start_xy,
             end_xy,
             created_at,

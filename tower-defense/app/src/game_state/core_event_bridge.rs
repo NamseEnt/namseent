@@ -141,6 +141,7 @@ pub(crate) fn consume_headed(
                 tower_kind: tower_kind_raw,
                 start_xy,
                 end_xy,
+                attack_range_raw,
                 attack_ids,
                 projectile_attack_ids,
                 ..
@@ -153,21 +154,23 @@ pub(crate) fn consume_headed(
                 if let Some(
                     tower_kind @ (crate::game_state::tower::TowerKind::High
                     | crate::game_state::tower::TowerKind::OnePair
-                    | crate::game_state::tower::TowerKind::TwoPair),
+                    | crate::game_state::tower::TowerKind::TwoPair
+                    | crate::game_state::tower::TowerKind::ThreeOfAKind),
                 ) = crate::game_state::tower::TowerKind::from_core_raw(tower_kind_raw)
                 {
                     game_state.push_presentation_event(
                         crate::game_state::PresentationEvent::SpawnTowerAttackVisualEffect {
                             tower_kind,
                             start_xy: [
-                                start_xy[0] as f32 / crate::world::WORLD_UNITS_PER_TILE as f32
-                                    - 0.5,
+                                start_xy[0] as f32 / crate::world::WORLD_UNITS_PER_TILE as f32,
                                 start_xy[1] as f32 / crate::world::WORLD_UNITS_PER_TILE as f32,
                             ],
                             end_xy: [
                                 end_xy[0] as f32 / crate::world::WORLD_UNITS_PER_TILE as f32,
                                 end_xy[1] as f32 / crate::world::WORLD_UNITS_PER_TILE as f32,
                             ],
+                            attack_range_radius: attack_range_raw as f32
+                                / crate::world::WORLD_UNITS_PER_TILE as f32,
                         },
                     );
                 }
@@ -194,6 +197,31 @@ pub(crate) fn consume_headed(
                 };
                 for event in projectile_events {
                     game_state.push_presentation_event(event);
+                }
+            }
+            td_core::CoreEvent::TowerAttackHit {
+                tower_kind,
+                start_xy,
+                position,
+                ..
+            } => {
+                if let Some(kind) = crate::game_state::tower::TowerKind::from_core_raw(tower_kind) {
+                    let units_per_tile = crate::world::WORLD_UNITS_PER_TILE as f32;
+                    game_state.push_presentation_event(
+                        crate::game_state::PresentationEvent::SpawnMonsterHitVisualEffect {
+                            source: crate::game_state::presentation_event::MonsterHitVisualSource::Tower {
+                                kind,
+                            },
+                            start_xy: [
+                                start_xy[0] as f32 / units_per_tile,
+                                start_xy[1] as f32 / units_per_tile,
+                            ],
+                            impact_xy: [
+                                position[0] as f32 / units_per_tile,
+                                position[1] as f32 / units_per_tile,
+                            ],
+                        },
+                    );
                 }
             }
             td_core::CoreEvent::ProjectileMoved {
@@ -665,6 +693,7 @@ mod tests {
                     tower_kind: 0,
                     start_xy: [0, 0],
                     end_xy: [0, 0],
+                    attack_range_raw: 0,
                     attack_ids: vec![2],
                     projectile_attack_ids: Vec::new(),
                 },
@@ -757,6 +786,7 @@ mod tests {
                     tower_kind: 1,
                     start_xy: [units_per_tile, 2 * units_per_tile],
                     end_xy: [3 * units_per_tile, 4 * units_per_tile],
+                    attack_range_raw: 5 * units_per_tile,
                     attack_ids: Vec::new(),
                     projectile_attack_ids: Vec::new(),
                 },
@@ -767,6 +797,7 @@ mod tests {
                     tower_kind: 2,
                     start_xy: [5 * units_per_tile, 6 * units_per_tile],
                     end_xy: [7 * units_per_tile, 8 * units_per_tile],
+                    attack_range_raw: 5 * units_per_tile,
                     attack_ids: Vec::new(),
                     projectile_attack_ids: Vec::new(),
                 },
@@ -777,6 +808,18 @@ mod tests {
                     tower_kind: 3,
                     start_xy: [9 * units_per_tile, 10 * units_per_tile],
                     end_xy: [11 * units_per_tile, 12 * units_per_tile],
+                    attack_range_raw: 6 * units_per_tile,
+                    attack_ids: Vec::new(),
+                    projectile_attack_ids: Vec::new(),
+                },
+                td_core::CoreEvent::TowerAttack {
+                    tower_id: 7,
+                    target_id: 8,
+                    attack_kind: 4,
+                    tower_kind: crate::game_state::tower::TowerKind::ThreeOfAKind.to_core_raw(),
+                    start_xy: [13 * units_per_tile, 14 * units_per_tile],
+                    end_xy: [16 * units_per_tile, 17 * units_per_tile],
+                    attack_range_raw: 7 * units_per_tile,
                     attack_ids: Vec::new(),
                     projectile_attack_ids: Vec::new(),
                 },
@@ -796,6 +839,22 @@ mod tests {
                         tower_kind: crate::game_state::tower::TowerKind::High,
                         start_xy: [0.5, 2.0],
                         end_xy: [3.0, 4.0],
+                        ..
+                    }
+                ))
+        );
+        assert!(
+            effects
+                .presentation_events
+                .events
+                .iter()
+                .any(|event| matches!(
+                    event,
+                    crate::game_state::PresentationEvent::SpawnTowerAttackVisualEffect {
+                        tower_kind: crate::game_state::tower::TowerKind::ThreeOfAKind,
+                        start_xy: [13.0, 14.0],
+                        end_xy: [16.0, 17.0],
+                        attack_range_radius: 7.0,
                     }
                 ))
         );
@@ -810,6 +869,7 @@ mod tests {
                         tower_kind: crate::game_state::tower::TowerKind::TwoPair,
                         start_xy: [8.5, 10.0],
                         end_xy: [11.0, 12.0],
+                        ..
                     }
                 ))
         );
@@ -824,6 +884,45 @@ mod tests {
                         tower_kind: crate::game_state::tower::TowerKind::OnePair,
                         start_xy: [4.5, 6.0],
                         end_xy: [7.0, 8.0],
+                        ..
+                    }
+                ))
+        );
+    }
+
+    #[test]
+    fn monster_hit_visual_presentation_converts_coordinates_to_tiles() {
+        let mut game_state = crate::game_state::create_game_state_with_seed(7);
+        let _ = game_state.take_pending_action_effects();
+        let units_per_tile = crate::world::WORLD_UNITS_PER_TILE;
+
+        consume_headed(
+            &mut game_state,
+            [td_core::CoreEvent::TowerAttackHit {
+                tower_id: 7,
+                target_id: 9,
+                tower_kind: crate::game_state::tower::TowerKind::ThreeOfAKind.to_core_raw(),
+                start_xy: [13 * units_per_tile, 14 * units_per_tile],
+                position: [18 * units_per_tile, 19 * units_per_tile],
+            }],
+            crate::PresentationInstant::zero(),
+        );
+
+        let effects = game_state.take_pending_action_effects();
+        assert!(
+            effects
+                .presentation_events
+                .events
+                .iter()
+                .any(|event| matches!(
+                    event,
+                    crate::game_state::PresentationEvent::SpawnMonsterHitVisualEffect {
+                        source:
+                            crate::game_state::presentation_event::MonsterHitVisualSource::Tower {
+                                kind: crate::game_state::tower::TowerKind::ThreeOfAKind,
+                            },
+                        start_xy: [13.0, 14.0],
+                        impact_xy: [18.0, 19.0],
                     }
                 ))
         );
@@ -970,6 +1069,7 @@ mod tests {
                 tower_kind: 0,
                 start_xy: [0, 0],
                 end_xy: [0, 0],
+                attack_range_raw: 0,
                 attack_ids: vec![attack_id.raw()],
                 projectile_attack_ids: vec![attack_id.raw()],
             }],
