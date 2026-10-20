@@ -1,3 +1,4 @@
+mod common;
 mod high;
 mod one_pair;
 mod two_pair;

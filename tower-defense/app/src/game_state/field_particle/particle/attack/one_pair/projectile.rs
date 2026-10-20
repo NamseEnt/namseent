@@ -1,7 +1,7 @@
 use crate::game_state::TILE_PX_SIZE;
 use namui::*;
 
-const PROJECTILE_SCALE: f32 = 2.0;
+const PROJECTILE_SCALE: f32 = 4.0;
 
 #[derive(Clone)]
 pub struct Projectile {

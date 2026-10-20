@@ -1,6 +1,8 @@
 use crate::game_state::TILE_PX_SIZE;
 use namui::*;
 
+const PROJECTILE_SCALE: f32 = 2.0;
+
 #[derive(Clone)]
 pub struct Projectile {
     start_x_px: f32,
@@ -68,8 +70,8 @@ impl Projectile {
         let sprite_height = src_rect.height().as_f32();
         let center_x = px(self.start_x_px + self.rotation_cos * self.length_px * self.progress);
         let center_y = px(self.start_y_px + self.rotation_sin * self.length_px * self.progress);
-        let scos = self.rotation_cos;
-        let ssin = self.rotation_sin;
+        let scos = self.rotation_cos * PROJECTILE_SCALE;
+        let ssin = self.rotation_sin * PROJECTILE_SCALE;
 
         sprites.push(namui::ImageSprite {
             src_rect,
