@@ -155,7 +155,8 @@ pub(crate) fn consume_headed(
                     tower_kind @ (crate::game_state::tower::TowerKind::High
                     | crate::game_state::tower::TowerKind::OnePair
                     | crate::game_state::tower::TowerKind::TwoPair
-                    | crate::game_state::tower::TowerKind::ThreeOfAKind),
+                    | crate::game_state::tower::TowerKind::ThreeOfAKind
+                    | crate::game_state::tower::TowerKind::Straight),
                 ) = crate::game_state::tower::TowerKind::from_core_raw(tower_kind_raw)
                 {
                     game_state.push_presentation_event(
@@ -891,6 +892,46 @@ mod tests {
     }
 
     #[test]
+    fn straight_tower_attack_visual_uses_core_range_endpoint() {
+        let mut game_state = crate::game_state::create_game_state_with_seed(7);
+        let _ = game_state.take_pending_action_effects();
+        let units_per_tile = crate::world::WORLD_UNITS_PER_TILE;
+
+        consume_headed(
+            &mut game_state,
+            [td_core::CoreEvent::TowerAttack {
+                tower_id: 9,
+                target_id: 10,
+                attack_kind: 4,
+                tower_kind: crate::game_state::tower::TowerKind::Straight.to_core_raw(),
+                start_xy: [2 * units_per_tile, 3 * units_per_tile],
+                end_xy: [11 * units_per_tile, 3 * units_per_tile],
+                attack_range_raw: 9 * units_per_tile,
+                attack_ids: Vec::new(),
+                projectile_attack_ids: Vec::new(),
+            }],
+            crate::PresentationInstant::zero(),
+        );
+
+        let effects = game_state.take_pending_action_effects();
+        assert!(
+            effects
+                .presentation_events
+                .events
+                .iter()
+                .any(|event| matches!(
+                    event,
+                    crate::game_state::PresentationEvent::SpawnTowerAttackVisualEffect {
+                        tower_kind: crate::game_state::tower::TowerKind::Straight,
+                        start_xy: [2.0, 3.0],
+                        end_xy: [11.0, 3.0],
+                        attack_range_radius: 9.0,
+                    }
+                ))
+        );
+    }
+
+    #[test]
     fn monster_hit_visual_presentation_converts_coordinates_to_tiles() {
         let mut game_state = crate::game_state::create_game_state_with_seed(7);
         let _ = game_state.take_pending_action_effects();
@@ -898,13 +939,22 @@ mod tests {
 
         consume_headed(
             &mut game_state,
-            [td_core::CoreEvent::TowerAttackHit {
-                tower_id: 7,
-                target_id: 9,
-                tower_kind: crate::game_state::tower::TowerKind::ThreeOfAKind.to_core_raw(),
-                start_xy: [13 * units_per_tile, 14 * units_per_tile],
-                position: [18 * units_per_tile, 19 * units_per_tile],
-            }],
+            [
+                td_core::CoreEvent::TowerAttackHit {
+                    tower_id: 7,
+                    target_id: 9,
+                    tower_kind: crate::game_state::tower::TowerKind::ThreeOfAKind.to_core_raw(),
+                    start_xy: [13 * units_per_tile, 14 * units_per_tile],
+                    position: [18 * units_per_tile, 19 * units_per_tile],
+                },
+                td_core::CoreEvent::TowerAttackHit {
+                    tower_id: 8,
+                    target_id: 10,
+                    tower_kind: crate::game_state::tower::TowerKind::Straight.to_core_raw(),
+                    start_xy: [17 * units_per_tile, 18 * units_per_tile],
+                    position: [26 * units_per_tile, 18 * units_per_tile],
+                },
+            ],
             crate::PresentationInstant::zero(),
         );
 
@@ -923,6 +973,23 @@ mod tests {
                             },
                         start_xy: [13.0, 14.0],
                         impact_xy: [18.0, 19.0],
+                    }
+                ))
+        );
+        assert!(
+            effects
+                .presentation_events
+                .events
+                .iter()
+                .any(|event| matches!(
+                    event,
+                    crate::game_state::PresentationEvent::SpawnMonsterHitVisualEffect {
+                        source:
+                            crate::game_state::presentation_event::MonsterHitVisualSource::Tower {
+                                kind: crate::game_state::tower::TowerKind::Straight,
+                            },
+                        start_xy: [17.0, 18.0],
+                        impact_xy: [26.0, 18.0],
                     }
                 ))
         );

@@ -2660,6 +2660,12 @@ impl GameState {
                                 attack_range_radius,
                             },
                         ),
+                        tower::TowerKind::Straight => Some(
+                            field_particle::emitter::attack::AttackVisualEffect::Straight {
+                                start_xy: (start_xy[0], start_xy[1]),
+                                end_xy: (end_xy[0], end_xy[1]),
+                            },
+                        ),
                         _ => None,
                     };
                     if let Some(effect) = effect {
@@ -2678,6 +2684,15 @@ impl GameState {
                         tower::TowerKind::ThreeOfAKind => {
                             field_particle::emitter::attack::spawn_tower_attack_visual_effect(
                                 field_particle::emitter::attack::AttackVisualEffect::ThreeOfAKindHit {
+                                    start_xy: (start_xy[0], start_xy[1]),
+                                    impact_xy: (impact_xy[0], impact_xy[1]),
+                                },
+                                presentation_now,
+                            );
+                        }
+                        tower::TowerKind::Straight => {
+                            field_particle::emitter::attack::spawn_tower_attack_visual_effect(
+                                field_particle::emitter::attack::AttackVisualEffect::StraightHit {
                                     start_xy: (start_xy[0], start_xy[1]),
                                     impact_xy: (impact_xy[0], impact_xy[1]),
                                 },

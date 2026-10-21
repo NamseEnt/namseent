@@ -1,6 +1,7 @@
 pub mod common;
 pub mod high;
 pub mod one_pair;
+pub mod straight_lightning;
 pub mod two_pair;
 
 use crate::animation::CubicBezier;
@@ -17,9 +18,11 @@ pub enum NewAttackParticle {
     TwoPairProjectile(two_pair::Projectile),
     BulletTrail(common::BulletTrail),
     VaporRing(common::VaporRing),
+    EnergyRing(common::EnergyRing),
     DirectionalEmber(common::DirectionalEmber),
     DirectionalFlash(common::DirectionalFlash),
     DirectionalVolumeSmoke(common::DirectionalVolumeSmoke),
+    StraightLightning(straight_lightning::StraightLightning),
 }
 
 impl namui::particle::Particle for NewAttackParticle {
@@ -30,9 +33,11 @@ impl namui::particle::Particle for NewAttackParticle {
             NewAttackParticle::TwoPairProjectile(p) => p.tick(now, dt),
             NewAttackParticle::BulletTrail(p) => p.tick(now, dt),
             NewAttackParticle::VaporRing(p) => p.tick(now, dt),
+            NewAttackParticle::EnergyRing(p) => p.tick(now, dt),
             NewAttackParticle::DirectionalEmber(p) => p.tick(now, dt),
             NewAttackParticle::DirectionalFlash(p) => p.tick(now, dt),
             NewAttackParticle::DirectionalVolumeSmoke(p) => p.tick(now, dt),
+            NewAttackParticle::StraightLightning(p) => p.tick(now, dt),
         }
     }
 
@@ -43,9 +48,11 @@ impl namui::particle::Particle for NewAttackParticle {
             NewAttackParticle::TwoPairProjectile(p) => p.render(),
             NewAttackParticle::BulletTrail(p) => p.render(),
             NewAttackParticle::VaporRing(p) => p.render(),
+            NewAttackParticle::EnergyRing(p) => p.render(),
             NewAttackParticle::DirectionalEmber(p) => p.render(),
             NewAttackParticle::DirectionalFlash(p) => p.render(),
             NewAttackParticle::DirectionalVolumeSmoke(p) => p.render(),
+            NewAttackParticle::StraightLightning(p) => p.render(),
         }
     }
 
@@ -56,9 +63,11 @@ impl namui::particle::Particle for NewAttackParticle {
             NewAttackParticle::TwoPairProjectile(p) => p.is_done(now),
             NewAttackParticle::BulletTrail(p) => p.is_done(now),
             NewAttackParticle::VaporRing(p) => p.is_done(now),
+            NewAttackParticle::EnergyRing(p) => p.is_done(now),
             NewAttackParticle::DirectionalEmber(p) => p.is_done(now),
             NewAttackParticle::DirectionalFlash(p) => p.is_done(now),
             NewAttackParticle::DirectionalVolumeSmoke(p) => p.is_done(now),
+            NewAttackParticle::StraightLightning(p) => p.is_done(now),
         }
     }
 }
@@ -94,6 +103,18 @@ mod tests {
         assert_eq!(
             crate::atlas::generated::ATTACK_COMMON_VAPOR_RING_02.len(),
             6
+        );
+        assert_eq!(
+            crate::atlas::generated::ATTACK_COMMON_ENERGY_RING_00.len(),
+            7
+        );
+        assert_eq!(
+            crate::atlas::generated::ATTACK_COMMON_ENERGY_RING_01.len(),
+            4
+        );
+        assert_eq!(
+            crate::atlas::generated::ATTACK_COMMON_ENERGY_RING_02.len(),
+            4
         );
         assert_eq!(
             crate::atlas::generated::ATTACK_COMMON_DIRECTIONAL_FLASH_00.len(),

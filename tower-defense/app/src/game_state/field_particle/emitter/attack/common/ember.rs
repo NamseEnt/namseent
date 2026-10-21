@@ -59,6 +59,44 @@ pub(in crate::game_state::field_particle::emitter::attack) fn spawn_cone(
     }
 }
 
+pub(in crate::game_state::field_particle::emitter::attack) fn spawn_line(
+    start_xy: (f32, f32),
+    end_xy: (f32, f32),
+    color: [f32; 3],
+    created_at: Instant,
+) {
+    let mut rng = rand::thread_rng();
+    let direction_x = end_xy.0 - start_xy.0;
+    let direction_y = end_xy.1 - start_xy.1;
+    let length = direction_x.hypot(direction_y);
+    if length <= f32::EPSILON {
+        return;
+    }
+
+    let direction_angle = direction_y.atan2(direction_x);
+    let normal = (-direction_y / length, direction_x / length);
+    for _ in 0..EMBER_COUNT {
+        let distance = rng.gen_range(0.0..=length);
+        let offset = rng.gen_range(-0.25_f32..=0.25_f32);
+        let spawn_xy = (
+            start_xy.0 + direction_x / length * distance + normal.0 * offset,
+            start_xy.1 + direction_y / length * distance + normal.1 * offset,
+        );
+        let travel_angle =
+            direction_angle + rng.gen_range(-TRAVEL_ANGLE_VARIATION..=TRAVEL_ANGLE_VARIATION);
+        let travel_distance = rng.gen_range(MIN_TRAVEL_DISTANCE_TILES..=MAX_TRAVEL_DISTANCE_TILES);
+        let scale = rng.gen_range(MIN_SCALE..=MAX_SCALE);
+        ATTACK_VISUAL.spawn(NewAttackParticle::DirectionalEmber(DirectionalEmber::new(
+            spawn_xy,
+            travel_angle,
+            travel_distance,
+            scale,
+            color,
+            created_at,
+        )));
+    }
+}
+
 pub(in crate::game_state::field_particle::emitter::attack) fn spawn_from_point(
     impact_xy: (f32, f32),
     outward_angle: f32,

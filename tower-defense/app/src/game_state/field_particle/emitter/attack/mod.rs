@@ -1,6 +1,7 @@
 mod common;
 mod high;
 mod one_pair;
+mod straight;
 mod three_of_a_kind;
 mod two_pair;
 
@@ -28,6 +29,14 @@ pub enum AttackVisualEffect {
         start_xy: (f32, f32),
         impact_xy: (f32, f32),
     },
+    Straight {
+        start_xy: (f32, f32),
+        end_xy: (f32, f32),
+    },
+    StraightHit {
+        start_xy: (f32, f32),
+        impact_xy: (f32, f32),
+    },
 }
 
 pub fn spawn_tower_attack_visual_effect(effect: AttackVisualEffect, created_at: Instant) {
@@ -52,5 +61,12 @@ pub fn spawn_tower_attack_visual_effect(effect: AttackVisualEffect, created_at: 
             start_xy,
             impact_xy,
         } => three_of_a_kind::spawn_hit_effect(start_xy, impact_xy, created_at),
+        AttackVisualEffect::Straight { start_xy, end_xy } => {
+            straight::spawn(start_xy, end_xy, created_at);
+        }
+        AttackVisualEffect::StraightHit {
+            start_xy,
+            impact_xy,
+        } => straight::spawn_hit_effect(start_xy, impact_xy, created_at),
     }
 }
