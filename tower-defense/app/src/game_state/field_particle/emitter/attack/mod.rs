@@ -1,5 +1,6 @@
 mod common;
 mod flush;
+mod full_house;
 mod high;
 mod one_pair;
 mod straight;
@@ -46,6 +47,14 @@ pub enum AttackVisualEffect {
         start_xy: (f32, f32),
         impact_xy: (f32, f32),
     },
+    FullHouse {
+        start_xy: (f32, f32),
+        center_xy: (f32, f32),
+        attack_range_radius: f32,
+    },
+    FullHouseHit {
+        impact_xy: (f32, f32),
+    },
 }
 
 pub fn spawn_tower_attack_visual_effect(effect: AttackVisualEffect, created_at: Instant) {
@@ -85,5 +94,13 @@ pub fn spawn_tower_attack_visual_effect(effect: AttackVisualEffect, created_at: 
             start_xy,
             impact_xy,
         } => flush::spawn_hit_effect(start_xy, impact_xy, created_at),
+        AttackVisualEffect::FullHouse {
+            start_xy,
+            center_xy,
+            attack_range_radius,
+        } => full_house::spawn(start_xy, center_xy, attack_range_radius, created_at),
+        AttackVisualEffect::FullHouseHit { impact_xy } => {
+            full_house::spawn_hit_effect(impact_xy, created_at)
+        }
     }
 }

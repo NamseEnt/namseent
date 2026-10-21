@@ -2672,6 +2672,13 @@ impl GameState {
                                 target_xy: (end_xy[0], end_xy[1]),
                             })
                         }
+                        tower::TowerKind::FullHouse => Some(
+                            field_particle::emitter::attack::AttackVisualEffect::FullHouse {
+                                start_xy: (start_xy[0], start_xy[1]),
+                                center_xy: (end_xy[0], end_xy[1]),
+                                attack_range_radius,
+                            },
+                        ),
                         _ => None,
                     };
                     if let Some(effect) = effect {
@@ -2709,6 +2716,14 @@ impl GameState {
                             field_particle::emitter::attack::spawn_tower_attack_visual_effect(
                                 field_particle::emitter::attack::AttackVisualEffect::FlushHit {
                                     start_xy: (start_xy[0], start_xy[1]),
+                                    impact_xy: (impact_xy[0], impact_xy[1]),
+                                },
+                                presentation_now,
+                            );
+                        }
+                        tower::TowerKind::FullHouse => {
+                            field_particle::emitter::attack::spawn_tower_attack_visual_effect(
+                                field_particle::emitter::attack::AttackVisualEffect::FullHouseHit {
                                     impact_xy: (impact_xy[0], impact_xy[1]),
                                 },
                                 presentation_now,

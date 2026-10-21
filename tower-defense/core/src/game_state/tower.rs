@@ -517,30 +517,32 @@ pub(crate) fn generate_tower_attacks(
             }
             TowerAttackKind::FullHouseRain => {
                 tower.cooldown = tower.shoot_interval_ticks();
-                for projectile_index in 0..4 {
-                    let projectile_key = key ^ projectile_index as u64;
-                    let damage_per_projectile =
-                        split_damage_evenly(damage_raw, 4, projectile_index);
-                    new_attacks.push(crate::InFlightAttackState {
-                        id: next_entity_id.allocate_raw(),
-                        damage_raw: damage_per_projectile,
-                        source_tower: Some(source),
-                        kind: crate::InFlightAttackKindState::Spatial(crate::SpatialAttackState {
-                            position: tower_head_xy(tower),
-                            target_monster_id: target.id,
-                            velocity: [0, -homing_speed_for_key(projectile_key)],
-                            behavior: crate::SpatialAttackBehaviorState::Homing {
-                                velocity: [0, -homing_speed_for_key(projectile_key)],
-                                acceleration_raw: HOMING_ACCELERATION_RAW,
-                                turn_rate_raw: homing_turn_rate_for_key(projectile_key),
-                                max_speed_raw: HOMING_MAX_SPEED_RAW,
-                                acceleration_remainder: 0,
-                                turn_remainder: 0,
-                            },
-                            movement_remainder: 0,
-                            stable_key: projectile_key,
-                        }),
-                        on_hit_splashes: tower.on_hit_splashes.clone(),
+                attack_end_xy = tower_center;
+                let range_raw = tower.attack_range_raw().max(0);
+                let range_squared = (range_raw as u128).saturating_mul(range_raw as u128);
+                let source_index = area_damage_sources.len();
+                area_damage_sources.push(source);
+                for (target_index, monster) in monsters.iter().enumerate() {
+                    let monster_xy = monster_center_xy(monster);
+                    if distance_squared(tower_center, monster_xy) > range_squared {
+                        continue;
+                    }
+                    immediate_damage_events.push((
+                        monster.id,
+                        crate::DamageHit {
+                            target_index,
+                            damage_raw,
+                            at_xy: monster_xy,
+                            source_index,
+                            splashes: tower.on_hit_splashes.clone(),
+                        },
+                    ));
+                    tower_attack_hit_events.push(crate::CoreEvent::TowerAttackHit {
+                        tower_id,
+                        target_id: monster.id,
+                        tower_kind: tower.template.kind,
+                        start_xy: tower_head_xy(tower),
+                        position: monster_xy,
                     });
                 }
             }
@@ -613,12 +615,6 @@ enum TowerAttackKind {
 
 const PROJECTILE_SPEED_RAW: i64 = 12 * crate::WORLD_UNITS_PER_TILE;
 const FAST_PROJECTILE_SPEED_RAW: i64 = 16 * crate::WORLD_UNITS_PER_TILE;
-const HOMING_INITIAL_SPEED_MIN_RAW: i64 = 24 * crate::WORLD_UNITS_PER_TILE;
-const HOMING_INITIAL_SPEED_MAX_RAW: i64 = 32 * crate::WORLD_UNITS_PER_TILE;
-const HOMING_MAX_SPEED_RAW: i64 = 36 * crate::WORLD_UNITS_PER_TILE;
-const HOMING_ACCELERATION_RAW: i64 = 1024 * crate::WORLD_UNITS_PER_TILE;
-const HOMING_TURN_RATE_MIN_RAW: i64 = 2_000_000;
-const HOMING_TURN_RATE_MAX_RAW: i64 = 8_000_000;
 const ROYAL_STRAIGHT_FLUSH_HIT_DELAY_TICKS: u64 = 26;
 const HIGH_TOWER_KIND: u8 = 1;
 const ONE_PAIR_TOWER_KIND: u8 = 2;
@@ -754,26 +750,6 @@ fn within_straight(start: [i64; 2], aim: [i64; 2], target: [i64; 2], range_raw: 
         <= half_width
             .saturating_mul(half_width)
             .saturating_mul(direction_length_squared)
-}
-
-fn split_damage_evenly(damage_raw: i64, parts: usize, index: usize) -> i64 {
-    if parts == 0 {
-        return 0;
-    }
-    let parts = parts as i64;
-    let base = damage_raw / parts;
-    let remainder = damage_raw % parts;
-    base.saturating_add(i64::from((index as i64) < remainder))
-}
-
-fn homing_speed_for_key(key: u64) -> i64 {
-    let span = HOMING_INITIAL_SPEED_MAX_RAW - HOMING_INITIAL_SPEED_MIN_RAW;
-    HOMING_INITIAL_SPEED_MIN_RAW + (key % (span as u64 + 1)) as i64
-}
-
-fn homing_turn_rate_for_key(key: u64) -> i64 {
-    let span = HOMING_TURN_RATE_MAX_RAW - HOMING_TURN_RATE_MIN_RAW;
-    HOMING_TURN_RATE_MIN_RAW + (key % (span as u64 + 1)) as i64
 }
 
 fn distance_squared(left: [i64; 2], right: [i64; 2]) -> u128 {
@@ -1134,6 +1110,7 @@ mod tests {
             TWO_PAIR_TOWER_KIND,
             THREE_OF_A_KIND_TOWER_KIND,
             STRAIGHT_TOWER_KIND,
+            7,
         ] {
             let mut state = crate::CoreState::new_initial(crate::GameConfig::default_config(), 7);
             let mut target = monster(4, [2 * crate::WORLD_UNITS_PER_TILE, 0], 10);
@@ -1151,13 +1128,21 @@ mod tests {
     }
 
     #[test]
-    fn full_house_generates_four_homing_attacks() {
-        let mut towers = vec![tower(7)];
-        let monsters = vec![monster(4, [2 * crate::WORLD_UNITS_PER_TILE, 0], 10)];
+    fn full_house_damages_monsters_in_tower_range_immediately() {
+        let tile = crate::WORLD_UNITS_PER_TILE;
+        let mut attack_tower = tower(7);
+        attack_tower.attack_range_radius_raw = 3 * tile;
+        attack_tower.template.default_attack_range_radius_raw = 3 * tile;
+        let mut towers = vec![attack_tower];
+        let monsters = vec![
+            monster(4, [2 * tile, 0], 10),
+            monster(5, [3 * tile, 0], 9),
+            monster(6, [4 * tile, 0], 8),
+        ];
         let mut attacks = Vec::new();
         let mut allocator = crate::EntityIdAllocator::from_next_id(20);
 
-        generate_tower_attacks(
+        let output = generate_tower_attacks(
             &mut towers,
             &monsters,
             &mut attacks,
@@ -1167,18 +1152,22 @@ mod tests {
             &[],
         );
 
-        assert_eq!(attacks.len(), 4);
+        assert!(attacks.is_empty());
+        assert_eq!(towers[0].cooldown, 7);
         assert_eq!(
-            attacks.iter().map(|attack| attack.damage_raw).sum::<i64>(),
-            100
+            output
+                .immediate_damage_events
+                .iter()
+                .map(|(target_id, _)| *target_id)
+                .collect::<Vec<_>>(),
+            vec![4, 5]
         );
-        assert!(attacks.iter().all(|attack| matches!(
-            attack.kind,
-            crate::InFlightAttackKindState::Spatial(crate::SpatialAttackState {
-                behavior: crate::SpatialAttackBehaviorState::Homing { .. },
-                ..
-            })
-        )));
+        assert!(
+            output
+                .immediate_damage_events
+                .iter()
+                .all(|(_, hit)| hit.damage_raw == 100)
+        );
     }
 
     #[test]

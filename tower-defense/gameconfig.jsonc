@@ -881,7 +881,7 @@
       },
       "FullHouse": {
         "damage": 100.0,
-        "range": 11.0,
+        "range": 6.0,
         "cooldown_ms": 1000,
       },
       "High": {

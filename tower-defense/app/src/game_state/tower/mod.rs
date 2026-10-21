@@ -685,7 +685,7 @@ impl TowerKind {
             Self::ThreeOfAKind => WorldDistance::from_tiles(7),
             Self::Straight => WorldDistance::from_tiles(9),
             Self::Flush => WorldDistance::from_tiles(9),
-            Self::FullHouse => WorldDistance::from_tiles(11),
+            Self::FullHouse => WorldDistance::from_tiles(6),
             Self::FourOfAKind => WorldDistance::from_tiles(11),
             Self::StraightFlush => WorldDistance::from_tiles(14),
             Self::RoyalFlush => WorldDistance::from_tiles(15),

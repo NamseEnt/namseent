@@ -103,20 +103,33 @@ pub(in crate::game_state::field_particle::emitter::attack) fn spawn_from_point(
     color: [f32; 3],
     created_at: Instant,
 ) {
+    spawn_from_point_with_delay(impact_xy, outward_angle, color, created_at, Duration::ZERO);
+}
+
+pub(in crate::game_state::field_particle::emitter::attack) fn spawn_from_point_with_delay(
+    impact_xy: (f32, f32),
+    outward_angle: f32,
+    color: [f32; 3],
+    created_at: Instant,
+    delay: Duration,
+) {
     let mut rng = rand::thread_rng();
     for _ in 0..HIT_EMBER_COUNT {
         let direction_angle =
             outward_angle + rng.gen_range(-TRAVEL_ANGLE_VARIATION..=TRAVEL_ANGLE_VARIATION);
         let distance = rng.gen_range(MIN_TRAVEL_DISTANCE_TILES..=MAX_TRAVEL_DISTANCE_TILES);
         let scale = rng.gen_range(MIN_SCALE..=MAX_SCALE);
-        ATTACK_VISUAL.spawn(NewAttackParticle::DirectionalEmber(DirectionalEmber::new(
-            impact_xy,
-            direction_angle,
-            distance,
-            scale,
-            color,
-            created_at,
-        )));
+        ATTACK_VISUAL.spawn(NewAttackParticle::DirectionalEmber(
+            DirectionalEmber::new(
+                impact_xy,
+                direction_angle,
+                distance,
+                scale,
+                color,
+                created_at,
+            )
+            .with_delay(delay),
+        ));
     }
 }
 

@@ -23,6 +23,7 @@ pub enum NewAttackParticle {
     DirectionalEmber(common::DirectionalEmber),
     DirectionalFlash(common::DirectionalFlash),
     DirectionalVolumeSmoke(common::DirectionalVolumeSmoke),
+    FullHouseProjectile(common::FullHouseProjectile),
     StraightLightning(straight_lightning::StraightLightning),
 }
 
@@ -39,6 +40,7 @@ impl namui::particle::Particle for NewAttackParticle {
             NewAttackParticle::DirectionalEmber(p) => p.tick(now, dt),
             NewAttackParticle::DirectionalFlash(p) => p.tick(now, dt),
             NewAttackParticle::DirectionalVolumeSmoke(p) => p.tick(now, dt),
+            NewAttackParticle::FullHouseProjectile(p) => p.tick(now, dt),
             NewAttackParticle::StraightLightning(p) => p.tick(now, dt),
         }
     }
@@ -55,6 +57,7 @@ impl namui::particle::Particle for NewAttackParticle {
             NewAttackParticle::DirectionalEmber(p) => p.render(),
             NewAttackParticle::DirectionalFlash(p) => p.render(),
             NewAttackParticle::DirectionalVolumeSmoke(p) => p.render(),
+            NewAttackParticle::FullHouseProjectile(p) => p.render(),
             NewAttackParticle::StraightLightning(p) => p.render(),
         }
     }
@@ -71,6 +74,7 @@ impl namui::particle::Particle for NewAttackParticle {
             NewAttackParticle::DirectionalEmber(p) => p.is_done(now),
             NewAttackParticle::DirectionalFlash(p) => p.is_done(now),
             NewAttackParticle::DirectionalVolumeSmoke(p) => p.is_done(now),
+            NewAttackParticle::FullHouseProjectile(p) => p.is_done(now),
             NewAttackParticle::StraightLightning(p) => p.is_done(now),
         }
     }
