@@ -17,6 +17,7 @@ pub enum NewAttackParticle {
     OnePairProjectile(one_pair::Projectile),
     TwoPairProjectile(two_pair::Projectile),
     BulletTrail(common::BulletTrail),
+    EnergyBall(common::EnergyBall),
     VaporRing(common::VaporRing),
     EnergyRing(common::EnergyRing),
     DirectionalEmber(common::DirectionalEmber),
@@ -32,6 +33,7 @@ impl namui::particle::Particle for NewAttackParticle {
             NewAttackParticle::OnePairProjectile(p) => p.tick(now, dt),
             NewAttackParticle::TwoPairProjectile(p) => p.tick(now, dt),
             NewAttackParticle::BulletTrail(p) => p.tick(now, dt),
+            NewAttackParticle::EnergyBall(p) => p.tick(now, dt),
             NewAttackParticle::VaporRing(p) => p.tick(now, dt),
             NewAttackParticle::EnergyRing(p) => p.tick(now, dt),
             NewAttackParticle::DirectionalEmber(p) => p.tick(now, dt),
@@ -47,6 +49,7 @@ impl namui::particle::Particle for NewAttackParticle {
             NewAttackParticle::OnePairProjectile(p) => p.render(),
             NewAttackParticle::TwoPairProjectile(p) => p.render(),
             NewAttackParticle::BulletTrail(p) => p.render(),
+            NewAttackParticle::EnergyBall(p) => p.render(),
             NewAttackParticle::VaporRing(p) => p.render(),
             NewAttackParticle::EnergyRing(p) => p.render(),
             NewAttackParticle::DirectionalEmber(p) => p.render(),
@@ -62,6 +65,7 @@ impl namui::particle::Particle for NewAttackParticle {
             NewAttackParticle::OnePairProjectile(p) => p.is_done(now),
             NewAttackParticle::TwoPairProjectile(p) => p.is_done(now),
             NewAttackParticle::BulletTrail(p) => p.is_done(now),
+            NewAttackParticle::EnergyBall(p) => p.is_done(now),
             NewAttackParticle::VaporRing(p) => p.is_done(now),
             NewAttackParticle::EnergyRing(p) => p.is_done(now),
             NewAttackParticle::DirectionalEmber(p) => p.is_done(now),
@@ -114,6 +118,10 @@ mod tests {
         );
         assert_eq!(
             crate::atlas::generated::ATTACK_COMMON_ENERGY_RING_02.len(),
+            4
+        );
+        assert_eq!(
+            crate::atlas::generated::ATTACK_COMMON_ENERGY_BALL_ENERGY_BALL.len(),
             4
         );
         assert_eq!(

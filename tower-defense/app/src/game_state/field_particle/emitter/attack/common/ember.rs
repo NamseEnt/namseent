@@ -119,3 +119,53 @@ pub(in crate::game_state::field_particle::emitter::attack) fn spawn_from_point(
         )));
     }
 }
+
+pub(in crate::game_state::field_particle::emitter::attack) fn spawn_radial(
+    impact_xy: (f32, f32),
+    color: [f32; 3],
+    created_at: Instant,
+    delay: Duration,
+) {
+    let mut rng = rand::thread_rng();
+    for _ in 0..EMBER_COUNT {
+        let direction_angle = rng.gen_range(-std::f32::consts::PI..=std::f32::consts::PI);
+        let distance = rng.gen_range(MIN_TRAVEL_DISTANCE_TILES..=MAX_TRAVEL_DISTANCE_TILES);
+        let scale = rng.gen_range(MIN_SCALE..=MAX_SCALE);
+        ATTACK_VISUAL.spawn(NewAttackParticle::DirectionalEmber(
+            DirectionalEmber::new(
+                impact_xy,
+                direction_angle,
+                distance,
+                scale,
+                color,
+                created_at,
+            )
+            .with_delay(delay),
+        ));
+    }
+}
+
+pub(in crate::game_state::field_particle::emitter::attack) fn spawn_hit_direction(
+    impact_xy: (f32, f32),
+    direction_angle: f32,
+    color: [f32; 3],
+    created_at: Instant,
+    delay: Duration,
+) {
+    let mut rng = rand::thread_rng();
+    for _ in 0..HIT_EMBER_COUNT {
+        let distance = rng.gen_range(MIN_TRAVEL_DISTANCE_TILES..=MAX_TRAVEL_DISTANCE_TILES);
+        let scale = rng.gen_range(MIN_SCALE..=MAX_SCALE);
+        ATTACK_VISUAL.spawn(NewAttackParticle::DirectionalEmber(
+            DirectionalEmber::new(
+                impact_xy,
+                direction_angle,
+                distance,
+                scale,
+                color,
+                created_at,
+            )
+            .with_delay(delay),
+        ));
+    }
+}

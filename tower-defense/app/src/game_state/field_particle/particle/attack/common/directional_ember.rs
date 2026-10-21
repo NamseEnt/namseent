@@ -14,8 +14,10 @@ pub struct DirectionalEmber {
     color: [f32; 3],
     variant: usize,
     lifetime: Duration,
+    delay: Duration,
     created_at: Instant,
     progress: f32,
+    started: bool,
 }
 
 impl DirectionalEmber {
@@ -37,19 +39,31 @@ impl DirectionalEmber {
             color,
             variant: rng.gen_range(0..3),
             lifetime,
+            delay: Duration::ZERO,
             created_at,
             progress: 0.0,
+            started: false,
         }
     }
 
+    pub fn with_delay(mut self, delay: Duration) -> Self {
+        self.delay = delay;
+        self
+    }
+
     pub fn tick(&mut self, now: Instant, _dt: Duration) {
-        self.progress =
-            ((now - self.created_at).as_secs_f32() / self.lifetime.as_secs_f32()).clamp(0.0, 1.0);
+        let elapsed = now - self.created_at;
+        self.started = elapsed >= self.delay;
+        self.progress = if self.started {
+            ((elapsed - self.delay).as_secs_f32() / self.lifetime.as_secs_f32()).clamp(0.0, 1.0)
+        } else {
+            0.0
+        };
     }
 
     pub fn render(&self) -> particle::ParticleSprites {
         let mut sprites = particle::ParticleSprites::new();
-        if self.progress >= 1.0 {
+        if !self.started || self.progress >= 1.0 {
             return sprites;
         }
 
@@ -84,7 +98,7 @@ impl DirectionalEmber {
     }
 
     pub fn is_done(&self, now: Instant) -> bool {
-        now - self.created_at >= self.lifetime
+        now - self.created_at >= self.delay + self.lifetime
     }
 }
 

@@ -361,7 +361,8 @@ pub(crate) fn generate_tower_attacks(
             TowerAttackKind::RoyalStraightFlush => 3,
             TowerAttackKind::InstantDamage
             | TowerAttackKind::ConeDamage
-            | TowerAttackKind::StraightDamage => 4,
+            | TowerAttackKind::StraightDamage
+            | TowerAttackKind::FlushDamage => 4,
         };
         let source = crate::AttackSourceState {
             tower_id,
@@ -463,6 +464,36 @@ pub(crate) fn generate_tower_attacks(
                         target_id: monster.id,
                         tower_kind: tower.template.kind,
                         start_xy,
+                        position: monster_xy,
+                    });
+                }
+            }
+            TowerAttackKind::FlushDamage => {
+                tower.cooldown = tower.shoot_interval_ticks();
+                let source_index = area_damage_sources.len();
+                area_damage_sources.push(source);
+                let radius_raw = 3 * crate::WORLD_UNITS_PER_TILE;
+                let radius_squared = (radius_raw as u128).saturating_mul(radius_raw as u128);
+                for (target_index, monster) in monsters.iter().enumerate() {
+                    let monster_xy = monster_center_xy(monster);
+                    if distance_squared(target_xy, monster_xy) > radius_squared {
+                        continue;
+                    }
+                    immediate_damage_events.push((
+                        monster.id,
+                        crate::DamageHit {
+                            target_index,
+                            damage_raw,
+                            at_xy: monster_xy,
+                            source_index,
+                            splashes: tower.on_hit_splashes.clone(),
+                        },
+                    ));
+                    tower_attack_hit_events.push(crate::CoreEvent::TowerAttackHit {
+                        tower_id,
+                        target_id: monster.id,
+                        tower_kind: tower.template.kind,
+                        start_xy: target_xy,
                         position: monster_xy,
                     });
                 }
@@ -575,6 +606,7 @@ enum TowerAttackKind {
     InstantDamage,
     ConeDamage,
     StraightDamage,
+    FlushDamage,
     FullHouseRain,
     RoyalStraightFlush,
 }
@@ -600,10 +632,11 @@ fn tower_attack_kind(kind: u8) -> TowerAttackKind {
             TowerAttackKind::InstantDamage
         }
         THREE_OF_A_KIND_TOWER_KIND => TowerAttackKind::ConeDamage,
-        6 | 8 | 9 => TowerAttackKind::Direct {
+        8 | 9 => TowerAttackKind::Direct {
             speed_raw: FAST_PROJECTILE_SPEED_RAW,
         },
         STRAIGHT_TOWER_KIND => TowerAttackKind::StraightDamage,
+        6 => TowerAttackKind::FlushDamage,
         7 => TowerAttackKind::FullHouseRain,
         10 => TowerAttackKind::RoyalStraightFlush,
         _ => TowerAttackKind::Direct {
@@ -1023,6 +1056,67 @@ mod tests {
             } if *start_xy == [tile, 3 * tile / 4]
                 && *end_xy == [6 * tile, 3 * tile / 4]
         )));
+    }
+
+    #[test]
+    fn flush_hits_all_monsters_within_three_tiles_of_selected_target_immediately() {
+        let tile = crate::WORLD_UNITS_PER_TILE;
+        let mut attack_tower = tower(6);
+        attack_tower.attack_range_radius_raw = 10 * tile;
+        attack_tower.template.default_attack_range_radius_raw = 10 * tile;
+        let mut towers = vec![attack_tower];
+        let monsters = vec![
+            monster(4, [2 * tile, 0], 10),
+            monster(5, [4 * tile, 0], 9),
+            monster(6, [5 * tile, 0], 8),
+            monster(7, [6 * tile, 0], 7),
+        ];
+        let mut attacks = Vec::new();
+        let mut allocator = crate::EntityIdAllocator::from_next_id(20);
+
+        let output = generate_tower_attacks(
+            &mut towers,
+            &monsters,
+            &mut attacks,
+            &mut allocator,
+            12,
+            &[],
+            &[],
+        );
+
+        let target_xy = monster_center_xy(&monsters[0]);
+        assert!(attacks.is_empty());
+        assert_eq!(towers[0].cooldown, 7);
+        assert_eq!(
+            output
+                .immediate_damage_events
+                .iter()
+                .map(|(target_id, _)| *target_id)
+                .collect::<Vec<_>>(),
+            vec![4, 5, 6]
+        );
+        assert!(
+            output
+                .events
+                .iter()
+                .filter_map(|event| match event {
+                    crate::CoreEvent::TowerAttackHit {
+                        target_id,
+                        start_xy,
+                        ..
+                    } => Some((*target_id, *start_xy)),
+                    _ => None,
+                })
+                .all(|(_, start_xy)| start_xy == target_xy)
+        );
+        assert_eq!(
+            output
+                .immediate_damage_events
+                .iter()
+                .map(|(_, hit)| hit.damage_raw)
+                .collect::<Vec<_>>(),
+            vec![100; 3]
+        );
     }
 
     #[test]

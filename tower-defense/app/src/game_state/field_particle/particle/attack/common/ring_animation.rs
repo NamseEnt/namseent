@@ -17,8 +17,10 @@ pub(super) struct RingAnimation {
     frames_for_variant: FramesForVariant,
     rotation: (f32, f32),
     opacity: f32,
+    color: [f32; 3],
     movement_direction: (f32, f32),
     movement_distance_px: f32,
+    scale_growth: f32,
     muzzle_animation: bool,
     progress: f32,
     started: bool,
@@ -45,8 +47,10 @@ impl RingAnimation {
             frames_for_variant,
             rotation,
             opacity: opacity.clamp(0.0, 1.0),
+            color: [1.0; 3],
             movement_direction: (0.0, 0.0),
             movement_distance_px: 0.0,
+            scale_growth: 0.0,
             muzzle_animation: false,
             progress: 0.0,
             started: false,
@@ -60,6 +64,16 @@ impl RingAnimation {
     ) -> Self {
         self.movement_direction = direction;
         self.movement_distance_px = movement_distance_px;
+        self
+    }
+
+    pub(super) fn with_color(mut self, color: [f32; 3]) -> Self {
+        self.color = color;
+        self
+    }
+
+    pub(super) fn with_scale_growth(mut self, scale_growth: f32) -> Self {
+        self.scale_growth = scale_growth;
         self
     }
 
@@ -100,11 +114,13 @@ impl RingAnimation {
             + self.movement_direction.0 * self.movement_distance_px * eased_progress;
         let center_y_px = self.center_y_px
             + self.movement_direction.1 * self.movement_distance_px * eased_progress;
-        let scale = if self.muzzle_animation {
-            self.scale * (1.0 + eased_progress * 0.5)
-        } else {
-            self.scale
-        };
+        let scale = self.scale
+            * (1.0 + self.scale_growth * eased_progress)
+            * if self.muzzle_animation {
+                1.0 + eased_progress * 0.5
+            } else {
+                1.0
+            };
         let alpha = if self.muzzle_animation {
             eased_progress * 255.0
         } else {
@@ -123,7 +139,12 @@ impl RingAnimation {
                 tx: center_x - px(scos * sprite_width / 2.0 - ssin * sprite_height / 2.0),
                 ty: center_y - px(ssin * sprite_width / 2.0 + scos * sprite_height / 2.0),
             },
-            color: Some(Color::WHITE.with_alpha(alpha.round() as u8)),
+            color: Some(Color::from_f01(
+                self.color[0].clamp(0.0, 1.0),
+                self.color[1].clamp(0.0, 1.0),
+                self.color[2].clamp(0.0, 1.0),
+                (alpha / 255.0).clamp(0.0, 1.0),
+            )),
         });
         sprites
     }

@@ -13,10 +13,30 @@ const OFFSET_JITTER_TILES: f32 = 0.25;
 
 pub(super) enum RingKind {
     Vapor,
-    Energy,
+    Energy(Option<[f32; 3]>),
 }
 
 pub(super) fn spawn(
+    start_xy: (f32, f32),
+    end_xy: (f32, f32),
+    created_at: Instant,
+    delay_offset: Duration,
+    delay_step: Duration,
+    scale: f32,
+    kind: RingKind,
+) {
+    spawn_with_color(
+        start_xy,
+        end_xy,
+        created_at,
+        delay_offset,
+        delay_step,
+        scale,
+        kind,
+    );
+}
+
+pub(super) fn spawn_with_color(
     start_xy: (f32, f32),
     end_xy: (f32, f32),
     created_at: Instant,
@@ -59,14 +79,20 @@ pub(super) fn spawn(
         let delay = delay_offset + delay_step * index as i32;
         let opacity = 1.0 - path_progress;
         match kind {
-            RingKind::Vapor => ATTACK_VISUAL.spawn(NewAttackParticle::VaporRing(
-                VaporRing::new(position_xy, created_at, delay, scale, rotation, opacity)
-                    .with_movement(rotation, 64.0),
-            )),
-            RingKind::Energy => ATTACK_VISUAL.spawn(NewAttackParticle::EnergyRing(
-                EnergyRing::new(position_xy, created_at, delay, scale, rotation, opacity)
-                    .with_movement(rotation, 64.0),
-            )),
+            RingKind::Vapor => {
+                let ring = VaporRing::new(position_xy, created_at, delay, scale, rotation, opacity)
+                    .with_movement(rotation, 64.0);
+                ATTACK_VISUAL.spawn(NewAttackParticle::VaporRing(ring));
+            }
+            RingKind::Energy(color) => {
+                let mut ring =
+                    EnergyRing::new(position_xy, created_at, delay, scale, rotation, opacity)
+                        .with_movement(rotation, 64.0);
+                if let Some(color) = color {
+                    ring = ring.with_color(color);
+                }
+                ATTACK_VISUAL.spawn(NewAttackParticle::EnergyRing(ring));
+            }
         }
     }
 }

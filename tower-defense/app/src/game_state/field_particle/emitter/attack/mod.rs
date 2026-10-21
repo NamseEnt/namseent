@@ -1,4 +1,5 @@
 mod common;
+mod flush;
 mod high;
 mod one_pair;
 mod straight;
@@ -37,6 +38,14 @@ pub enum AttackVisualEffect {
         start_xy: (f32, f32),
         impact_xy: (f32, f32),
     },
+    Flush {
+        start_xy: (f32, f32),
+        target_xy: (f32, f32),
+    },
+    FlushHit {
+        start_xy: (f32, f32),
+        impact_xy: (f32, f32),
+    },
 }
 
 pub fn spawn_tower_attack_visual_effect(effect: AttackVisualEffect, created_at: Instant) {
@@ -68,5 +77,13 @@ pub fn spawn_tower_attack_visual_effect(effect: AttackVisualEffect, created_at: 
             start_xy,
             impact_xy,
         } => straight::spawn_hit_effect(start_xy, impact_xy, created_at),
+        AttackVisualEffect::Flush {
+            start_xy,
+            target_xy,
+        } => flush::spawn(start_xy, target_xy, created_at),
+        AttackVisualEffect::FlushHit {
+            start_xy,
+            impact_xy,
+        } => flush::spawn_hit_effect(start_xy, impact_xy, created_at),
     }
 }

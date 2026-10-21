@@ -12,7 +12,9 @@ pub struct DirectionalFlash {
     color: [f32; 3],
     variant: usize,
     created_at: Instant,
+    delay: Duration,
     progress: f32,
+    started: bool,
 }
 
 impl DirectionalFlash {
@@ -31,18 +33,30 @@ impl DirectionalFlash {
             color,
             variant: rng.gen_range(0..4),
             created_at,
+            delay: Duration::ZERO,
             progress: 0.0,
+            started: false,
         }
     }
 
+    pub fn with_delay(mut self, delay: Duration) -> Self {
+        self.delay = delay;
+        self
+    }
+
     pub fn tick(&mut self, now: Instant, _dt: Duration) {
-        self.progress =
-            ((now - self.created_at).as_secs_f32() / DURATION.as_secs_f32()).clamp(0.0, 1.0);
+        let elapsed = now - self.created_at;
+        self.started = elapsed >= self.delay;
+        self.progress = if self.started {
+            ((elapsed - self.delay).as_secs_f32() / DURATION.as_secs_f32()).clamp(0.0, 1.0)
+        } else {
+            0.0
+        };
     }
 
     pub fn render(&self) -> particle::ParticleSprites {
         let mut sprites = particle::ParticleSprites::new();
-        if self.progress >= 1.0 {
+        if !self.started || self.progress >= 1.0 {
             return sprites;
         }
 
@@ -82,7 +96,7 @@ impl DirectionalFlash {
     }
 
     pub fn is_done(&self, now: Instant) -> bool {
-        now - self.created_at >= DURATION
+        now - self.created_at >= self.delay + DURATION
     }
 }
 

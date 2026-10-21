@@ -29,6 +29,11 @@ impl EnergyRing {
         self
     }
 
+    pub fn with_color(mut self, color: [f32; 3]) -> Self {
+        self.0 = self.0.with_color(color);
+        self
+    }
+
     pub fn with_muzzle_animation(
         mut self,
         direction: (f32, f32),
