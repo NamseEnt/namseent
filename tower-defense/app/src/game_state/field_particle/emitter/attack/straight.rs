@@ -1,4 +1,4 @@
-use super::common::{ember, energy_ring, muzzle_flash};
+use super::common::{ember, energy_ring, muzzle_flash, residual_spark};
 use crate::game_state::field_particle::{
     ATTACK_VISUAL,
     particle::attack::{NewAttackParticle, straight_lightning},
@@ -32,6 +32,15 @@ pub(super) fn spawn(start_xy: (f32, f32), end_xy: (f32, f32), created_at: Instan
         Duration::ZERO,
         Duration::from_millis(10),
         1.5,
+    );
+    residual_spark::spawn_along_line(
+        start_xy,
+        end_xy,
+        straight_lightning::LIGHTNING_COLOR,
+        created_at,
+        0.5,
+        0.5,
+        0.5,
     );
     let mut rng = rand::thread_rng();
     let segment_count = (length / SEGMENT_SPACING_TILES).ceil() as usize;

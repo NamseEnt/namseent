@@ -47,6 +47,11 @@ impl ResidualSpark {
         }
     }
 
+    pub fn with_base_scale_multiplier(mut self, multiplier: f32) -> Self {
+        self.base_scale *= multiplier;
+        self
+    }
+
     fn frame_index(progress: f32, frame_count: usize) -> usize {
         ((progress.clamp(0.0, 1.0) * frame_count as f32) as usize).min(frame_count - 1)
     }
@@ -151,8 +156,17 @@ mod tests {
         let spark = ResidualSpark::new((0.0, 0.0), 1.0, [0.6, 0.95, 1.0], Instant::now());
 
         assert!((spark.angle_rad - 1.0).abs() <= MAX_ANGLE_OFFSET);
-        assert!((0.5..=1.5).contains(&spark.base_scale));
+        assert!((0.25..=1.0).contains(&spark.base_scale));
         assert!((1.0..=2.0).contains(&spark.length_scale));
         assert!(spark.delay <= MAX_DELAY);
+    }
+
+    #[test]
+    fn base_scale_multiplier_scales_only_the_base_scale() {
+        let spark = ResidualSpark::new((0.0, 0.0), 0.0, [0.6, 0.95, 1.0], Instant::now());
+        let scaled = spark.clone().with_base_scale_multiplier(0.5);
+
+        assert_eq!(scaled.base_scale, spark.base_scale * 0.5);
+        assert_eq!(scaled.length_scale, spark.length_scale);
     }
 }

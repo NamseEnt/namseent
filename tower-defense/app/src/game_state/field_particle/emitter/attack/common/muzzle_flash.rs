@@ -1,6 +1,6 @@
 use crate::game_state::field_particle::{
+    particle::attack::{common::DirectionalFlash, NewAttackParticle},
     ATTACK_VISUAL,
-    particle::attack::{NewAttackParticle, common::DirectionalFlash},
 };
 use namui::*;
 use rand::Rng;

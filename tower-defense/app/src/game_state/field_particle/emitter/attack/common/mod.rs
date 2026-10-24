@@ -2,6 +2,7 @@ pub(super) mod bullet_trail;
 pub(super) mod ember;
 pub(super) mod energy_ring;
 pub(super) mod muzzle_flash;
+pub(super) mod residual_spark;
 pub(super) mod ring_path;
 pub(super) mod vapor_ring;
 

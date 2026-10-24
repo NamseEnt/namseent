@@ -3,10 +3,7 @@ use crate::game_state::field_particle::{
     ATTACK_VISUAL,
     particle::attack::{
         NewAttackParticle,
-        common::{
-            BeamCore, DirectionalFlash, EnergyRing, ResidualSpark, RotationDirection, StarFlare,
-            VaporRing,
-        },
+        common::{BeamCore, DirectionalFlash, EnergyRing, RotationDirection, StarFlare, VaporRing},
     },
 };
 use namui::*;
@@ -38,7 +35,15 @@ pub(super) fn spawn(start_xy: (f32, f32), end_xy: (f32, f32), created_at: Instan
     spawn_muzzle_flashes(start_xy, angle, created_at);
     spawn_muzzle_rings(start_xy, (angle.cos(), angle.sin()), created_at);
     spawn_star_flares(start_xy, end_xy, created_at);
-    spawn_residual_sparks(start_xy, end_xy, created_at);
+    super::common::residual_spark::spawn_along_line(
+        start_xy,
+        end_xy,
+        FOUR_OF_A_KIND_COLOR,
+        created_at,
+        1.0,
+        2.0,
+        1.0,
+    );
     ATTACK_VISUAL.spawn(NewAttackParticle::BeamCore(BeamCore::new(
         start_xy, end_xy, created_at,
     )));
@@ -51,40 +56,6 @@ pub(super) fn spawn(start_xy: (f32, f32), end_xy: (f32, f32), created_at: Instan
         TRAIL_EMBER_COUNT,
         MUZZLE_FLASH_HALF_ANGLE,
     );
-}
-
-fn spawn_residual_sparks(start_xy: (f32, f32), end_xy: (f32, f32), created_at: Instant) {
-    let delta_x = end_xy.0 - start_xy.0;
-    let delta_y = end_xy.1 - start_xy.1;
-    let length_tiles = delta_x.hypot(delta_y);
-    if length_tiles <= f32::EPSILON {
-        return;
-    }
-
-    let direction = (delta_x / length_tiles, delta_y / length_tiles);
-    let perpendicular = (-direction.1, direction.0);
-    let tile_count = length_tiles.ceil().max(1.0) as usize;
-    let spacing = length_tiles / tile_count as f32;
-    let tile_size = crate::game_state::TILE_PX_SIZE;
-    let attack_angle =
-        (delta_y * tile_size.height.as_f32()).atan2(delta_x * tile_size.width.as_f32());
-    let mut rng = rand::thread_rng();
-
-    for tile_index in 0..tile_count {
-        let nominal_distance = (tile_index as f32 + 0.5) * spacing;
-        let distance = (nominal_distance + rng.gen_range(-1.0..=1.0)).clamp(0.0, length_tiles);
-        let lateral_offset = rng.gen_range(-1.0..=1.0);
-        let center_xy = (
-            start_xy.0 + direction.0 * distance + perpendicular.0 * lateral_offset,
-            start_xy.1 + direction.1 * distance + perpendicular.1 * lateral_offset,
-        );
-        ATTACK_VISUAL.spawn(NewAttackParticle::ResidualSpark(ResidualSpark::new(
-            center_xy,
-            attack_angle,
-            FOUR_OF_A_KIND_COLOR,
-            created_at,
-        )));
-    }
 }
 
 fn spawn_star_flares(start_xy: (f32, f32), end_xy: (f32, f32), created_at: Instant) {

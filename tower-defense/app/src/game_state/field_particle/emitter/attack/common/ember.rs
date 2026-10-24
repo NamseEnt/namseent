@@ -1,10 +1,10 @@
 use crate::game_state::field_particle::{
+    particle::attack::{common::DirectionalEmber, NewAttackParticle},
     ATTACK_VISUAL,
-    particle::attack::{NewAttackParticle, common::DirectionalEmber},
 };
 use namui::*;
-use rand::Rng;
 use rand::seq::SliceRandom;
+use rand::Rng;
 
 const EMBER_COUNT: usize = 12;
 const MIN_TRAVEL_DISTANCE_TILES: f32 = 0.5;
