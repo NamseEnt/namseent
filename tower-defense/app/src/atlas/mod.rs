@@ -28,7 +28,6 @@ pub fn centered_sprite(
             tx: cx - px(scale * sprite_width / 2.0),
             ty: cy - px(scale * sprite_height / 2.0),
         },
-        scale_xy: None,
         color,
     }
 }
@@ -55,21 +54,8 @@ pub fn centered_rotated_sprite(
             tx: cx - px(scos * sprite_width / 2.0 - ssin * sprite_height / 2.0),
             ty: cy - px(ssin * sprite_width / 2.0 + scos * sprite_height / 2.0),
         },
-        scale_xy: None,
         color,
     }
-}
-
-pub fn centered_rotated_sprite_non_uniform(
-    src_rect: Rect<Px>,
-    cx: Px,
-    cy: Px,
-    scale_x: f32,
-    scale_y: f32,
-    angle_rad: f32,
-    color: Option<Color>,
-) -> ImageSprite {
-    ImageSprite::centered_rotated_non_uniform(src_rect, cx, cy, scale_x, scale_y, angle_rad, color)
 }
 
 pub fn line_sprite_from_rect(
@@ -110,7 +96,6 @@ pub fn line_sprite_from_rect(
             tx: start_x + px(ssin * half_height),
             ty: start_y - px(scos * half_height),
         },
-        scale_xy: None,
         color,
     })
 }

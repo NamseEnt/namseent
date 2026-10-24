@@ -161,7 +161,6 @@ impl RingAnimation {
                 tx: center_x - px(scos * sprite_width / 2.0 - ssin * sprite_height / 2.0),
                 ty: center_y - px(ssin * sprite_width / 2.0 + scos * sprite_height / 2.0),
             },
-            scale_xy: None,
             color: Some(Color::from_f01(
                 self.color[0].clamp(0.0, 1.0),
                 self.color[1].clamp(0.0, 1.0),

@@ -5,6 +5,7 @@ const EXTEND_DURATION: Duration = Duration::from_millis(50);
 const RETRACT_DURATION: Duration = Duration::from_millis(100);
 const MAX_WIDTH_TILES: f32 = 2.0;
 const FRAME_DURATION: Duration = Duration::from_millis(50);
+const SEGMENT_OVERLAP_TILES: f32 = 0.2;
 
 #[derive(Clone)]
 pub struct BeamCore {
@@ -58,34 +59,75 @@ impl BeamCore {
         let frame = frames[frame_index.min(frames.len() - 1)];
         let total_length_px =
             self.target_length_tiles * crate::game_state::TILE_PX_SIZE.width.as_f32();
-        let scale_x = total_length_px / frame.width().as_f32();
         let thickness =
             crate::game_state::TILE_PX_SIZE.height.as_f32() * Self::width_at(self.elapsed);
-        let scale_y = thickness / frame.height().as_f32();
         if total_length_px <= f32::EPSILON || thickness <= f32::EPSILON {
             return sprites;
         }
 
+        let sprite_scale_for_thickness = thickness / frame.height().as_f32();
+        let segment_length_for_thickness = frame.width().as_f32() * sprite_scale_for_thickness;
+        let overlap_px = SEGMENT_OVERLAP_TILES * crate::game_state::TILE_PX_SIZE.width.as_f32();
+        let overlap_for_thickness = overlap_px.min(segment_length_for_thickness / 2.0);
+        let desired_segment_count = segment_count(
+            total_length_px,
+            segment_length_for_thickness,
+            overlap_for_thickness,
+        );
+        let segment_length_px = if desired_segment_count > sprites.capacity() {
+            (total_length_px + overlap_px * (sprites.capacity() - 1) as f32)
+                / sprites.capacity() as f32
+        } else {
+            segment_length_for_thickness
+        };
+        let sprite_scale = segment_length_px / frame.width().as_f32();
+        let segment_count = segment_count(
+            total_length_px,
+            segment_length_px,
+            overlap_px.min(segment_length_px / 2.0),
+        )
+        .min(sprites.capacity());
+        let segment_stride_px = segment_length_px - overlap_px.min(segment_length_px / 2.0);
+        let segment_thickness = frame.height().as_f32() * sprite_scale;
+        let opacity = thickness / segment_thickness;
         let start_x_px = self.start_xy.0 * crate::game_state::TILE_PX_SIZE.width.as_f32();
         let start_y_px = self.start_xy.1 * crate::game_state::TILE_PX_SIZE.height.as_f32();
-        let center_x = px(start_x_px + self.angle.cos() * total_length_px / 2.0);
-        let center_y = px(start_y_px + self.angle.sin() * total_length_px / 2.0);
-        let color = Color::from_f01(0.6, 0.95, 1.0, 1.0);
-        sprites.push(crate::atlas::centered_rotated_sprite_non_uniform(
-            frame,
-            center_x,
-            center_y,
-            scale_x,
-            scale_y,
-            self.angle,
-            Some(color),
-        ));
+
+        for segment_index in 0..segment_count {
+            let segment_start_px = segment_index as f32 * segment_stride_px;
+            let segment_end_px = (segment_start_px + segment_length_px).min(total_length_px);
+            let segment_start_x_px = start_x_px + self.angle.cos() * segment_start_px;
+            let segment_start_y_px = start_y_px + self.angle.sin() * segment_start_px;
+            let segment_end_x_px = start_x_px + self.angle.cos() * segment_end_px;
+            let segment_end_y_px = start_y_px + self.angle.sin() * segment_end_px;
+            let color = Color::from_f01(0.6, 0.95, 1.0, opacity);
+            if let Some(sprite) = crate::atlas::line_sprite_from_rect(
+                frame,
+                px(segment_start_x_px),
+                px(segment_start_y_px),
+                px(segment_end_x_px),
+                px(segment_end_y_px),
+                segment_thickness,
+                Some(color),
+            ) {
+                sprites.push(sprite);
+            }
+        }
         sprites
     }
 
     pub fn is_done(&self, now: Instant) -> bool {
         now - self.created_at >= EXTEND_DURATION + RETRACT_DURATION
     }
+}
+
+fn segment_count(total_length_px: f32, segment_length_px: f32, overlap_px: f32) -> usize {
+    if total_length_px <= segment_length_px {
+        return 1;
+    }
+
+    let stride_px = segment_length_px - overlap_px;
+    ((total_length_px - segment_length_px) / stride_px).ceil() as usize + 1
 }
 
 impl particle::Particle for BeamCore {
@@ -104,7 +146,7 @@ impl particle::Particle for BeamCore {
 
 #[cfg(test)]
 mod tests {
-    use super::BeamCore;
+    use super::{BeamCore, SEGMENT_OVERLAP_TILES};
     use namui::Duration;
 
     #[test]
@@ -118,26 +160,32 @@ mod tests {
     }
 
     #[test]
-    fn changing_width_keeps_the_target_length_fixed() {
-        let frame_width = 128.0;
-        let frame_height = 64.0;
-        let length_px = 11.0 * 64.0;
-        let scale_x = length_px / frame_width;
-        let narrow_scale_y = 64.0 / frame_height;
-        let wide_scale_y = 128.0 / frame_height;
-
-        assert_eq!(scale_x * frame_width, length_px);
-        assert!(narrow_scale_y < wide_scale_y);
-        assert_eq!(narrow_scale_y * frame_height, 64.0);
-        assert_eq!(wide_scale_y * frame_height, 128.0);
-    }
-
-    #[test]
-    fn render_produces_only_one_sprite() {
+    fn render_overlaps_segments_to_cover_beam_length() {
         let now = namui::Instant::now();
         let mut beam = BeamCore::new((0.0, 0.0), (11.0, 0.0), now);
         beam.tick(now + Duration::from_millis(50), Duration::ZERO);
 
-        assert_eq!(beam.render().len(), 1);
+        let sprites = beam.render();
+        let segment_length_px = sprites[0].src_rect.width().as_f32() * sprites[0].xform.scos;
+        let segment_stride_px = sprites[1].xform.tx.as_f32() - sprites[0].xform.tx.as_f32();
+        let overlap_px = segment_length_px - segment_stride_px;
+
+        assert_eq!(sprites.len(), 3);
+        let expected_overlap_px =
+            SEGMENT_OVERLAP_TILES * crate::game_state::TILE_PX_SIZE.width.as_f32();
+        assert!((overlap_px - expected_overlap_px).abs() < 0.001);
+        assert!((sprites[2].xform.tx.as_f32() - segment_stride_px * 2.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn render_caps_extremely_long_beams_to_particle_sprite_capacity() {
+        let now = namui::Instant::now();
+        let mut beam = BeamCore::new((0.0, 0.0), (100.0, 0.0), now);
+        beam.tick(now + Duration::from_millis(50), Duration::ZERO);
+
+        assert_eq!(
+            beam.render().len(),
+            namui::particle::ParticleSprites::new().capacity()
+        );
     }
 }

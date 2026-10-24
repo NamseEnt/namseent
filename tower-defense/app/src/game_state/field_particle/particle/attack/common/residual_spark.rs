@@ -12,8 +12,6 @@ pub struct ResidualSpark {
     angle_rad: f32,
     base_scale: f32,
     length_scale: f32,
-    flip_horizontal: bool,
-    flip_vertical: bool,
     variant: usize,
     color: [f32; 3],
     created_at: Instant,
@@ -36,8 +34,6 @@ impl ResidualSpark {
             angle_rad: attack_angle_rad + angle_offset,
             base_scale: rng.gen_range(0.25..=1.0),
             length_scale: rng.gen_range(1.0..=2.0),
-            flip_horizontal: rng.gen_bool(0.5),
-            flip_vertical: rng.gen_bool(0.5),
             variant: rng.gen_range(0..3),
             color,
             created_at,
@@ -76,10 +72,7 @@ impl ResidualSpark {
         let frame = frames[Self::frame_index(self.progress, frames.len())];
         let base_scale = self.base_scale * crate::game_state::TILE_PX_SIZE.width.as_f32()
             / frame.height().as_f32();
-        let flip_x = if self.flip_horizontal { -1.0 } else { 1.0 };
-        let flip_y = if self.flip_vertical { -1.0 } else { 1.0 };
-        let scale_x = base_scale * self.length_scale * flip_x;
-        let scale_y = base_scale * flip_y;
+        let scale = base_scale * self.length_scale;
         let alpha = 1.0 - ATTACK_FRAME_EASE_IN.sample(self.progress);
         let color = Color::from_f01(
             self.color[0].clamp(0.0, 1.0),
@@ -90,12 +83,11 @@ impl ResidualSpark {
         let center_x = px(self.center_xy.0 * crate::game_state::TILE_PX_SIZE.width.as_f32());
         let center_y = px(self.center_xy.1 * crate::game_state::TILE_PX_SIZE.height.as_f32());
 
-        sprites.push(crate::atlas::centered_rotated_sprite_non_uniform(
+        sprites.push(crate::atlas::centered_rotated_sprite(
             frame,
             center_x,
             center_y,
-            scale_x,
-            scale_y,
+            scale,
             self.angle_rad,
             Some(color),
         ));

@@ -62,14 +62,14 @@ fn spawn_star_flares(start_xy: (f32, f32), end_xy: (f32, f32), created_at: Insta
     for center_xy in [start_xy, end_xy] {
         ATTACK_VISUAL.spawn(NewAttackParticle::StarFlare(StarFlare::new(
             center_xy,
-            3.0,
+            4.0,
             RotationDirection::Clockwise,
             FOUR_OF_A_KIND_COLOR,
             created_at,
         )));
         ATTACK_VISUAL.spawn(NewAttackParticle::StarFlare(StarFlare::new(
             center_xy,
-            2.0,
+            3.0,
             RotationDirection::CounterClockwise,
             FOUR_OF_A_KIND_COLOR,
             created_at,
