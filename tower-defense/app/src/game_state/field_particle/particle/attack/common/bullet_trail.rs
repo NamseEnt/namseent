@@ -94,6 +94,7 @@ impl BulletTrail {
                 tx: center_x - px(scos * sprite_width / 2.0 - ssin * sprite_height / 2.0),
                 ty: center_y - px(ssin * sprite_width / 2.0 + scos * sprite_height / 2.0),
             },
+            scale_xy: None,
             color: Some(
                 Color::WHITE.with_alpha(
                     ((1.0 - self.progress) * self.opacity * 0.75 * 255.0).round() as u8,

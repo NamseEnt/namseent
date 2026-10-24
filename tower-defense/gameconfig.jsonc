@@ -876,7 +876,7 @@
       },
       "FourOfAKind": {
         "damage": 175.0,
-        "range": 11.0,
+        "range": 22.0,
         "cooldown_ms": 1000,
       },
       "FullHouse": {

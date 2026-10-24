@@ -1,5 +1,6 @@
 mod common;
 mod flush;
+mod four_of_a_kind;
 mod full_house;
 mod high;
 mod one_pair;
@@ -36,6 +37,14 @@ pub enum AttackVisualEffect {
         end_xy: (f32, f32),
     },
     StraightHit {
+        start_xy: (f32, f32),
+        impact_xy: (f32, f32),
+    },
+    FourOfAKind {
+        start_xy: (f32, f32),
+        end_xy: (f32, f32),
+    },
+    FourOfAKindHit {
         start_xy: (f32, f32),
         impact_xy: (f32, f32),
     },
@@ -86,6 +95,13 @@ pub fn spawn_tower_attack_visual_effect(effect: AttackVisualEffect, created_at: 
             start_xy,
             impact_xy,
         } => straight::spawn_hit_effect(start_xy, impact_xy, created_at),
+        AttackVisualEffect::FourOfAKind { start_xy, end_xy } => {
+            four_of_a_kind::spawn(start_xy, end_xy, created_at);
+        }
+        AttackVisualEffect::FourOfAKindHit {
+            start_xy,
+            impact_xy,
+        } => four_of_a_kind::spawn_hit_effect(start_xy, impact_xy, created_at),
         AttackVisualEffect::Flush {
             start_xy,
             target_xy,

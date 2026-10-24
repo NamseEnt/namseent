@@ -65,6 +65,7 @@ impl Projectile {
                 tx: center_x - px(scos * sprite_width / 2.0 - ssin * sprite_height / 2.0),
                 ty: center_y - px(ssin * sprite_width / 2.0 + scos * sprite_height / 2.0),
             },
+            scale_xy: None,
             color: None,
         });
         sprites

@@ -140,6 +140,7 @@ pub fn generate_decorations() -> Vec<ImageSprite> {
         let sprite = ImageSprite {
             src_rect: kind.src_rect(),
             xform: RSXform::from_scale_and_translate(sprite_scale, px_xy.x, px_xy.y),
+            scale_xy: None,
             color: None,
         };
         decorations.push(sprite);

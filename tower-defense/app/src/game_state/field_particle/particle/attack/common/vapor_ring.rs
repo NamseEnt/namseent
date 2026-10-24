@@ -39,6 +39,21 @@ impl VaporRing {
         self
     }
 
+    pub fn with_duration(mut self, duration: Duration) -> Self {
+        self.0 = self.0.with_duration(duration);
+        self
+    }
+
+    pub fn with_ease_out_fade(mut self) -> Self {
+        self.0 = self.0.with_ease_out_fade();
+        self
+    }
+
+    pub fn with_ease_in_fade(mut self) -> Self {
+        self.0 = self.0.with_ease_in_fade();
+        self
+    }
+
     pub fn with_muzzle_animation(
         mut self,
         direction: (f32, f32),

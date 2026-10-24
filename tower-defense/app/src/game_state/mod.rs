@@ -2666,6 +2666,12 @@ impl GameState {
                                 end_xy: (end_xy[0], end_xy[1]),
                             },
                         ),
+                        tower::TowerKind::FourOfAKind => Some(
+                            field_particle::emitter::attack::AttackVisualEffect::FourOfAKind {
+                                start_xy: (start_xy[0], start_xy[1]),
+                                end_xy: (end_xy[0], end_xy[1]),
+                            },
+                        ),
                         tower::TowerKind::Flush => {
                             Some(field_particle::emitter::attack::AttackVisualEffect::Flush {
                                 start_xy: (start_xy[0], start_xy[1]),
@@ -2706,6 +2712,15 @@ impl GameState {
                         tower::TowerKind::Straight => {
                             field_particle::emitter::attack::spawn_tower_attack_visual_effect(
                                 field_particle::emitter::attack::AttackVisualEffect::StraightHit {
+                                    start_xy: (start_xy[0], start_xy[1]),
+                                    impact_xy: (impact_xy[0], impact_xy[1]),
+                                },
+                                presentation_now,
+                            );
+                        }
+                        tower::TowerKind::FourOfAKind => {
+                            field_particle::emitter::attack::spawn_tower_attack_visual_effect(
+                                field_particle::emitter::attack::AttackVisualEffect::FourOfAKindHit {
                                     start_xy: (start_xy[0], start_xy[1]),
                                     impact_xy: (impact_xy[0], impact_xy[1]),
                                 },

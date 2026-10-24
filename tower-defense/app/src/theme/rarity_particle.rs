@@ -294,6 +294,7 @@ fn centered_rotated_sprite(
             tx: cx - px(scos * sw / 2.0 - ssin * sh / 2.0),
             ty: cy - px(ssin * sw / 2.0 + scos * sh / 2.0),
         },
+        scale_xy: None,
         color,
     }
 }

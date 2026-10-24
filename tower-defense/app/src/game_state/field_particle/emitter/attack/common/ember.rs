@@ -65,6 +65,24 @@ pub(in crate::game_state::field_particle::emitter::attack) fn spawn_line(
     color: [f32; 3],
     created_at: Instant,
 ) {
+    spawn_line_with_variation(
+        start_xy,
+        end_xy,
+        color,
+        created_at,
+        EMBER_COUNT,
+        TRAVEL_ANGLE_VARIATION,
+    );
+}
+
+pub(in crate::game_state::field_particle::emitter::attack) fn spawn_line_with_variation(
+    start_xy: (f32, f32),
+    end_xy: (f32, f32),
+    color: [f32; 3],
+    created_at: Instant,
+    count: usize,
+    angle_variation: f32,
+) {
     let mut rng = rand::thread_rng();
     let direction_x = end_xy.0 - start_xy.0;
     let direction_y = end_xy.1 - start_xy.1;
@@ -75,15 +93,14 @@ pub(in crate::game_state::field_particle::emitter::attack) fn spawn_line(
 
     let direction_angle = direction_y.atan2(direction_x);
     let normal = (-direction_y / length, direction_x / length);
-    for _ in 0..EMBER_COUNT {
+    for _ in 0..count {
         let distance = rng.gen_range(0.0..=length);
         let offset = rng.gen_range(-0.25_f32..=0.25_f32);
         let spawn_xy = (
             start_xy.0 + direction_x / length * distance + normal.0 * offset,
             start_xy.1 + direction_y / length * distance + normal.1 * offset,
         );
-        let travel_angle =
-            direction_angle + rng.gen_range(-TRAVEL_ANGLE_VARIATION..=TRAVEL_ANGLE_VARIATION);
+        let travel_angle = direction_angle + rng.gen_range(-angle_variation..=angle_variation);
         let travel_distance = rng.gen_range(MIN_TRAVEL_DISTANCE_TILES..=MAX_TRAVEL_DISTANCE_TILES);
         let scale = rng.gen_range(MIN_SCALE..=MAX_SCALE);
         ATTACK_VISUAL.spawn(NewAttackParticle::DirectionalEmber(DirectionalEmber::new(
@@ -113,10 +130,29 @@ pub(in crate::game_state::field_particle::emitter::attack) fn spawn_from_point_w
     created_at: Instant,
     delay: Duration,
 ) {
+    spawn_from_point_with_options(
+        impact_xy,
+        outward_angle,
+        color,
+        created_at,
+        delay,
+        HIT_EMBER_COUNT,
+        TRAVEL_ANGLE_VARIATION,
+    );
+}
+
+pub(in crate::game_state::field_particle::emitter::attack) fn spawn_from_point_with_options(
+    impact_xy: (f32, f32),
+    outward_angle: f32,
+    color: [f32; 3],
+    created_at: Instant,
+    delay: Duration,
+    count: usize,
+    angle_variation: f32,
+) {
     let mut rng = rand::thread_rng();
-    for _ in 0..HIT_EMBER_COUNT {
-        let direction_angle =
-            outward_angle + rng.gen_range(-TRAVEL_ANGLE_VARIATION..=TRAVEL_ANGLE_VARIATION);
+    for _ in 0..count {
+        let direction_angle = outward_angle + rng.gen_range(-angle_variation..=angle_variation);
         let distance = rng.gen_range(MIN_TRAVEL_DISTANCE_TILES..=MAX_TRAVEL_DISTANCE_TILES);
         let scale = rng.gen_range(MIN_SCALE..=MAX_SCALE);
         ATTACK_VISUAL.spawn(NewAttackParticle::DirectionalEmber(

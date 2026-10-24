@@ -157,6 +157,7 @@ pub(crate) fn consume_headed(
                     | crate::game_state::tower::TowerKind::TwoPair
                     | crate::game_state::tower::TowerKind::ThreeOfAKind
                     | crate::game_state::tower::TowerKind::Straight
+                    | crate::game_state::tower::TowerKind::FourOfAKind
                     | crate::game_state::tower::TowerKind::Flush
                     | crate::game_state::tower::TowerKind::FullHouse),
                 ) = crate::game_state::tower::TowerKind::from_core_raw(tower_kind_raw)
