@@ -2666,6 +2666,11 @@ impl GameState {
                                 end_xy: (end_xy[0], end_xy[1]),
                             },
                         ),
+                        tower::TowerKind::StraightFlush => Some(
+                            field_particle::emitter::attack::AttackVisualEffect::StraightFlushMuzzle {
+                                center_xy: (start_xy[0], start_xy[1]),
+                            },
+                        ),
                         tower::TowerKind::FourOfAKind => Some(
                             field_particle::emitter::attack::AttackVisualEffect::FourOfAKind {
                                 start_xy: (start_xy[0], start_xy[1]),
@@ -2698,6 +2703,7 @@ impl GameState {
                     source,
                     start_xy,
                     impact_xy,
+                    chain_delay_ms,
                 } => match source {
                     presentation_event::MonsterHitVisualSource::Tower { kind } => match kind {
                         tower::TowerKind::ThreeOfAKind => {
@@ -2714,6 +2720,16 @@ impl GameState {
                                 field_particle::emitter::attack::AttackVisualEffect::StraightHit {
                                     start_xy: (start_xy[0], start_xy[1]),
                                     impact_xy: (impact_xy[0], impact_xy[1]),
+                                },
+                                presentation_now,
+                            );
+                        }
+                        tower::TowerKind::StraightFlush => {
+                            field_particle::emitter::attack::spawn_tower_attack_visual_effect(
+                                field_particle::emitter::attack::AttackVisualEffect::StraightFlushHit {
+                                    start_xy: (start_xy[0], start_xy[1]),
+                                    impact_xy: (impact_xy[0], impact_xy[1]),
+                                    chain_delay: Duration::from_millis(chain_delay_ms as i64),
                                 },
                                 presentation_now,
                             );

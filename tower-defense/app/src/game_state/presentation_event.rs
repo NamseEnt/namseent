@@ -82,6 +82,7 @@ pub enum PresentationEvent {
         source: MonsterHitVisualSource,
         start_xy: [f32; 2],
         impact_xy: [f32; 2],
+        chain_delay_ms: u64,
     },
     SpawnGoldReward {
         position: [f32; 2],

@@ -1,9 +1,9 @@
 use crate::game_state::field_particle::{
-    particle::attack::{
-        common::{EnergyRing, VaporRing},
-        NewAttackParticle,
-    },
     ATTACK_VISUAL,
+    particle::attack::{
+        NewAttackParticle,
+        common::{EnergyRing, VaporRing},
+    },
 };
 use namui::*;
 use rand::Rng;

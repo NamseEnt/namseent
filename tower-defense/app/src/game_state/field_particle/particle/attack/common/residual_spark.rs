@@ -48,6 +48,11 @@ impl ResidualSpark {
         self
     }
 
+    pub fn with_delay(mut self, delay: Duration) -> Self {
+        self.delay = delay;
+        self
+    }
+
     fn frame_index(progress: f32, frame_count: usize) -> usize {
         ((progress.clamp(0.0, 1.0) * frame_count as f32) as usize).min(frame_count - 1)
     }

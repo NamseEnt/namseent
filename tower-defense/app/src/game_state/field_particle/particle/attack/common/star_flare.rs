@@ -1,7 +1,7 @@
 use super::super::ATTACK_FRAME_EASE_IN;
 use namui::*;
 
-const DURATION: Duration = Duration::from_millis(150);
+const DEFAULT_DURATION: Duration = Duration::from_millis(150);
 
 #[derive(Clone, Copy)]
 pub enum RotationDirection {
@@ -25,6 +25,10 @@ pub struct StarFlare {
     rotation_direction: RotationDirection,
     color: [f32; 3],
     created_at: Instant,
+    delay: Duration,
+    duration: Duration,
+    growth_duration: Duration,
+    fade_after_growth: bool,
     progress: f32,
     started: bool,
 }
@@ -43,17 +47,38 @@ impl StarFlare {
             rotation_direction,
             color,
             created_at,
+            delay: Duration::ZERO,
+            duration: DEFAULT_DURATION,
+            growth_duration: DEFAULT_DURATION / 2,
+            fade_after_growth: false,
             progress: 0.0,
             started: false,
         }
     }
 
+    pub fn with_timing(mut self, duration: Duration, growth_duration: Duration) -> Self {
+        self.duration = duration;
+        self.growth_duration = growth_duration.min(duration);
+        self.fade_after_growth = true;
+        self
+    }
+
+    pub fn with_delay(mut self, delay: Duration) -> Self {
+        self.delay = delay;
+        self
+    }
+
     fn scale_progress(progress: f32) -> f32 {
+        Self::scale_progress_with_peak(progress, 0.5)
+    }
+
+    fn scale_progress_with_peak(progress: f32, peak_progress: f32) -> f32 {
         let progress = progress.clamp(0.0, 1.0);
-        if progress <= 0.5 {
-            ATTACK_FRAME_EASE_IN.sample(progress * 2.0)
+        if progress <= peak_progress {
+            ATTACK_FRAME_EASE_IN.sample(progress / peak_progress.max(f32::EPSILON))
         } else {
-            1.0 - ATTACK_FRAME_EASE_IN.sample((progress - 0.5) * 2.0)
+            1.0 - ATTACK_FRAME_EASE_IN
+                .sample((progress - peak_progress) / (1.0 - peak_progress).max(f32::EPSILON))
         }
     }
 
@@ -62,9 +87,13 @@ impl StarFlare {
     }
 
     pub fn tick(&mut self, now: Instant, _dt: Duration) {
-        self.progress =
-            ((now - self.created_at).as_secs_f32() / DURATION.as_secs_f32()).clamp(0.0, 1.0);
-        self.started = now >= self.created_at;
+        let elapsed = now - self.created_at;
+        self.started = elapsed >= self.delay;
+        self.progress = if self.started {
+            ((elapsed - self.delay).as_secs_f32() / self.duration.as_secs_f32()).clamp(0.0, 1.0)
+        } else {
+            0.0
+        };
     }
 
     pub fn render(&self) -> particle::ParticleSprites {
@@ -74,16 +103,23 @@ impl StarFlare {
         }
 
         let frame = crate::atlas::generated::ATTACK_COMMON_STAR_FLARE;
-        let scale_tiles = self.max_scale_tiles * Self::scale_progress(self.progress);
+        let peak_progress = self.growth_duration.as_secs_f32() / self.duration.as_secs_f32();
+        let scale_tiles =
+            self.max_scale_tiles * Self::scale_progress_with_peak(self.progress, peak_progress);
         let scale =
             crate::game_state::TILE_PX_SIZE.width.as_f32() * scale_tiles / frame.width().as_f32();
         let center_x = px(self.center_xy.0 * crate::game_state::TILE_PX_SIZE.width.as_f32());
         let center_y = px(self.center_xy.1 * crate::game_state::TILE_PX_SIZE.height.as_f32());
+        let alpha = if self.fade_after_growth && self.progress > peak_progress {
+            1.0 - (self.progress - peak_progress) / (1.0 - peak_progress).max(f32::EPSILON)
+        } else {
+            1.0
+        };
         let color = Color::from_f01(
             self.color[0].clamp(0.0, 1.0),
             self.color[1].clamp(0.0, 1.0),
             self.color[2].clamp(0.0, 1.0),
-            1.0,
+            alpha.clamp(0.0, 1.0),
         );
 
         sprites.push(
@@ -100,7 +136,7 @@ impl StarFlare {
     }
 
     pub fn is_done(&self, now: Instant) -> bool {
-        now - self.created_at >= DURATION
+        now - self.created_at >= self.delay + self.duration
     }
 }
 
@@ -129,6 +165,23 @@ mod tests {
         assert_eq!(StarFlare::scale_progress(1.0), 0.0);
         assert!(StarFlare::scale_progress(0.25) < 0.5);
         assert!(StarFlare::scale_progress(0.75) > 0.5);
+    }
+
+    #[test]
+    fn timed_flare_reaches_maximum_after_50ms_and_finishes_after_200ms() {
+        let flare = StarFlare::new(
+            (0.0, 0.0),
+            1.0,
+            RotationDirection::Clockwise,
+            [0.8, 0.55, 1.0],
+            Instant::now(),
+        )
+        .with_timing(Duration::from_millis(200), Duration::from_millis(50));
+
+        assert_eq!(flare.duration, Duration::from_millis(200));
+        assert_eq!(flare.growth_duration, Duration::from_millis(50));
+        assert_eq!(StarFlare::scale_progress_with_peak(0.25, 0.25), 1.0);
+        assert_eq!(StarFlare::scale_progress_with_peak(1.0, 0.25), 0.0);
     }
 
     #[test]

@@ -157,6 +157,7 @@ pub(crate) fn consume_headed(
                     | crate::game_state::tower::TowerKind::TwoPair
                     | crate::game_state::tower::TowerKind::ThreeOfAKind
                     | crate::game_state::tower::TowerKind::Straight
+                    | crate::game_state::tower::TowerKind::StraightFlush
                     | crate::game_state::tower::TowerKind::FourOfAKind
                     | crate::game_state::tower::TowerKind::Flush
                     | crate::game_state::tower::TowerKind::FullHouse),
@@ -207,6 +208,7 @@ pub(crate) fn consume_headed(
                 tower_kind,
                 start_xy,
                 position,
+                chain_delay_ms,
                 ..
             } => {
                 if let Some(kind) = crate::game_state::tower::TowerKind::from_core_raw(tower_kind) {
@@ -224,6 +226,7 @@ pub(crate) fn consume_headed(
                                 position[0] as f32 / units_per_tile,
                                 position[1] as f32 / units_per_tile,
                             ],
+                            chain_delay_ms,
                         },
                     );
                 }
@@ -949,6 +952,7 @@ mod tests {
                     tower_kind: crate::game_state::tower::TowerKind::ThreeOfAKind.to_core_raw(),
                     start_xy: [13 * units_per_tile, 14 * units_per_tile],
                     position: [18 * units_per_tile, 19 * units_per_tile],
+                    chain_delay_ms: 0,
                 },
                 td_core::CoreEvent::TowerAttackHit {
                     tower_id: 8,
@@ -956,6 +960,15 @@ mod tests {
                     tower_kind: crate::game_state::tower::TowerKind::Straight.to_core_raw(),
                     start_xy: [17 * units_per_tile, 18 * units_per_tile],
                     position: [26 * units_per_tile, 18 * units_per_tile],
+                    chain_delay_ms: 0,
+                },
+                td_core::CoreEvent::TowerAttackHit {
+                    tower_id: 11,
+                    target_id: 12,
+                    tower_kind: crate::game_state::tower::TowerKind::StraightFlush.to_core_raw(),
+                    start_xy: [26 * units_per_tile, 18 * units_per_tile],
+                    position: [29 * units_per_tile, 20 * units_per_tile],
+                    chain_delay_ms: 20,
                 },
             ],
             crate::PresentationInstant::zero(),
@@ -976,6 +989,25 @@ mod tests {
                             },
                         start_xy: [13.0, 14.0],
                         impact_xy: [18.0, 19.0],
+                        ..
+                    }
+                ))
+        );
+        assert!(
+            effects
+                .presentation_events
+                .events
+                .iter()
+                .any(|event| matches!(
+                    event,
+                    crate::game_state::PresentationEvent::SpawnMonsterHitVisualEffect {
+                        source:
+                            crate::game_state::presentation_event::MonsterHitVisualSource::Tower {
+                                kind: crate::game_state::tower::TowerKind::StraightFlush,
+                            },
+                        start_xy: [26.0, 18.0],
+                        impact_xy: [29.0, 20.0],
+                        chain_delay_ms: 20,
                     }
                 ))
         );
@@ -993,6 +1025,7 @@ mod tests {
                             },
                         start_xy: [17.0, 18.0],
                         impact_xy: [26.0, 18.0],
+                        ..
                     }
                 ))
         );

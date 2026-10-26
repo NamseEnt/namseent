@@ -273,12 +273,7 @@ impl Tower {
             TowerKind::RoyalFlush => AttackType::RoyalStraightFlush {
                 target_xy: params.target_xy,
             },
-            TowerKind::StraightFlush => AttackType::Projectile {
-                speed: FAST_PROJECTILE_SPEED,
-                trail: ProjectileTrail::LightningSparkle,
-                projectile_group: ProjectileGroup::Heart,
-                hit_effect: attack::ProjectileHitEffect::HeartBurst,
-            },
+            TowerKind::StraightFlush => AttackType::InstantDamage,
             TowerKind::Flush => AttackType::Projectile {
                 speed: FAST_PROJECTILE_SPEED,
                 trail: ProjectileTrail::Sparkle,

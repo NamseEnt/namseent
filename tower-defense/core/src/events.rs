@@ -37,6 +37,8 @@ pub enum CoreEvent {
         tower_kind: u8,
         start_xy: [i64; 2],
         position: [i64; 2],
+        #[serde(default)]
+        chain_delay_ms: u64,
     },
     ProjectileMoved {
         attack_id: u64,

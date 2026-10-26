@@ -12,6 +12,8 @@ pub struct StraightLightning {
     segment_length_tiles: f32,
     variant: usize,
     flip_vertical: bool,
+    scale_multiplier: f32,
+    color: [f32; 3],
     created_at: Instant,
     delay: Duration,
     progress: f32,
@@ -34,11 +36,23 @@ impl StraightLightning {
             segment_length_tiles,
             variant,
             flip_vertical,
+            scale_multiplier: 1.0,
+            color: LIGHTNING_COLOR,
             created_at,
             delay,
             progress: 0.0,
             started: false,
         }
+    }
+
+    pub fn with_scale_multiplier(mut self, scale_multiplier: f32) -> Self {
+        self.scale_multiplier = scale_multiplier.max(0.0);
+        self
+    }
+
+    pub fn with_color(mut self, color: [f32; 3]) -> Self {
+        self.color = color;
+        self
     }
 
     pub fn tick(&mut self, now: Instant, _dt: Duration) {
@@ -65,7 +79,7 @@ impl StraightLightning {
         let frame = frames[frame_index];
         let scale = crate::game_state::TILE_PX_SIZE.width.as_f32() * self.segment_length_tiles
             / frame.width().as_f32();
-        let thickness = scale * frame.height().as_f32() * THICKNESS_SCALE;
+        let thickness = scale * frame.height().as_f32() * THICKNESS_SCALE * self.scale_multiplier;
         let angle = self.angle_rad
             + if self.flip_vertical {
                 std::f32::consts::PI
@@ -73,12 +87,7 @@ impl StraightLightning {
                 0.0
             };
         let opacity = 1.0 - self.progress;
-        let color = Color::from_f01(
-            LIGHTNING_COLOR[0],
-            LIGHTNING_COLOR[1],
-            LIGHTNING_COLOR[2],
-            opacity,
-        );
+        let color = Color::from_f01(self.color[0], self.color[1], self.color[2], opacity);
         let half_length_px =
             crate::game_state::TILE_PX_SIZE.width.as_f32() * self.segment_length_tiles / 2.0;
         let center_x = self.center_xy.0 * crate::game_state::TILE_PX_SIZE.width.as_f32();

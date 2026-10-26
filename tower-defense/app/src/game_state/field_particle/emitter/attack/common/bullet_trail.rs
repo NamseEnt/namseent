@@ -1,6 +1,6 @@
 use crate::game_state::field_particle::{
-    particle::attack::{common::BulletTrail, NewAttackParticle},
     ATTACK_VISUAL,
+    particle::attack::{NewAttackParticle, common::BulletTrail},
 };
 use namui::*;
 

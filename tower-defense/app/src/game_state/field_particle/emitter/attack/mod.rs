@@ -5,6 +5,7 @@ mod full_house;
 mod high;
 mod one_pair;
 mod straight;
+mod straight_flush;
 mod three_of_a_kind;
 mod two_pair;
 
@@ -39,6 +40,14 @@ pub enum AttackVisualEffect {
     StraightHit {
         start_xy: (f32, f32),
         impact_xy: (f32, f32),
+    },
+    StraightFlushMuzzle {
+        center_xy: (f32, f32),
+    },
+    StraightFlushHit {
+        start_xy: (f32, f32),
+        impact_xy: (f32, f32),
+        chain_delay: namui::Duration,
     },
     FourOfAKind {
         start_xy: (f32, f32),
@@ -95,6 +104,14 @@ pub fn spawn_tower_attack_visual_effect(effect: AttackVisualEffect, created_at: 
             start_xy,
             impact_xy,
         } => straight::spawn_hit_effect(start_xy, impact_xy, created_at),
+        AttackVisualEffect::StraightFlushMuzzle { center_xy } => {
+            straight_flush::spawn_muzzle(center_xy, created_at);
+        }
+        AttackVisualEffect::StraightFlushHit {
+            start_xy,
+            impact_xy,
+            chain_delay,
+        } => straight_flush::spawn_hit_effect(start_xy, impact_xy, created_at, chain_delay),
         AttackVisualEffect::FourOfAKind { start_xy, end_xy } => {
             four_of_a_kind::spawn(start_xy, end_xy, created_at);
         }

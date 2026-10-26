@@ -159,7 +159,7 @@ impl particle::Particle for FullHouseProjectile {
 
 #[cfg(test)]
 mod tests {
-    use super::{FullHouseProjectile, FRAME_DURATION};
+    use super::{FRAME_DURATION, FullHouseProjectile};
     use namui::Duration;
 
     #[test]
