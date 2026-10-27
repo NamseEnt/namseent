@@ -2671,6 +2671,12 @@ impl GameState {
                                 center_xy: (start_xy[0], start_xy[1]),
                             },
                         ),
+                        tower::TowerKind::RoyalFlush => Some(
+                            field_particle::emitter::attack::AttackVisualEffect::RoyalStraightFlush {
+                                start_xy: (start_xy[0], start_xy[1]),
+                                end_xy: (end_xy[0], end_xy[1]),
+                            },
+                        ),
                         tower::TowerKind::FourOfAKind => Some(
                             field_particle::emitter::attack::AttackVisualEffect::FourOfAKind {
                                 start_xy: (start_xy[0], start_xy[1]),

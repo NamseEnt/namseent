@@ -39,6 +39,11 @@ impl EnergyRing {
         self
     }
 
+    pub fn with_linear_scale_growth(mut self) -> Self {
+        self.0 = self.0.with_linear_scale_growth();
+        self
+    }
+
     pub fn with_duration(mut self, duration: Duration) -> Self {
         self.0 = self.0.with_duration(duration);
         self

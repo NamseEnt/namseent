@@ -158,6 +158,7 @@ pub(crate) fn consume_headed(
                     | crate::game_state::tower::TowerKind::ThreeOfAKind
                     | crate::game_state::tower::TowerKind::Straight
                     | crate::game_state::tower::TowerKind::StraightFlush
+                    | crate::game_state::tower::TowerKind::RoyalFlush
                     | crate::game_state::tower::TowerKind::FourOfAKind
                     | crate::game_state::tower::TowerKind::Flush
                     | crate::game_state::tower::TowerKind::FullHouse),
@@ -929,6 +930,46 @@ mod tests {
                     event,
                     crate::game_state::PresentationEvent::SpawnTowerAttackVisualEffect {
                         tower_kind: crate::game_state::tower::TowerKind::Straight,
+                        start_xy: [2.0, 3.0],
+                        end_xy: [11.0, 3.0],
+                        attack_range_radius: 9.0,
+                    }
+                ))
+        );
+    }
+
+    #[test]
+    fn royal_flush_attack_visual_uses_core_range_endpoint() {
+        let mut game_state = crate::game_state::create_game_state_with_seed(7);
+        let _ = game_state.take_pending_action_effects();
+        let units_per_tile = crate::world::WORLD_UNITS_PER_TILE;
+
+        consume_headed(
+            &mut game_state,
+            [td_core::CoreEvent::TowerAttack {
+                tower_id: 9,
+                target_id: 10,
+                attack_kind: 4,
+                tower_kind: crate::game_state::tower::TowerKind::RoyalFlush.to_core_raw(),
+                start_xy: [2 * units_per_tile, 3 * units_per_tile],
+                end_xy: [11 * units_per_tile, 3 * units_per_tile],
+                attack_range_raw: 9 * units_per_tile,
+                attack_ids: Vec::new(),
+                projectile_attack_ids: Vec::new(),
+            }],
+            crate::PresentationInstant::zero(),
+        );
+
+        let effects = game_state.take_pending_action_effects();
+        assert!(
+            effects
+                .presentation_events
+                .events
+                .iter()
+                .any(|event| matches!(
+                    event,
+                    crate::game_state::PresentationEvent::SpawnTowerAttackVisualEffect {
+                        tower_kind: crate::game_state::tower::TowerKind::RoyalFlush,
                         start_xy: [2.0, 3.0],
                         end_xy: [11.0, 3.0],
                         attack_range_radius: 9.0,

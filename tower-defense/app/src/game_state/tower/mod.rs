@@ -257,7 +257,7 @@ impl Tower {
         self.royal_straight_flush_visual.as_ref()
     }
 
-    pub fn attack_type(&self, params: AttackTypeParams) -> AttackType {
+    pub fn attack_type(&self, _params: AttackTypeParams) -> AttackType {
         match self.kind {
             TowerKind::RubberCone => AttackType::Projectile {
                 speed: PROJECTILE_SPEED,
@@ -270,9 +270,7 @@ impl Tower {
             TowerKind::TwoPair => AttackType::InstantDamage,
             TowerKind::ThreeOfAKind => AttackType::InstantDamage,
             TowerKind::Straight => AttackType::Laser,
-            TowerKind::RoyalFlush => AttackType::RoyalStraightFlush {
-                target_xy: params.target_xy,
-            },
+            TowerKind::RoyalFlush => AttackType::InstantDamage,
             TowerKind::StraightFlush => AttackType::InstantDamage,
             TowerKind::Flush => AttackType::Projectile {
                 speed: FAST_PROJECTILE_SPEED,
@@ -683,7 +681,9 @@ impl TowerKind {
             Self::FullHouse => WorldDistance::from_tiles(6),
             Self::FourOfAKind => WorldDistance::from_tiles(22),
             Self::StraightFlush => WorldDistance::from_tiles(14),
-            Self::RoyalFlush => WorldDistance::from_tiles(15),
+            Self::RoyalFlush => {
+                WorldDistance::from_raw(WorldDistance::from_tiles(15).raw() * 3 / 2)
+            }
         }
     }
     pub fn default_damage(&self) -> Damage {
@@ -988,6 +988,16 @@ mod tests {
         assert_eq!(
             template.attack_range_radius(),
             template.default_attack_range_radius
+        );
+    }
+
+    #[test]
+    fn royal_flush_attack_range_is_one_and_a_half_times_base_range() {
+        let base_range = WorldDistance::from_tiles(15);
+
+        assert_eq!(
+            TowerKind::RoyalFlush.default_attack_range_radius(),
+            WorldDistance::from_raw(base_range.raw() * 3 / 2)
         );
     }
 

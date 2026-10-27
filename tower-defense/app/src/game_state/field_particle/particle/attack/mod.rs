@@ -1,6 +1,7 @@
 pub mod common;
 pub mod high;
 pub mod one_pair;
+pub mod royal_straight_flush;
 pub mod straight_lightning;
 pub mod two_pair;
 
@@ -27,6 +28,10 @@ pub enum NewAttackParticle {
     DirectionalFlash(common::DirectionalFlash),
     DirectionalVolumeSmoke(common::DirectionalVolumeSmoke),
     FullHouseProjectile(common::FullHouseProjectile),
+    RoyalStraightFlushBeam(royal_straight_flush::Beam),
+    RoyalStraightFlushChargeLines(royal_straight_flush::ChargeLines),
+    RoyalStraightFlushMuzzleFlash(royal_straight_flush::MuzzleFlash),
+    RoyalStraightFlushMagicStars(royal_straight_flush::MagicStars),
     StraightLightning(straight_lightning::StraightLightning),
 }
 
@@ -47,6 +52,10 @@ impl namui::particle::Particle for NewAttackParticle {
             NewAttackParticle::DirectionalFlash(p) => p.tick(now, dt),
             NewAttackParticle::DirectionalVolumeSmoke(p) => p.tick(now, dt),
             NewAttackParticle::FullHouseProjectile(p) => p.tick(now, dt),
+            NewAttackParticle::RoyalStraightFlushBeam(p) => p.tick(now, dt),
+            NewAttackParticle::RoyalStraightFlushChargeLines(p) => p.tick(now, dt),
+            NewAttackParticle::RoyalStraightFlushMuzzleFlash(p) => p.tick(now, dt),
+            NewAttackParticle::RoyalStraightFlushMagicStars(p) => p.tick(now, dt),
             NewAttackParticle::StraightLightning(p) => p.tick(now, dt),
         }
     }
@@ -67,6 +76,10 @@ impl namui::particle::Particle for NewAttackParticle {
             NewAttackParticle::DirectionalFlash(p) => p.render(),
             NewAttackParticle::DirectionalVolumeSmoke(p) => p.render(),
             NewAttackParticle::FullHouseProjectile(p) => p.render(),
+            NewAttackParticle::RoyalStraightFlushBeam(p) => p.render(),
+            NewAttackParticle::RoyalStraightFlushChargeLines(p) => p.render(),
+            NewAttackParticle::RoyalStraightFlushMuzzleFlash(p) => p.render(),
+            NewAttackParticle::RoyalStraightFlushMagicStars(p) => p.render(),
             NewAttackParticle::StraightLightning(p) => p.render(),
         }
     }
@@ -87,6 +100,10 @@ impl namui::particle::Particle for NewAttackParticle {
             NewAttackParticle::DirectionalFlash(p) => p.is_done(now),
             NewAttackParticle::DirectionalVolumeSmoke(p) => p.is_done(now),
             NewAttackParticle::FullHouseProjectile(p) => p.is_done(now),
+            NewAttackParticle::RoyalStraightFlushBeam(p) => p.is_done(now),
+            NewAttackParticle::RoyalStraightFlushChargeLines(p) => p.is_done(now),
+            NewAttackParticle::RoyalStraightFlushMuzzleFlash(p) => p.is_done(now),
+            NewAttackParticle::RoyalStraightFlushMagicStars(p) => p.is_done(now),
             NewAttackParticle::StraightLightning(p) => p.is_done(now),
         }
     }

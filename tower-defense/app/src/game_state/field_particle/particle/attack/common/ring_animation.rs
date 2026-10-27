@@ -29,6 +29,7 @@ pub(super) struct RingAnimation {
     movement_direction: (f32, f32),
     movement_distance_px: f32,
     scale_growth: f32,
+    linear_scale_growth: bool,
     fade_mode: FadeMode,
     muzzle_animation: bool,
     progress: f32,
@@ -61,6 +62,7 @@ impl RingAnimation {
             movement_direction: (0.0, 0.0),
             movement_distance_px: 0.0,
             scale_growth: 0.0,
+            linear_scale_growth: false,
             fade_mode: FadeMode::Linear,
             muzzle_animation: false,
             progress: 0.0,
@@ -85,6 +87,11 @@ impl RingAnimation {
 
     pub(super) fn with_scale_growth(mut self, scale_growth: f32) -> Self {
         self.scale_growth = scale_growth;
+        self
+    }
+
+    pub(super) fn with_linear_scale_growth(mut self) -> Self {
+        self.linear_scale_growth = true;
         self
     }
 
@@ -140,8 +147,13 @@ impl RingAnimation {
             + self.movement_direction.0 * self.movement_distance_px * eased_progress;
         let center_y_px = self.center_y_px
             + self.movement_direction.1 * self.movement_distance_px * eased_progress;
+        let scale_progress = if self.linear_scale_growth {
+            self.progress
+        } else {
+            eased_progress
+        };
         let scale = self.scale
-            * (1.0 + self.scale_growth * eased_progress)
+            * (1.0 + self.scale_growth * scale_progress)
             * if self.muzzle_animation {
                 1.0 + eased_progress * 0.5
             } else {
