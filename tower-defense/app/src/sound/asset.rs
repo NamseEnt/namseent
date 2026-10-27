@@ -91,13 +91,6 @@ const SHINING_RINGING_ASSETS: [AudioAsset; 1] =
     [crate::asset::sound::shining_ringing::SHINING_RINGING_00];
 const SMOKE_BOMB_ASSETS: [AudioAsset; 1] = [crate::asset::sound::smoke_bomb::SMOKE_BOMB_00];
 const WIND_ASSETS: [AudioAsset; 1] = [crate::asset::sound::wind::WIND_00];
-const KNIFE_SLASH_ASSETS: [AudioAsset; 4] = [
-    crate::asset::sound::knife_slash::KNIFE_SLASH_00,
-    crate::asset::sound::knife_slash::KNIFE_SLASH_01,
-    crate::asset::sound::knife_slash::KNIFE_SLASH_02,
-    crate::asset::sound::knife_slash::KNIFE_SLASH_03,
-];
-
 const ORCH_HIT_ASSETS: [AudioAsset; 1] = [crate::asset::sound::orch_hit::ORCH_HIT_00];
 const FAIL_ASSETS: [AudioAsset; 1] = [crate::asset::sound::fail::FAIL_00];
 const TRUMPET_FANFARES_CLEAN_ASSETS: [AudioAsset; 4] = [
@@ -227,18 +220,8 @@ pub fn deterministic_smoke_bomb() -> AudioAsset {
 pub fn deterministic_red_laser_shot() -> AudioAsset {
     RED_LASER_SHOT_ASSETS[0]
 }
-pub fn deterministic_knife_slash() -> AudioAsset {
-    KNIFE_SLASH_ASSETS[0]
-}
 pub fn deterministic_whoop() -> AudioAsset {
     WHOOP_ASSETS[0]
-}
-pub fn deterministic_wind() -> AudioAsset {
-    WIND_ASSETS[0]
-}
-
-pub fn random_knife_slash() -> AudioAsset {
-    random_one(&KNIFE_SLASH_ASSETS)
 }
 
 pub fn random_orch_hit() -> AudioAsset {

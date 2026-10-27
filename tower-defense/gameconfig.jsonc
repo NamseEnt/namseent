@@ -400,7 +400,7 @@
         "entries": [
           {
             "kind": "Mob01",
-            "count": 5,
+            "count": 20,
           },
         ],
       },
@@ -876,12 +876,12 @@
       },
       "FourOfAKind": {
         "damage": 175.0,
-        "range": 11.0,
+        "range": 22.0,
         "cooldown_ms": 1000,
       },
       "FullHouse": {
         "damage": 100.0,
-        "range": 11.0,
+        "range": 6.0,
         "cooldown_ms": 1000,
       },
       "High": {

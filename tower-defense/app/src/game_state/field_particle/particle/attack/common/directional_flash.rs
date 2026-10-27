@@ -1,0 +1,126 @@
+use super::super::ATTACK_FRAME_EASE_OUT;
+use namui::*;
+use rand::Rng;
+
+const DURATION: Duration = Duration::from_millis(350);
+
+#[derive(Clone)]
+pub struct DirectionalFlash {
+    scale: f32,
+    color: [f32; 3],
+    variant: usize,
+    created_at: Instant,
+    delay: Duration,
+    progress: f32,
+    eased_progress: f32,
+    anchor_x_px: f32,
+    anchor_y_px: f32,
+    rotation: (f32, f32),
+    started: bool,
+}
+
+impl DirectionalFlash {
+    pub fn new(
+        anchor_xy: (f32, f32),
+        angle_rad: f32,
+        scale: f32,
+        color: [f32; 3],
+        created_at: Instant,
+    ) -> Self {
+        let mut rng = rand::thread_rng();
+        let (rotation_sin, rotation_cos) = angle_rad.sin_cos();
+        Self {
+            scale,
+            color,
+            variant: rng.gen_range(0..4),
+            created_at,
+            delay: Duration::ZERO,
+            progress: 0.0,
+            eased_progress: 0.0,
+            anchor_x_px: anchor_xy.0 * crate::game_state::TILE_PX_SIZE.width.as_f32(),
+            anchor_y_px: anchor_xy.1 * crate::game_state::TILE_PX_SIZE.height.as_f32(),
+            rotation: (rotation_cos, rotation_sin),
+            started: false,
+        }
+    }
+
+    pub fn with_delay(mut self, delay: Duration) -> Self {
+        self.delay = delay;
+        self
+    }
+
+    pub fn tick(&mut self, now: Instant, _dt: Duration) {
+        let elapsed = now - self.created_at;
+        self.started = elapsed >= self.delay;
+        self.progress = if self.started {
+            ((elapsed - self.delay).as_secs_f32() / DURATION.as_secs_f32()).clamp(0.0, 1.0)
+        } else {
+            0.0
+        };
+        self.eased_progress = if self.started && self.progress < 1.0 {
+            ATTACK_FRAME_EASE_OUT.sample(self.progress)
+        } else {
+            0.0
+        };
+    }
+
+    pub fn render(&self) -> particle::ParticleSprites {
+        let mut sprites = particle::ParticleSprites::new();
+        if !self.started || self.progress >= 1.0 {
+            return sprites;
+        }
+
+        let frames = frames_for_variant(self.variant);
+        let frame_index =
+            ((self.eased_progress * frames.len() as f32) as usize).min(frames.len() - 1);
+        let frame = frames[frame_index];
+        let scale =
+            crate::game_state::TILE_PX_SIZE.width.as_f32() * self.scale / frame.width().as_f32();
+        let image_half_length_px = frame.width().as_f32() * scale / 2.0;
+        let center_x = px(self.anchor_x_px + self.rotation.0 * image_half_length_px);
+        let center_y = px(self.anchor_y_px + self.rotation.1 * image_half_length_px);
+        let color = Color::from_f01(
+            self.color[0].clamp(0.0, 1.0),
+            self.color[1].clamp(0.0, 1.0),
+            self.color[2].clamp(0.0, 1.0),
+            1.0 - self.progress,
+        );
+        sprites.push(crate::atlas::centered_rotated_sprite_with_sin_cos(
+            frame,
+            center_x,
+            center_y,
+            scale,
+            self.rotation.0,
+            self.rotation.1,
+            Some(color),
+        ));
+        sprites
+    }
+
+    pub fn is_done(&self, now: Instant) -> bool {
+        now - self.created_at >= self.delay + DURATION
+    }
+}
+
+fn frames_for_variant(variant: usize) -> &'static [Rect<Px>] {
+    match variant {
+        0 => &crate::atlas::generated::ATTACK_COMMON_DIRECTIONAL_FLASH_00,
+        1 => &crate::atlas::generated::ATTACK_COMMON_DIRECTIONAL_FLASH_01,
+        2 => &crate::atlas::generated::ATTACK_COMMON_DIRECTIONAL_FLASH_02,
+        _ => &crate::atlas::generated::ATTACK_COMMON_DIRECTIONAL_FLASH_03,
+    }
+}
+
+impl particle::Particle for DirectionalFlash {
+    fn tick(&mut self, now: Instant, dt: Duration) {
+        DirectionalFlash::tick(self, now, dt);
+    }
+
+    fn render(&self) -> particle::ParticleSprites {
+        DirectionalFlash::render(self)
+    }
+
+    fn is_done(&self, now: Instant) -> bool {
+        DirectionalFlash::is_done(self, now)
+    }
+}

@@ -463,7 +463,6 @@ pub mod tests_support {
                     vec![],
                     MonsterSpawnState::idle(),
                     Vec::new(),
-                    Vec::new(),
                     crate::game_state::entity_id::EntityIdAllocator::default(),
                     crate::game_state::GameMetrics {
                         total_gold_earned: 0,
@@ -504,7 +503,6 @@ pub mod tests_support {
                     Deck::new(),
                     vec![],
                     MonsterSpawnState::idle(),
-                    Vec::new(),
                     Vec::new(),
                     crate::game_state::entity_id::EntityIdAllocator::default(),
                     crate::game_state::GameMetrics {

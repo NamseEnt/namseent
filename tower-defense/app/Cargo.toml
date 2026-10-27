@@ -8,7 +8,7 @@ targets = ["wasm32-wasi-web", "x86_64-unknown-linux-gnu", "x86_64-pc-windows-msv
 icon = "asset/image/tower/high/idle1.png"
 
 [features]
-default = []
+default = ["debug-tools"]
 debug-tools = []
 
 [dependencies]

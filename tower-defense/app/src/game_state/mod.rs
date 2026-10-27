@@ -1,6 +1,5 @@
 #![allow(dead_code)]
 
-pub mod attack;
 pub mod background;
 mod base;
 mod camera;
@@ -46,7 +45,6 @@ pub(crate) mod play_history;
 pub(crate) mod player_command;
 pub mod poker_action;
 pub(crate) mod presentation_projection;
-pub mod projectile;
 pub(crate) mod raw_core;
 mod render;
 pub(crate) mod render_snapshot;
@@ -72,7 +70,7 @@ use crate::*;
 pub use base::*;
 pub(crate) use camera::Camera;
 pub(crate) use entity_id::EntityIdAllocator;
-pub use entity_id::{AttackId, EntityId, MonsterId, TowerId};
+pub use entity_id::{EntityId, MonsterId, TowerId};
 use flow::GameFlow;
 pub use modal::UserModal;
 pub use monster::*;
@@ -81,12 +79,10 @@ use namui::bincode::{Decode, Encode};
 use namui::*;
 pub(crate) use placed_towers::PlacedTowers;
 pub use presentation_event::*;
-use projectile::*;
 use rand::Rng;
 pub use render::*;
 pub(crate) use status_effect_particle_generator::StatusEffectParticleGenerator;
-use std::collections::HashMap;
-use std::sync::{Arc, LazyLock, Mutex};
+use std::sync::Arc;
 use tower::*;
 pub use ui_state::UIState;
 use upgrade::UpgradeState;
@@ -105,23 +101,6 @@ pub const TRAVEL_POINTS: [MapCoord; 7] = [
     MapCoord::new(18, 31),
     MapCoord::new(35, 31),
 ];
-
-const PROJECTILE_WHOOSH_INTERVAL_MIN_SECS: f32 = 0.5;
-const PROJECTILE_WHOOSH_INTERVAL_MAX_SECS: f32 = 0.75;
-
-pub(crate) static PROJECTILE_TRAIL_SOUND_IDS: LazyLock<
-    Mutex<HashMap<AttackId, (ProjectileTrail, sound::SoundId)>>,
-> = LazyLock::new(|| Mutex::new(HashMap::new()));
-
-#[derive(Default, Clone)]
-pub(crate) struct ProjectileTrailEffectState {
-    pub trail_distance_remainder: f32,
-    pub whoosh_cooldown_secs: f32,
-}
-
-pub(crate) static PROJECTILE_TRAIL_EFFECT_STATE: LazyLock<
-    Mutex<HashMap<AttackId, ProjectileTrailEffectState>>,
-> = LazyLock::new(|| Mutex::new(HashMap::new()));
 
 impl namui::bincode::Encode for PresentationEventQueue {
     fn encode<__E: namui::bincode::enc::Encoder>(
@@ -1466,7 +1445,6 @@ impl namui::bincode::Encode for presentation_projection::LegacyProjectionCodec {
         encode_deck(&self.deck, encoder)?;
         items_for_legacy_serialization(&self.items).encode(encoder)?;
         encode_monster_spawn_state(&self.monster_spawn_state, encoder)?;
-        self.attacks_for_legacy_serialization().encode(encoder)?;
         encode_user_status_effects(&self.user_status_effects, encoder)?;
         encode_entity_id_allocator(self.next_entity_id, encoder)?;
         encode_game_metrics(
@@ -1515,7 +1493,6 @@ impl namui::bincode::Decode<()> for presentation_projection::LegacyProjectionCod
             ),
         )?;
         let monster_spawn_state = decode_monster_spawn_state(decoder)?;
-        let in_flight_attacks = Vec::<attack::InFlightAttack>::decode(decoder)?;
         let user_status_effects = decode_user_status_effects(decoder)?;
         let next_entity_id = decode_entity_id_allocator(decoder)?;
         let metrics = decode_game_metrics(decoder)?;
@@ -1545,7 +1522,6 @@ impl namui::bincode::Decode<()> for presentation_projection::LegacyProjectionCod
             deck,
             items,
             monster_spawn_state,
-            in_flight_attacks,
             user_status_effects,
             next_entity_id,
             metrics.to_core_metrics(),
@@ -1565,9 +1541,7 @@ impl namui::bincode::Decode<()> for presentation_projection::LegacyProjectionCod
             replay_checkpoints,
         );
         state.pending_card_service_kind = pending_card_service_kind;
-        if !state.normalize_decoded_entity_snapshots()
-            || !state.normalize_decoded_attack_snapshots()
-        {
+        if !state.normalize_decoded_entity_snapshots() {
             return Err(namui::bincode::error::DecodeError::OtherString(
                 "invalid entity snapshot collection".to_string(),
             ));
@@ -1591,7 +1565,6 @@ impl namui::Serialize for presentation_projection::LegacyProjectionCodec {
         serialize_deck(&self.deck, buf);
         items_for_legacy_serialization(&self.items).serialize(buf);
         serialize_monster_spawn_state(&self.monster_spawn_state, buf);
-        self.attacks_for_legacy_serialization().serialize(buf);
         serialize_user_status_effects(&self.user_status_effects, buf);
         serialize_entity_id_allocator(self.next_entity_id, buf);
         serialize_game_metrics(&GameMetrics::from_core_metrics(self.metrics.clone()), buf);
@@ -1626,8 +1599,6 @@ impl namui::Serialize for presentation_projection::LegacyProjectionCodec {
         serialize_deck_without_name(&self.deck, buf);
         items_for_legacy_serialization(&self.items).serialize_without_name(buf);
         serialize_monster_spawn_state_without_name(&self.monster_spawn_state, buf);
-        self.attacks_for_legacy_serialization()
-            .serialize_without_name(buf);
         serialize_user_status_effects_without_name(&self.user_status_effects, buf);
         serialize_entity_id_allocator_without_name(self.next_entity_id, buf);
         serialize_game_metrics_without_name(
@@ -1683,7 +1654,6 @@ impl namui::Deserialize for presentation_projection::LegacyProjectionCodec {
                 },
             )?,
             deserialize_monster_spawn_state(buf)?,
-            Vec::<attack::InFlightAttack>::deserialize(buf)?,
             deserialize_user_status_effects(buf)?,
             deserialize_entity_id_allocator(buf)?,
             deserialize_game_metrics(buf)?.to_core_metrics(),
@@ -1704,9 +1674,7 @@ impl namui::Deserialize for presentation_projection::LegacyProjectionCodec {
         );
         let pending_card_service_kind = Option::<u8>::deserialize(buf)?;
         state.pending_card_service_kind = pending_card_service_kind;
-        if !state.normalize_decoded_entity_snapshots()
-            || !state.normalize_decoded_attack_snapshots()
-        {
+        if !state.normalize_decoded_entity_snapshots() {
             return Err(namui::DeserializeError::InvalidEnumVariant {
                 expected: "valid entity snapshot collection".to_string(),
                 actual: "invalid entity snapshot collection".to_string(),
@@ -1738,7 +1706,6 @@ impl namui::Deserialize for presentation_projection::LegacyProjectionCodec {
                     actual: "invalid item collection state".to_string(),
                 })?,
             deserialize_monster_spawn_state_without_name(buf)?,
-            Vec::<attack::InFlightAttack>::deserialize_without_name(buf)?,
             deserialize_user_status_effects_without_name(buf)?,
             deserialize_entity_id_allocator_without_name(buf)?,
             deserialize_game_metrics_without_name(buf)?.to_core_metrics(),
@@ -1922,40 +1889,6 @@ impl GameState {
         }
     }
 
-    pub(crate) fn presentation_in_flight_attacks(
-        &self,
-    ) -> Vec<crate::game_state::attack::InFlightAttack> {
-        self.raw_core
-            .in_flight_attacks()
-            .iter()
-            .map(|attack| {
-                let presentation = self
-                    .presentation_metadata
-                    .projectile(crate::AttackId::from_raw(attack.id))
-                    .map(|projectile| {
-                        (
-                            projectile.projectile_kind,
-                            projectile.trail,
-                            projectile.hit_effect,
-                        )
-                    })
-                    .or_else(|| {
-                        matches!(&attack.kind, td_core::InFlightAttackKindState::Spatial(_))
-                            .then_some((
-                                crate::game_state::projectile::ProjectileKind::Trash01,
-                                crate::game_state::projectile::ProjectileTrail::None,
-                                crate::game_state::attack::ProjectileHitEffect::TrashBounce,
-                            ))
-                    });
-                crate::game_state::attack::InFlightAttack::from_core_state(
-                    attack.clone(),
-                    presentation,
-                )
-                .expect("raw attack must be restorable for presentation")
-            })
-            .collect()
-    }
-
     pub(crate) fn deselect_placing_tower_slot(&mut self, hand_slot_index: usize) -> bool {
         let mut raw = self.raw_core.state().clone();
         if !matches!(raw.flow(), td_core::GameFlowState::PlacingTower) {
@@ -2110,19 +2043,6 @@ impl GameState {
             let raw = self.raw_core.state().clone();
             self.presentation_metadata.refresh_from_core(&raw);
             self.refresh_monster_animation_runtime(false);
-            #[cfg(any(test, feature = "debug-tools"))]
-            for attack in &self.presentation_projection.in_flight_attacks {
-                if let crate::game_state::attack::InFlightAttackKind::Spatial(spatial) =
-                    &attack.kind
-                {
-                    self.presentation_metadata.insert_projectile(
-                        attack.id,
-                        spatial.projectile_kind,
-                        spatial.trail,
-                        spatial.hit_effect,
-                    );
-                }
-            }
         }
     }
 
@@ -2350,15 +2270,12 @@ impl GameState {
 
     pub fn flush_presentation_events(&mut self, presentation_instant: PresentationInstant) {
         let presentation_now = presentation_instant.as_namui();
-        let mut active_trail_sound_projectiles = std::collections::HashSet::new();
-        let mut active_projectile_sound_ids = PROJECTILE_TRAIL_SOUND_IDS.lock().unwrap();
 
         let presentation_events = self.pending_presentation_events.drain().collect::<Vec<_>>();
         for event in presentation_events {
             match event {
                 PresentationEvent::AnimateBase(_) => {}
                 PresentationEvent::ShakeCamera { .. } => {}
-                PresentationEvent::SpawnRoyalStraightFlushVisual { .. } => {}
                 PresentationEvent::SpawnGoldReward { .. } => {}
                 PresentationEvent::SpawnParticle(request) => match request {
                     ParticleSpawnRequest::DamageText { position, damage } => {
@@ -2369,20 +2286,6 @@ impl GameState {
                                 presentation_now,
                             ),
                         );
-                    }
-                    ParticleSpawnRequest::TrashBounce {
-                        projectile_kind,
-                        start_xy,
-                        end_xy,
-                    } => {
-                        for particle in field_particle::emitter::create_bounce_particles(
-                            projectile_kind,
-                            (start_xy[0], start_xy[1]),
-                            (end_xy[0], end_xy[1]),
-                            presentation_now,
-                        ) {
-                            field_particle::TRASHES.spawn(particle);
-                        }
                     }
                     ParticleSpawnRequest::MonsterSoul {
                         position,
@@ -2423,7 +2326,6 @@ impl GameState {
                     max_duration_ms,
                 } => {
                     let asset = match cue {
-                        SoundCue::KnifeSlash => sound::deterministic_knife_slash(),
                         SoundCue::Coin => sound::random_coin_sounds(),
                         SoundCue::LuggageDrop => sound::random_luggage_drop(),
                         SoundCue::StartDefenseFanfare => sound::random_trumpet_fanfares(),
@@ -2433,7 +2335,6 @@ impl GameState {
                         SoundCue::PaperCrumpling => sound::random_paper_crumpling(),
                         SoundCue::RedLaserShot => sound::deterministic_red_laser_shot(),
                         SoundCue::Whoop => sound::deterministic_whoop(),
-                        SoundCue::Wind => sound::deterministic_wind(),
                         SoundCue::Flamethrower => sound::deterministic_flamethrower(),
                         SoundCue::SmokeBomb => sound::deterministic_smoke_bomb(),
                     };
@@ -2443,12 +2344,6 @@ impl GameState {
                         SoundVolume::High => sound::VolumePreset::High,
                     };
                     let (group, spatial) = match (cue, position) {
-                        (SoundCue::KnifeSlash, Some(position)) => (
-                            sound::SoundGroup::Sfx,
-                            sound::SpatialMode::Spatial {
-                                position: MapCoordF32::new(position[0], position[1]),
-                            },
-                        ),
                         (SoundCue::Coin, None) => {
                             (sound::SoundGroup::Ui, sound::SpatialMode::NonSpatial)
                         }
@@ -2469,7 +2364,6 @@ impl GameState {
                         }
                         (SoundCue::RedLaserShot, Some(position))
                         | (SoundCue::Whoop, Some(position))
-                        | (SoundCue::Wind, Some(position))
                         | (SoundCue::Flamethrower, Some(position))
                         | (SoundCue::SmokeBomb, Some(position)) => (
                             sound::SoundGroup::Sfx,
@@ -2496,7 +2390,6 @@ impl GameState {
                     delay_ms,
                 } => {
                     let asset = match cue {
-                        SoundCue::KnifeSlash => sound::deterministic_knife_slash(),
                         SoundCue::Coin => sound::random_coin_sounds(),
                         SoundCue::LuggageDrop => sound::random_luggage_drop(),
                         SoundCue::StartDefenseFanfare => sound::random_trumpet_fanfares(),
@@ -2506,7 +2399,6 @@ impl GameState {
                         SoundCue::PaperCrumpling => sound::random_paper_crumpling(),
                         SoundCue::RedLaserShot => sound::deterministic_red_laser_shot(),
                         SoundCue::Whoop => sound::deterministic_whoop(),
-                        SoundCue::Wind => sound::deterministic_wind(),
                         SoundCue::Flamethrower => sound::deterministic_flamethrower(),
                         SoundCue::SmokeBomb => sound::deterministic_smoke_bomb(),
                     };
@@ -2516,12 +2408,6 @@ impl GameState {
                         SoundVolume::High => sound::VolumePreset::High,
                     };
                     let (group, spatial) = match (cue, position) {
-                        (SoundCue::KnifeSlash, Some(position)) => (
-                            sound::SoundGroup::Sfx,
-                            sound::SpatialMode::Spatial {
-                                position: MapCoordF32::new(position[0], position[1]),
-                            },
-                        ),
                         (SoundCue::Coin, None) => {
                             (sound::SoundGroup::Ui, sound::SpatialMode::NonSpatial)
                         }
@@ -2542,7 +2428,6 @@ impl GameState {
                         }
                         (SoundCue::RedLaserShot, Some(position))
                         | (SoundCue::Whoop, Some(position))
-                        | (SoundCue::Wind, Some(position))
                         | (SoundCue::Flamethrower, Some(position))
                         | (SoundCue::SmokeBomb, Some(position)) => (
                             sound::SoundGroup::Sfx,
@@ -2570,343 +2455,153 @@ impl GameState {
                         );
                     }
                 }
-                PresentationEvent::SpawnProjectileTrail {
-                    trail,
+                PresentationEvent::SpawnTowerAttackVisualEffect {
+                    tower_kind,
                     start_xy,
                     end_xy,
-                    count,
+                    attack_range_radius,
                 } => {
-                    let start_xy = MapCoordF32::new(start_xy[0], start_xy[1]);
-                    let end_xy = MapCoordF32::new(end_xy[0], end_xy[1]);
-                    match trail {
-                        ProjectileTrail::Burning => {
-                            field_particle::emitter::spawn_burning_trail(
-                                start_xy,
-                                end_xy,
-                                count,
-                                presentation_now,
-                            );
+                    let effect = match tower_kind {
+                        tower::TowerKind::High => {
+                            Some(field_particle::emitter::attack::AttackVisualEffect::High {
+                                start_xy: (start_xy[0], start_xy[1]),
+                                end_xy: (end_xy[0], end_xy[1]),
+                            })
                         }
-                        ProjectileTrail::Sparkle => {
-                            field_particle::emitter::spawn_sparkle_trail(
-                                start_xy,
-                                end_xy,
-                                count,
-                                presentation_now,
-                            );
+                        tower::TowerKind::OnePair => Some(
+                            field_particle::emitter::attack::AttackVisualEffect::OnePair {
+                                start_xy: (start_xy[0], start_xy[1]),
+                                end_xy: (end_xy[0], end_xy[1]),
+                            },
+                        ),
+                        tower::TowerKind::TwoPair => Some(
+                            field_particle::emitter::attack::AttackVisualEffect::TwoPair {
+                                start_xy: (start_xy[0], start_xy[1]),
+                                end_xy: (end_xy[0], end_xy[1]),
+                            },
+                        ),
+                        tower::TowerKind::ThreeOfAKind => Some(
+                            field_particle::emitter::attack::AttackVisualEffect::ThreeOfAKind {
+                                start_xy: (start_xy[0], start_xy[1]),
+                                end_xy: (end_xy[0], end_xy[1]),
+                                attack_range_radius,
+                            },
+                        ),
+                        tower::TowerKind::Straight => Some(
+                            field_particle::emitter::attack::AttackVisualEffect::Straight {
+                                start_xy: (start_xy[0], start_xy[1]),
+                                end_xy: (end_xy[0], end_xy[1]),
+                            },
+                        ),
+                        tower::TowerKind::StraightFlush => Some(
+                            field_particle::emitter::attack::AttackVisualEffect::StraightFlushMuzzle {
+                                center_xy: (start_xy[0], start_xy[1]),
+                            },
+                        ),
+                        tower::TowerKind::RoyalFlush => Some(
+                            field_particle::emitter::attack::AttackVisualEffect::RoyalStraightFlush {
+                                start_xy: (start_xy[0], start_xy[1]),
+                                end_xy: (end_xy[0], end_xy[1]),
+                            },
+                        ),
+                        tower::TowerKind::FourOfAKind => Some(
+                            field_particle::emitter::attack::AttackVisualEffect::FourOfAKind {
+                                start_xy: (start_xy[0], start_xy[1]),
+                                end_xy: (end_xy[0], end_xy[1]),
+                            },
+                        ),
+                        tower::TowerKind::Flush => {
+                            Some(field_particle::emitter::attack::AttackVisualEffect::Flush {
+                                start_xy: (start_xy[0], start_xy[1]),
+                                target_xy: (end_xy[0], end_xy[1]),
+                            })
                         }
-                        ProjectileTrail::WindCurve => {
-                            field_particle::emitter::spawn_wind_curve_trail(
-                                start_xy,
-                                end_xy,
-                                count,
-                                presentation_now,
-                            );
-                        }
-                        ProjectileTrail::Heart => {
-                            field_particle::emitter::spawn_heart_trail(
-                                start_xy,
-                                end_xy,
-                                count,
-                                presentation_now,
-                            );
-                        }
-                        ProjectileTrail::LightningSparkle => {
-                            field_particle::emitter::spawn_lightning_trail(
-                                start_xy,
-                                end_xy,
-                                count,
-                                presentation_now,
-                            );
-                            field_particle::emitter::spawn_sparkle_trail(
-                                start_xy,
-                                end_xy,
-                                count,
-                                presentation_now,
-                            );
-                        }
-                        ProjectileTrail::None => {}
+                        tower::TowerKind::FullHouse => Some(
+                            field_particle::emitter::attack::AttackVisualEffect::FullHouse {
+                                start_xy: (start_xy[0], start_xy[1]),
+                                center_xy: (end_xy[0], end_xy[1]),
+                                attack_range_radius,
+                            },
+                        ),
+                        _ => None,
+                    };
+                    if let Some(effect) = effect {
+                        field_particle::emitter::attack::spawn_tower_attack_visual_effect(
+                            effect,
+                            presentation_now,
+                        );
                     }
                 }
-                PresentationEvent::SpawnProjectileHitEffect(hit_effect, impact_xy) => {
-                    let impact_xy = MapCoordF32::new(impact_xy[0], impact_xy[1]);
-                    use crate::game_state::attack::ProjectileHitEffect;
-                    match hit_effect {
-                        ProjectileHitEffect::CardBurst => {
-                            field_particle::emitter::spawn_card_burst(impact_xy, presentation_now);
-                        }
-                        ProjectileHitEffect::SparkleBurst => {
-                            field_particle::emitter::spawn_sparkle_burst(
-                                impact_xy,
+                PresentationEvent::SpawnMonsterHitVisualEffect {
+                    source,
+                    start_xy,
+                    impact_xy,
+                    chain_delay_ms,
+                } => match source {
+                    presentation_event::MonsterHitVisualSource::Tower { kind } => match kind {
+                        tower::TowerKind::ThreeOfAKind => {
+                            field_particle::emitter::attack::spawn_tower_attack_visual_effect(
+                                field_particle::emitter::attack::AttackVisualEffect::ThreeOfAKindHit {
+                                    start_xy: (start_xy[0], start_xy[1]),
+                                    impact_xy: (impact_xy[0], impact_xy[1]),
+                                },
                                 presentation_now,
                             );
                         }
-                        ProjectileHitEffect::HeartBurst => {
-                            field_particle::emitter::spawn_heart_burst(impact_xy, presentation_now);
+                        tower::TowerKind::Straight => {
+                            field_particle::emitter::attack::spawn_tower_attack_visual_effect(
+                                field_particle::emitter::attack::AttackVisualEffect::StraightHit {
+                                    start_xy: (start_xy[0], start_xy[1]),
+                                    impact_xy: (impact_xy[0], impact_xy[1]),
+                                },
+                                presentation_now,
+                            );
                         }
-                        ProjectileHitEffect::TrashBounce => {
-                            // Trash bounce is handled as direct projectile activity elsewhere.
+                        tower::TowerKind::StraightFlush => {
+                            field_particle::emitter::attack::spawn_tower_attack_visual_effect(
+                                field_particle::emitter::attack::AttackVisualEffect::StraightFlushHit {
+                                    start_xy: (start_xy[0], start_xy[1]),
+                                    impact_xy: (impact_xy[0], impact_xy[1]),
+                                    chain_delay: Duration::from_millis(chain_delay_ms as i64),
+                                },
+                                presentation_now,
+                            );
                         }
-                    }
-                }
-                PresentationEvent::SpawnLaserBeam(start_xy, end_xy) => {
-                    field_particle::emitter::spawn_laser_beam(start_xy, end_xy, presentation_now);
-                }
+                        tower::TowerKind::FourOfAKind => {
+                            field_particle::emitter::attack::spawn_tower_attack_visual_effect(
+                                field_particle::emitter::attack::AttackVisualEffect::FourOfAKindHit {
+                                    start_xy: (start_xy[0], start_xy[1]),
+                                    impact_xy: (impact_xy[0], impact_xy[1]),
+                                },
+                                presentation_now,
+                            );
+                        }
+                        tower::TowerKind::Flush => {
+                            field_particle::emitter::attack::spawn_tower_attack_visual_effect(
+                                field_particle::emitter::attack::AttackVisualEffect::FlushHit {
+                                    start_xy: (start_xy[0], start_xy[1]),
+                                    impact_xy: (impact_xy[0], impact_xy[1]),
+                                },
+                                presentation_now,
+                            );
+                        }
+                        tower::TowerKind::FullHouse => {
+                            field_particle::emitter::attack::spawn_tower_attack_visual_effect(
+                                field_particle::emitter::attack::AttackVisualEffect::FullHouseHit {
+                                    impact_xy: (impact_xy[0], impact_xy[1]),
+                                },
+                                presentation_now,
+                            );
+                        }
+                        _ => {}
+                    },
+                },
                 PresentationEvent::SpawnTowerRemoveDustBurst(center_xy) => {
                     field_particle::emitter::spawn_tower_remove_dust_burst(
                         center_xy,
                         presentation_now,
                     );
                 }
-                PresentationEvent::SyncProjectileTrailState {
-                    projectile_id,
-                    trail,
-                    start_xy,
-                    end_xy,
-                    moved_distance,
-                    dt_secs,
-                } => {
-                    let start_xy = MapCoordF32::new(start_xy[0], start_xy[1]);
-                    let end_xy = MapCoordF32::new(end_xy[0], end_xy[1]);
-                    active_trail_sound_projectiles.insert(projectile_id);
-                    let mut effect_states = PROJECTILE_TRAIL_EFFECT_STATE.lock().unwrap();
-                    let state = effect_states.entry(projectile_id).or_default();
-
-                    state.trail_distance_remainder += moved_distance;
-                    let spawn_distance = match trail {
-                        ProjectileTrail::None => None,
-                        ProjectileTrail::Burning => {
-                            Some(field_particle::emitter::BURNING_TRAIL_SPAWN_DISTANCE)
-                        }
-                        ProjectileTrail::Sparkle => {
-                            Some(field_particle::emitter::SPARKLE_SPAWN_DISTANCE)
-                        }
-                        ProjectileTrail::WindCurve => {
-                            Some(field_particle::emitter::WIND_CURVE_SPAWN_DISTANCE)
-                        }
-                        ProjectileTrail::Heart => {
-                            Some(field_particle::emitter::HEART_SPAWN_DISTANCE)
-                        }
-                        ProjectileTrail::LightningSparkle => {
-                            Some(field_particle::emitter::LIGHTNING_TRAIL_SPAWN_DISTANCE)
-                        }
-                    };
-
-                    if let Some(spawn_distance) = spawn_distance {
-                        let spawn_count =
-                            (state.trail_distance_remainder / spawn_distance).floor() as usize;
-                        if spawn_count > 0 {
-                            state.trail_distance_remainder -= spawn_count as f32 * spawn_distance;
-                            match trail {
-                                ProjectileTrail::Burning => {
-                                    field_particle::emitter::spawn_burning_trail(
-                                        start_xy,
-                                        end_xy,
-                                        spawn_count,
-                                        presentation_now,
-                                    );
-                                }
-                                ProjectileTrail::Sparkle => {
-                                    field_particle::emitter::spawn_sparkle_trail(
-                                        start_xy,
-                                        end_xy,
-                                        spawn_count,
-                                        presentation_now,
-                                    );
-                                }
-                                ProjectileTrail::WindCurve => {
-                                    field_particle::emitter::spawn_wind_curve_trail(
-                                        start_xy,
-                                        end_xy,
-                                        spawn_count,
-                                        presentation_now,
-                                    );
-                                }
-                                ProjectileTrail::Heart => {
-                                    field_particle::emitter::spawn_heart_trail(
-                                        start_xy,
-                                        end_xy,
-                                        spawn_count,
-                                        presentation_now,
-                                    );
-                                }
-                                ProjectileTrail::LightningSparkle => {
-                                    field_particle::emitter::spawn_lightning_trail(
-                                        start_xy,
-                                        end_xy,
-                                        spawn_count,
-                                        presentation_now,
-                                    );
-                                    field_particle::emitter::spawn_sparkle_trail(
-                                        start_xy,
-                                        end_xy,
-                                        spawn_count,
-                                        presentation_now,
-                                    );
-                                }
-                                ProjectileTrail::None => {}
-                            }
-                        }
-                    }
-
-                    state.whoosh_cooldown_secs -= dt_secs;
-                    if state.whoosh_cooldown_secs <= 0.0 {
-                        crate::sound::emit_sound(sound::EmitSoundParams::one_shot(
-                            sound::random_whoosh(),
-                            sound::SoundGroup::Sfx,
-                            sound::VolumePreset::Minimum,
-                            sound::SpatialMode::Spatial { position: end_xy },
-                        ));
-                        state.whoosh_cooldown_secs = rand::thread_rng().gen_range(
-                            PROJECTILE_WHOOSH_INTERVAL_MIN_SECS
-                                ..=PROJECTILE_WHOOSH_INTERVAL_MAX_SECS,
-                        );
-                    }
-
-                    let existing_entry = active_projectile_sound_ids.get_mut(&projectile_id);
-                    match trail {
-                        ProjectileTrail::Burning => {
-                            let sound_id = match existing_entry {
-                                Some((existing_trail, sound_id))
-                                    if *existing_trail == ProjectileTrail::Burning =>
-                                {
-                                    crate::sound::update_sound_position(*sound_id, end_xy);
-                                    *sound_id
-                                }
-                                Some((existing_trail, sound_id)) => {
-                                    crate::sound::stop_sound(*sound_id);
-                                    let params = sound::EmitSoundParams::looping(
-                                        sound::random_crackling_fire(),
-                                        sound::SoundGroup::Sfx,
-                                        sound::VolumePreset::Minimum,
-                                        sound::SpatialMode::Spatial { position: end_xy },
-                                    )
-                                    .with_max_duration(Duration::from_secs(32));
-                                    let new_sound_id = crate::sound::emit_sound(params);
-                                    *existing_trail = ProjectileTrail::Burning;
-                                    *sound_id = new_sound_id;
-                                    new_sound_id
-                                }
-                                None => {
-                                    let params = sound::EmitSoundParams::looping(
-                                        sound::random_crackling_fire(),
-                                        sound::SoundGroup::Sfx,
-                                        sound::VolumePreset::Minimum,
-                                        sound::SpatialMode::Spatial { position: end_xy },
-                                    )
-                                    .with_max_duration(Duration::from_secs(32));
-                                    let sound_id = crate::sound::emit_sound(params);
-                                    active_projectile_sound_ids.insert(
-                                        projectile_id,
-                                        (ProjectileTrail::Burning, sound_id),
-                                    );
-                                    sound_id
-                                }
-                            };
-                            let _ = sound_id;
-                        }
-                        ProjectileTrail::Sparkle => {
-                            let sound_id = match existing_entry {
-                                Some((existing_trail, sound_id))
-                                    if *existing_trail == ProjectileTrail::Sparkle =>
-                                {
-                                    crate::sound::update_sound_position(*sound_id, end_xy);
-                                    *sound_id
-                                }
-                                Some((existing_trail, sound_id)) => {
-                                    crate::sound::stop_sound(*sound_id);
-                                    let params = sound::EmitSoundParams::looping(
-                                        sound::random_shining_ringing(),
-                                        sound::SoundGroup::Sfx,
-                                        sound::VolumePreset::Minimum,
-                                        sound::SpatialMode::Spatial { position: end_xy },
-                                    )
-                                    .with_max_duration(Duration::from_secs(32));
-                                    let new_sound_id = crate::sound::emit_sound(params);
-                                    *existing_trail = ProjectileTrail::Sparkle;
-                                    *sound_id = new_sound_id;
-                                    new_sound_id
-                                }
-                                None => {
-                                    let params = sound::EmitSoundParams::looping(
-                                        sound::random_shining_ringing(),
-                                        sound::SoundGroup::Sfx,
-                                        sound::VolumePreset::Minimum,
-                                        sound::SpatialMode::Spatial { position: end_xy },
-                                    )
-                                    .with_max_duration(Duration::from_secs(32));
-                                    let sound_id = crate::sound::emit_sound(params);
-                                    active_projectile_sound_ids.insert(
-                                        projectile_id,
-                                        (ProjectileTrail::Sparkle, sound_id),
-                                    );
-                                    sound_id
-                                }
-                            };
-                            let _ = sound_id;
-                        }
-                        ProjectileTrail::WindCurve => {
-                            let sound_id = match existing_entry {
-                                Some((existing_trail, sound_id))
-                                    if *existing_trail == ProjectileTrail::WindCurve =>
-                                {
-                                    crate::sound::update_sound_position(*sound_id, end_xy);
-                                    *sound_id
-                                }
-                                Some((existing_trail, sound_id)) => {
-                                    crate::sound::stop_sound(*sound_id);
-                                    let params = sound::EmitSoundParams::looping(
-                                        sound::random_wind(),
-                                        sound::SoundGroup::Sfx,
-                                        sound::VolumePreset::Minimum,
-                                        sound::SpatialMode::Spatial { position: end_xy },
-                                    )
-                                    .with_max_duration(Duration::from_secs(32));
-                                    let new_sound_id = crate::sound::emit_sound(params);
-                                    *existing_trail = ProjectileTrail::WindCurve;
-                                    *sound_id = new_sound_id;
-                                    new_sound_id
-                                }
-                                None => {
-                                    let params = sound::EmitSoundParams::looping(
-                                        sound::random_wind(),
-                                        sound::SoundGroup::Sfx,
-                                        sound::VolumePreset::Minimum,
-                                        sound::SpatialMode::Spatial { position: end_xy },
-                                    )
-                                    .with_max_duration(Duration::from_secs(32));
-                                    let sound_id = crate::sound::emit_sound(params);
-                                    active_projectile_sound_ids.insert(
-                                        projectile_id,
-                                        (ProjectileTrail::WindCurve, sound_id),
-                                    );
-                                    sound_id
-                                }
-                            };
-                            let _ = sound_id;
-                        }
-                        ProjectileTrail::Heart
-                        | ProjectileTrail::LightningSparkle
-                        | ProjectileTrail::None => {
-                            if let Some((_, sound_id)) =
-                                active_projectile_sound_ids.remove(&projectile_id)
-                            {
-                                crate::sound::stop_sound(sound_id);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        let stale_keys: Vec<AttackId> = active_projectile_sound_ids
-            .keys()
-            .filter(|key| !active_trail_sound_projectiles.contains(key))
-            .cloned()
-            .collect();
-        for stale_key in stale_keys {
-            if let Some((_, sound_id)) = active_projectile_sound_ids.remove(&stale_key) {
-                crate::sound::stop_sound(sound_id);
             }
         }
     }
@@ -3550,55 +3245,6 @@ mod tests {
         assert_eq!(
             restored.presentation_projection().monster_snapshots(),
             expected_snapshots
-        );
-        assert_eq!(restored.authoritative_hash(), expected_hash);
-    }
-
-    #[test]
-    fn in_flight_attack_codec_fixture_preserves_raw_state_and_hash() {
-        let mut original = create_game_state_with_seed(0xA771_AA77);
-        let spatial = crate::game_state::attack::SpatialAttack::new_homing(
-            WorldCoord::ZERO,
-            crate::game_state::projectile::ProjectileTargetIndicator::from_id(MonsterId::from_raw(
-                7,
-            )),
-            19,
-            crate::game_state::projectile::ProjectileKind::Cards00,
-            crate::game_state::projectile::ProjectileTrail::None,
-            crate::game_state::attack::ProjectileHitEffect::CardBurst,
-        );
-        original
-            .presentation_projection_mut()
-            .in_flight_attacks
-            .push(
-                crate::game_state::attack::InFlightAttack::new_spatial(
-                    AttackId::from_raw(77),
-                    spatial,
-                    Damage::from_integer(42),
-                    None,
-                )
-                .with_on_hit_splashes(vec![crate::card::EngravingSplash {
-                    radius: WorldDistance::from_tiles(2),
-                    damage_pct: FixedRatio::from_raw(500_000),
-                }]),
-            );
-        let expected_state =
-            original.presentation_projection().in_flight_attacks[0].to_core_state();
-        let expected_hash = original.authoritative_hash();
-        let bytes = namui::bincode::encode_to_vec(&original, namui::bincode::config::standard())
-            .expect("GameState should serialize with an in-flight attack");
-        let (restored, consumed): (GameState, usize) =
-            namui::bincode::decode_from_slice(&bytes, namui::bincode::config::standard())
-                .expect("GameState should deserialize with an in-flight attack");
-
-        assert_eq!(consumed, bytes.len());
-        assert_eq!(
-            restored.presentation_projection().in_flight_attacks.len(),
-            1
-        );
-        assert_eq!(
-            restored.presentation_projection().in_flight_attacks[0].to_core_state(),
-            expected_state
         );
         assert_eq!(restored.authoritative_hash(), expected_hash);
     }

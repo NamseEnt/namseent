@@ -4,7 +4,7 @@
 
 - `SimTick` is the authoritative 60 Hz simulation position.
 - `SimTickSpan` is a duration in simulation ticks. Gameplay deadlines and intervals use this type.
-- A simulation step advances `SimTick` by exactly one. Spawn, cooldown, status effects, timed attacks, monster movement, and projectile movement are simulation work.
+- A simulation step advances `SimTick` by exactly one. Spawn, cooldown, status effects, immediate tower damage, and monster movement are simulation work.
 - Fast-forward changes the number of fixed steps executed by the scheduler; it never changes the length of a step.
 
 ## Presentation domain
@@ -22,7 +22,6 @@
 | --- | --- | --- |
 | Monster spawn, movement, attack, status effect | `SimTick` / `SimTickSpan` | Changes authoritative gameplay state |
 | Tower cooldown, skill duration, tower attack squash | `SimTick` / `SimTickSpan` | Must remain deterministic under fast-forward |
-| Spatial/timed/laser attack lifetime and Royal Flush phases | `SimTick` / `SimTickSpan` | World attack sequence follows simulation steps |
 | Base hit/spawn squash | `SimTick` / `SimTickSpan` | Triggered by authoritative world events |
 | Field particles, trails, damage text, sound playback | `PresentationInstant` / `PresentationDelta` | Cosmetic playback must not accelerate with fast-forward |
 | Card-service notification, hover, long press, menu transition | `PresentationInstant` / `PresentationDelta` | Screen UI follows real elapsed time |
@@ -44,7 +43,7 @@
 
 ## World and screen VFX classification
 
-- Simulation-coupled world animation uses `SimRenderTime`: monster and spatial projectile poses, tower/base spring poses, and Royal Straight Flush world phases.
+- Simulation-coupled world animation uses `SimRenderTime`: monster poses and tower/base spring poses.
 - World-space cosmetic playback remains presentation-only: death corpse/soul events, field particles, projectile trails, damage text, and sound use `PresentationInstant`/`PresentationDelta` and do not affect authoritative state.
 - Screen UI VFX and interaction animation—notifications, hover, long press, menus, and camera/UI transitions—also use `PresentationInstant`/`PresentationDelta`.
 - The raw `namui::Instant` particle adapter remains on the presentation side of this boundary.

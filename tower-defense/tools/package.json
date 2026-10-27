@@ -5,7 +5,7 @@
   "module": "./generate_particle_atlas.ts",
   "type": "module",
   "scripts": {
-    "gen": "bun ."
+    "gen": "bun generate_atlas.ts"
   },
   "keywords": [],
   "author": "",

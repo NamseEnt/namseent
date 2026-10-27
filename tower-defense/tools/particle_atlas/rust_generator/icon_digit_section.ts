@@ -31,6 +31,7 @@ export function appendIconAndDigitSection(rs: string, icons: Atlas): string {
         Multiply: "ICON_MULTIPLY",
         Rating: "ICON_RATING",
         Deck: "ICON_DECK",
+        Encyclopedia: "ICON_DECK",
     };
     const suitMapping = {
         Spades: "ICON_SUIT_SPADES",

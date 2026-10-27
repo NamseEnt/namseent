@@ -138,8 +138,10 @@ pub(crate) fn consume_headed(
             }
             td_core::CoreEvent::TowerAttack {
                 tower_id,
-                attack_ids,
-                projectile_attack_ids,
+                tower_kind: tower_kind_raw,
+                start_xy,
+                end_xy,
+                attack_range_raw,
                 ..
             } => {
                 game_state.presentation_metadata.transition_tower_animation(
@@ -147,109 +149,62 @@ pub(crate) fn consume_headed(
                     crate::game_state::tower::AnimationKind::Attack,
                     game_state.sim_tick(),
                 );
-                let tower_events =
-                    tower_attack_presentation_events(game_state.raw_core_state(), &attack_ids);
-                for event in tower_events {
-                    game_state.push_presentation_event(event);
-                }
-                let projectile_events = {
-                    let raw_state = game_state.raw_core.state();
-                    let headed_attacks = game_state.presentation_in_flight_attacks();
-                    let presentation_metadata = &mut game_state.presentation_metadata;
-                    projectile_attack_ids
-                        .iter()
-                        .filter_map(|attack_id| {
-                            projectile_spawn_presentation_event(
-                                raw_state,
-                                &headed_attacks,
-                                presentation_metadata,
-                                *attack_id,
-                            )
-                        })
-                        .collect::<Vec<_>>()
-                };
-                for event in projectile_events {
-                    game_state.push_presentation_event(event);
+                if let Some(
+                    tower_kind @ (crate::game_state::tower::TowerKind::High
+                    | crate::game_state::tower::TowerKind::OnePair
+                    | crate::game_state::tower::TowerKind::TwoPair
+                    | crate::game_state::tower::TowerKind::ThreeOfAKind
+                    | crate::game_state::tower::TowerKind::Straight
+                    | crate::game_state::tower::TowerKind::StraightFlush
+                    | crate::game_state::tower::TowerKind::RoyalFlush
+                    | crate::game_state::tower::TowerKind::FourOfAKind
+                    | crate::game_state::tower::TowerKind::Flush
+                    | crate::game_state::tower::TowerKind::FullHouse),
+                ) = crate::game_state::tower::TowerKind::from_core_raw(tower_kind_raw)
+                {
+                    game_state.push_presentation_event(
+                        crate::game_state::PresentationEvent::SpawnTowerAttackVisualEffect {
+                            tower_kind,
+                            start_xy: [
+                                start_xy[0] as f32 / crate::world::WORLD_UNITS_PER_TILE as f32,
+                                start_xy[1] as f32 / crate::world::WORLD_UNITS_PER_TILE as f32,
+                            ],
+                            end_xy: [
+                                end_xy[0] as f32 / crate::world::WORLD_UNITS_PER_TILE as f32,
+                                end_xy[1] as f32 / crate::world::WORLD_UNITS_PER_TILE as f32,
+                            ],
+                            attack_range_radius: attack_range_raw as f32
+                                / crate::world::WORLD_UNITS_PER_TILE as f32,
+                        },
+                    );
                 }
             }
-            td_core::CoreEvent::ProjectileMoved {
-                attack_id,
+            td_core::CoreEvent::TowerAttackHit {
+                tower_kind,
                 start_xy,
-                end_xy,
-            } => {
-                let Some(metadata) = game_state
-                    .presentation_metadata
-                    .projectile(crate::AttackId::from_raw(attack_id))
-                else {
-                    continue;
-                };
-                let dx = (end_xy[0] - start_xy[0]) as f32;
-                let dy = (end_xy[1] - start_xy[1]) as f32;
-                let moved_distance =
-                    (dx * dx + dy * dy).sqrt() / crate::world::WORLD_UNITS_PER_TILE as f32;
-                game_state.push_presentation_event(
-                    crate::game_state::PresentationEvent::SyncProjectileTrailState {
-                        projectile_id: crate::AttackId::from_raw(attack_id),
-                        trail: metadata.trail,
-                        start_xy: [
-                            start_xy[0] as f32 / crate::world::WORLD_UNITS_PER_TILE as f32,
-                            start_xy[1] as f32 / crate::world::WORLD_UNITS_PER_TILE as f32,
-                        ],
-                        end_xy: [
-                            end_xy[0] as f32 / crate::world::WORLD_UNITS_PER_TILE as f32,
-                            end_xy[1] as f32 / crate::world::WORLD_UNITS_PER_TILE as f32,
-                        ],
-                        moved_distance,
-                        dt_secs: 1.0 / crate::world::SIM_TICKS_PER_SECOND as f32,
-                    },
-                );
-            }
-            td_core::CoreEvent::TimedAttackExecuted { position } => {
-                let position = [
-                    position[0] as f32 / crate::world::WORLD_UNITS_PER_TILE as f32,
-                    position[1] as f32 / crate::world::WORLD_UNITS_PER_TILE as f32,
-                ];
-                game_state.push_presentation_event(
-                    crate::game_state::PresentationEvent::PlaySoundCue {
-                        cue: crate::game_state::SoundCue::KnifeSlash,
-                        position: Some(position),
-                        volume: crate::game_state::SoundVolume::Low,
-                        max_duration_ms: None,
-                    },
-                );
-                game_state.push_presentation_event(
-                    crate::game_state::PresentationEvent::PlaySoundCueDelayed {
-                        cue: crate::game_state::SoundCue::KnifeSlash,
-                        position: Some(position),
-                        volume: crate::game_state::SoundVolume::Low,
-                        delay_ms: 45,
-                    },
-                );
-            }
-            td_core::CoreEvent::ProjectileHit {
-                attack_id,
                 position,
+                chain_delay_ms,
+                ..
             } => {
-                let attack_id = crate::AttackId::from_raw(attack_id);
-                let Some(hit_effect) = game_state
-                    .presentation_metadata
-                    .projectile(attack_id)
-                    .map(|metadata| metadata.hit_effect)
-                else {
-                    continue;
-                };
-                game_state
-                    .presentation_metadata
-                    .remove_projectile(attack_id);
-                game_state.push_presentation_event(
-                    crate::game_state::PresentationEvent::SpawnProjectileHitEffect(
-                        hit_effect,
-                        [
-                            position[0] as f32 / crate::world::WORLD_UNITS_PER_TILE as f32,
-                            position[1] as f32 / crate::world::WORLD_UNITS_PER_TILE as f32,
-                        ],
-                    ),
-                );
+                if let Some(kind) = crate::game_state::tower::TowerKind::from_core_raw(tower_kind) {
+                    let units_per_tile = crate::world::WORLD_UNITS_PER_TILE as f32;
+                    game_state.push_presentation_event(
+                        crate::game_state::PresentationEvent::SpawnMonsterHitVisualEffect {
+                            source: crate::game_state::presentation_event::MonsterHitVisualSource::Tower {
+                                kind,
+                            },
+                            start_xy: [
+                                start_xy[0] as f32 / units_per_tile,
+                                start_xy[1] as f32 / units_per_tile,
+                            ],
+                            impact_xy: [
+                                position[0] as f32 / units_per_tile,
+                                position[1] as f32 / units_per_tile,
+                            ],
+                            chain_delay_ms,
+                        },
+                    );
+                }
             }
             td_core::CoreEvent::MonsterSpawned { .. } => {
                 game_state.push_presentation_event(
@@ -284,122 +239,6 @@ pub(crate) fn consume_headed(
         }
     }
     defense_intros
-}
-
-fn projectile_spawn_presentation_event(
-    raw_state: &td_core::CoreState,
-    headed_attacks: &[crate::game_state::attack::InFlightAttack],
-    presentation_metadata: &mut crate::game_state::presentation_metadata::PresentationMetadataStore,
-    attack_id: u64,
-) -> Option<crate::game_state::PresentationEvent> {
-    let raw_attack = raw_state
-        .in_flight_attacks()
-        .iter()
-        .find(|attack| attack.id == attack_id)?;
-    let td_core::InFlightAttackKindState::Spatial(spatial) = &raw_attack.kind else {
-        return None;
-    };
-    let headed_attack = headed_attacks
-        .iter()
-        .find(|attack| attack.id.raw() == attack_id)?;
-    let crate::game_state::attack::InFlightAttackKind::Spatial(presentation) = &headed_attack.kind
-    else {
-        return None;
-    };
-    let start_xy = [
-        spatial.position[0] as f32 / crate::world::WORLD_UNITS_PER_TILE as f32,
-        spatial.position[1] as f32 / crate::world::WORLD_UNITS_PER_TILE as f32,
-    ];
-    let end_xy = [
-        (spatial.position[0] + spatial.velocity[0]) as f32
-            / crate::world::WORLD_UNITS_PER_TILE as f32,
-        (spatial.position[1] + spatial.velocity[1]) as f32
-            / crate::world::WORLD_UNITS_PER_TILE as f32,
-    ];
-    let projectile_kind = presentation.projectile_kind;
-    let trail = presentation.trail;
-    let hit_effect = presentation.hit_effect;
-    presentation_metadata.insert_projectile(
-        crate::AttackId::from_raw(attack_id),
-        projectile_kind,
-        trail,
-        hit_effect,
-    );
-    Some(crate::game_state::PresentationEvent::SpawnProjectileTrail {
-        trail,
-        start_xy,
-        end_xy,
-        count: 1,
-    })
-}
-
-fn tower_attack_presentation_events(
-    state: &td_core::CoreState,
-    attack_ids: &[u64],
-) -> Vec<crate::game_state::PresentationEvent> {
-    let mut events = Vec::new();
-    for attack in state
-        .in_flight_attacks()
-        .iter()
-        .filter(|attack| attack_ids.contains(&attack.id))
-    {
-        match &attack.kind {
-            td_core::InFlightAttackKindState::Laser(laser) => {
-                let start = [
-                    laser.start_xy[0] as f32 / crate::world::WORLD_UNITS_PER_TILE as f32,
-                    laser.start_xy[1] as f32 / crate::world::WORLD_UNITS_PER_TILE as f32,
-                ];
-                let end = [
-                    laser.end_xy[0] as f32 / crate::world::WORLD_UNITS_PER_TILE as f32,
-                    laser.end_xy[1] as f32 / crate::world::WORLD_UNITS_PER_TILE as f32,
-                ];
-                events.push(crate::game_state::PresentationEvent::PlaySoundCue {
-                    cue: crate::game_state::SoundCue::RedLaserShot,
-                    position: Some(start),
-                    volume: crate::game_state::SoundVolume::Minimum,
-                    max_duration_ms: None,
-                });
-                events.push(crate::game_state::PresentationEvent::PlaySoundCue {
-                    cue: crate::game_state::SoundCue::RedLaserShot,
-                    position: Some(end),
-                    volume: crate::game_state::SoundVolume::Minimum,
-                    max_duration_ms: None,
-                });
-                events.push(crate::game_state::PresentationEvent::SpawnLaserBeam(
-                    (start[0], start[1]),
-                    (end[0], end[1]),
-                ));
-            }
-            td_core::InFlightAttackKindState::Spatial(_) => {}
-            td_core::InFlightAttackKindState::Timed(timed) => {
-                let Some(source_tower) = attack.source_tower else {
-                    continue;
-                };
-                let Some(monster) = state
-                    .monsters()
-                    .iter()
-                    .find(|monster| monster.id == timed.target_monster_id)
-                else {
-                    continue;
-                };
-                let target_xy = [
-                    (monster.move_on_route.map_coord[0] + td_core::WORLD_UNITS_PER_TILE / 2) as f32
-                        / crate::world::WORLD_UNITS_PER_TILE as f32,
-                    (monster.move_on_route.map_coord[1] + td_core::WORLD_UNITS_PER_TILE / 2) as f32
-                        / crate::world::WORLD_UNITS_PER_TILE as f32,
-                ];
-                events.push(
-                    crate::game_state::PresentationEvent::SpawnRoyalStraightFlushVisual {
-                        tower_id: crate::TowerId::from_raw(source_tower.tower_id),
-                        target_xy,
-                        target_monster_id: crate::MonsterId::from_raw(timed.target_monster_id),
-                        sim_tick: crate::SimTick::from_ticks(state.sim_tick().ticks()),
-                    },
-                );
-            }
-        }
-    }
-    events
 }
 
 pub(crate) fn consume_headless(events: impl IntoIterator<Item = td_core::CoreEvent>) {
@@ -637,9 +476,10 @@ mod tests {
                 td_core::CoreEvent::TowerAttack {
                     tower_id: 1,
                     target_id: 1,
-                    attack_kind: 0,
-                    attack_ids: vec![2],
-                    projectile_attack_ids: Vec::new(),
+                    tower_kind: 0,
+                    start_xy: [0, 0],
+                    end_xy: [0, 0],
+                    attack_range_raw: 0,
                 },
             ],
             crate::PresentationInstant::zero(),
@@ -715,202 +555,278 @@ mod tests {
     }
 
     #[test]
-    fn tower_attack_laser_presentation_uses_raw_attack_coordinates() {
-        let game_state = crate::game_state::create_game_state_with_seed(7);
-        let mut raw_state = game_state.authoritative_core_state();
-        raw_state
-            .edit_snapshot(|parts| {
-                parts.next_entity_id = td_core::EntityIdAllocator::from_next_id(10_000);
-                parts.in_flight_attacks.push(td_core::InFlightAttackState {
-                    id: 9,
-                    damage_raw: 1,
-                    source_tower: None,
-                    kind: td_core::InFlightAttackKindState::Laser(td_core::LaserAttackState {
-                        start_xy: [1_000_000, 2_000_000],
-                        end_xy: [3_000_000, 4_000_000],
-                        created_at: 1,
-                        target_monster_id: 2,
-                    }),
-                    on_hit_splashes: Vec::new(),
-                });
-            })
-            .expect("test attack edit must preserve a valid snapshot");
-        let events = tower_attack_presentation_events(&raw_state, &[9]);
+    fn tower_attack_visual_presentation_aligns_with_tower_sprite_center() {
+        let mut game_state = crate::game_state::create_game_state_with_seed(7);
+        let _ = game_state.take_pending_action_effects();
+        let units_per_tile = crate::world::WORLD_UNITS_PER_TILE;
 
-        assert!(events.iter().any(|event| matches!(
-            event,
-            crate::game_state::PresentationEvent::SpawnLaserBeam((1.0, 2.0), (3.0, 4.0))
-        )));
-        assert_eq!(
-            events
+        consume_headed(
+            &mut game_state,
+            [
+                td_core::CoreEvent::TowerAttack {
+                    tower_id: 1,
+                    target_id: 2,
+                    tower_kind: 1,
+                    start_xy: [units_per_tile, 2 * units_per_tile],
+                    end_xy: [3 * units_per_tile, 4 * units_per_tile],
+                    attack_range_raw: 5 * units_per_tile,
+                },
+                td_core::CoreEvent::TowerAttack {
+                    tower_id: 3,
+                    target_id: 4,
+                    tower_kind: 2,
+                    start_xy: [5 * units_per_tile, 6 * units_per_tile],
+                    end_xy: [7 * units_per_tile, 8 * units_per_tile],
+                    attack_range_raw: 5 * units_per_tile,
+                },
+                td_core::CoreEvent::TowerAttack {
+                    tower_id: 5,
+                    target_id: 6,
+                    tower_kind: 3,
+                    start_xy: [9 * units_per_tile, 10 * units_per_tile],
+                    end_xy: [11 * units_per_tile, 12 * units_per_tile],
+                    attack_range_raw: 6 * units_per_tile,
+                },
+                td_core::CoreEvent::TowerAttack {
+                    tower_id: 7,
+                    target_id: 8,
+                    tower_kind: crate::game_state::tower::TowerKind::ThreeOfAKind.to_core_raw(),
+                    start_xy: [13 * units_per_tile, 14 * units_per_tile],
+                    end_xy: [16 * units_per_tile, 17 * units_per_tile],
+                    attack_range_raw: 7 * units_per_tile,
+                },
+            ],
+            crate::PresentationInstant::zero(),
+        );
+
+        let effects = game_state.take_pending_action_effects();
+        assert!(
+            effects
+                .presentation_events
+                .events
                 .iter()
-                .filter(|event| matches!(
+                .any(|event| matches!(
                     event,
-                    crate::game_state::PresentationEvent::PlaySoundCue { .. }
+                    crate::game_state::PresentationEvent::SpawnTowerAttackVisualEffect {
+                        tower_kind: crate::game_state::tower::TowerKind::High,
+                        start_xy: [1.0, 2.0],
+                        end_xy: [3.0, 4.0],
+                        ..
+                    }
                 ))
-                .count(),
-            2
+        );
+        assert!(
+            effects
+                .presentation_events
+                .events
+                .iter()
+                .any(|event| matches!(
+                    event,
+                    crate::game_state::PresentationEvent::SpawnTowerAttackVisualEffect {
+                        tower_kind: crate::game_state::tower::TowerKind::ThreeOfAKind,
+                        start_xy: [13.0, 14.0],
+                        end_xy: [16.0, 17.0],
+                        attack_range_radius: 7.0,
+                    }
+                ))
+        );
+        assert!(
+            effects
+                .presentation_events
+                .events
+                .iter()
+                .any(|event| matches!(
+                    event,
+                    crate::game_state::PresentationEvent::SpawnTowerAttackVisualEffect {
+                        tower_kind: crate::game_state::tower::TowerKind::TwoPair,
+                        start_xy: [9.0, 10.0],
+                        end_xy: [11.0, 12.0],
+                        ..
+                    }
+                ))
+        );
+        assert!(
+            effects
+                .presentation_events
+                .events
+                .iter()
+                .any(|event| matches!(
+                    event,
+                    crate::game_state::PresentationEvent::SpawnTowerAttackVisualEffect {
+                        tower_kind: crate::game_state::tower::TowerKind::OnePair,
+                        start_xy: [5.0, 6.0],
+                        end_xy: [7.0, 8.0],
+                        ..
+                    }
+                ))
         );
     }
 
     #[test]
-    fn timed_tower_attack_queues_royal_straight_flush_visual() {
-        let game_state = crate::game_state::create_game_state_with_seed(7);
-        let mut raw_state = game_state.authoritative_core_state();
-        let route = raw_state.route().clone();
-        raw_state
-            .edit_snapshot(|parts| {
-                parts.next_entity_id = td_core::EntityIdAllocator::from_next_id(10_000);
-                parts.monsters.push(td_core::MonsterState {
-                    id: 2,
-                    move_on_route: td_core::MoveOnRouteState {
-                        route,
-                        route_index: 0,
-                        route_progress_raw: 0,
-                        map_coord: [0, 0],
-                        velocity_raw: 0,
-                        movement_remainder: 0,
-                        motion_revision: 0,
-                    },
-                    kind: 0,
-                    hp_raw: 1,
-                    max_hp_raw: 1,
-                    stage_progress_counted: false,
-                    skills: Vec::new(),
-                    status_effects: Vec::new(),
-                    damage_raw: 0,
-                    reward: 0,
-                })
-            })
-            .expect("test monster edit must preserve a valid snapshot");
-        raw_state
-            .edit_snapshot(|parts| {
-                parts.in_flight_attacks.push(td_core::InFlightAttackState {
-                    id: 9,
-                    damage_raw: 1,
-                    source_tower: Some(td_core::AttackSourceState {
-                        tower_id: 1,
-                        tower_kind: 10,
-                        rank: None,
-                        suit: None,
-                    }),
-                    kind: td_core::InFlightAttackKindState::Timed(td_core::TimedAttackState {
-                        target_monster_id: 2,
-                        execute_at: 10,
-                    }),
-                    on_hit_splashes: Vec::new(),
-                })
-            })
-            .expect("test attack edit must preserve a valid snapshot");
-
-        let events = tower_attack_presentation_events(&raw_state, &[9]);
-        assert!(events.iter().any(|event| matches!(
-            event,
-            crate::game_state::PresentationEvent::SpawnRoyalStraightFlushVisual {
-                tower_id,
-                target_xy: [x, y],
-                target_monster_id,
-                ..
-            } if *tower_id == crate::TowerId::from_raw(1)
-                && *target_monster_id == crate::MonsterId::from_raw(2)
-                && *x == 0.5
-                && *y == 0.5
-        )));
-    }
-
-    #[test]
-    fn projectile_events_use_metadata_registered_by_tower_attack() {
+    fn straight_tower_attack_visual_uses_core_range_endpoint() {
         let mut game_state = crate::game_state::create_game_state_with_seed(7);
-        let attack_id = crate::AttackId::from_raw(9);
-        let spatial_state = td_core::SpatialAttackState {
-            position: [1_000_000, 2_000_000],
-            target_monster_id: 2,
-            velocity: [100_000, 200_000],
-            behavior: td_core::SpatialAttackBehaviorState::Direct,
-            movement_remainder: 0,
-            stable_key: 9,
-        };
-        let headed_attack = crate::game_state::attack::InFlightAttack {
-            id: attack_id,
-            damage: crate::Damage::from_raw(1),
-            source_tower: None,
-            kind: crate::game_state::attack::InFlightAttackKind::Spatial(
-                crate::game_state::attack::SpatialAttack::from_core_state(
-                    spatial_state,
-                    crate::game_state::projectile::ProjectileKind::Cards00,
-                    crate::game_state::projectile::ProjectileTrail::Sparkle,
-                    crate::game_state::attack::ProjectileHitEffect::CardBurst,
-                ),
-            ),
-            on_hit_splashes: Vec::new(),
-        };
-        game_state.in_flight_attacks.push(headed_attack);
-        game_state.sync_raw_core_from_projection();
+        let _ = game_state.take_pending_action_effects();
+        let units_per_tile = crate::world::WORLD_UNITS_PER_TILE;
+
         consume_headed(
             &mut game_state,
             [td_core::CoreEvent::TowerAttack {
-                tower_id: 1,
-                target_id: 2,
-                attack_kind: 0,
-                attack_ids: vec![attack_id.raw()],
-                projectile_attack_ids: vec![attack_id.raw()],
+                tower_id: 9,
+                target_id: 10,
+                tower_kind: crate::game_state::tower::TowerKind::Straight.to_core_raw(),
+                start_xy: [2 * units_per_tile, 3 * units_per_tile],
+                end_xy: [11 * units_per_tile, 3 * units_per_tile],
+                attack_range_raw: 9 * units_per_tile,
             }],
             crate::PresentationInstant::zero(),
         );
-        game_state.in_flight_attacks.clear();
 
-        consume_headed(
-            &mut game_state,
-            [td_core::CoreEvent::ProjectileMoved {
-                attack_id: attack_id.raw(),
-                start_xy: [1_000_000, 2_000_000],
-                end_xy: [1_100_000, 2_200_000],
-            }],
-            crate::PresentationInstant::zero(),
-        );
-        let moved_effects = game_state.take_pending_action_effects();
+        let effects = game_state.take_pending_action_effects();
         assert!(
-            moved_effects
+            effects
                 .presentation_events
                 .events
                 .iter()
                 .any(|event| matches!(
                     event,
-                    crate::game_state::PresentationEvent::SyncProjectileTrailState {
-                        projectile_id,
-                        trail: crate::game_state::projectile::ProjectileTrail::Sparkle,
+                    crate::game_state::PresentationEvent::SpawnTowerAttackVisualEffect {
+                        tower_kind: crate::game_state::tower::TowerKind::Straight,
+                        start_xy: [2.0, 3.0],
+                        end_xy: [11.0, 3.0],
+                        attack_range_radius: 9.0,
+                    }
+                ))
+        );
+    }
+
+    #[test]
+    fn royal_flush_attack_visual_uses_core_range_endpoint() {
+        let mut game_state = crate::game_state::create_game_state_with_seed(7);
+        let _ = game_state.take_pending_action_effects();
+        let units_per_tile = crate::world::WORLD_UNITS_PER_TILE;
+
+        consume_headed(
+            &mut game_state,
+            [td_core::CoreEvent::TowerAttack {
+                tower_id: 9,
+                target_id: 10,
+                tower_kind: crate::game_state::tower::TowerKind::RoyalFlush.to_core_raw(),
+                start_xy: [2 * units_per_tile, 3 * units_per_tile],
+                end_xy: [11 * units_per_tile, 3 * units_per_tile],
+                attack_range_raw: 9 * units_per_tile,
+            }],
+            crate::PresentationInstant::zero(),
+        );
+
+        let effects = game_state.take_pending_action_effects();
+        assert!(
+            effects
+                .presentation_events
+                .events
+                .iter()
+                .any(|event| matches!(
+                    event,
+                    crate::game_state::PresentationEvent::SpawnTowerAttackVisualEffect {
+                        tower_kind: crate::game_state::tower::TowerKind::RoyalFlush,
+                        start_xy: [2.0, 3.0],
+                        end_xy: [11.0, 3.0],
+                        attack_range_radius: 9.0,
+                    }
+                ))
+        );
+    }
+
+    #[test]
+    fn monster_hit_visual_presentation_converts_coordinates_to_tiles() {
+        let mut game_state = crate::game_state::create_game_state_with_seed(7);
+        let _ = game_state.take_pending_action_effects();
+        let units_per_tile = crate::world::WORLD_UNITS_PER_TILE;
+
+        consume_headed(
+            &mut game_state,
+            [
+                td_core::CoreEvent::TowerAttackHit {
+                    tower_id: 7,
+                    target_id: 9,
+                    tower_kind: crate::game_state::tower::TowerKind::ThreeOfAKind.to_core_raw(),
+                    start_xy: [13 * units_per_tile, 14 * units_per_tile],
+                    position: [18 * units_per_tile, 19 * units_per_tile],
+                    chain_delay_ms: 0,
+                },
+                td_core::CoreEvent::TowerAttackHit {
+                    tower_id: 8,
+                    target_id: 10,
+                    tower_kind: crate::game_state::tower::TowerKind::Straight.to_core_raw(),
+                    start_xy: [17 * units_per_tile, 18 * units_per_tile],
+                    position: [26 * units_per_tile, 18 * units_per_tile],
+                    chain_delay_ms: 0,
+                },
+                td_core::CoreEvent::TowerAttackHit {
+                    tower_id: 11,
+                    target_id: 12,
+                    tower_kind: crate::game_state::tower::TowerKind::StraightFlush.to_core_raw(),
+                    start_xy: [26 * units_per_tile, 18 * units_per_tile],
+                    position: [29 * units_per_tile, 20 * units_per_tile],
+                    chain_delay_ms: 20,
+                },
+            ],
+            crate::PresentationInstant::zero(),
+        );
+
+        let effects = game_state.take_pending_action_effects();
+        assert!(
+            effects
+                .presentation_events
+                .events
+                .iter()
+                .any(|event| matches!(
+                    event,
+                    crate::game_state::PresentationEvent::SpawnMonsterHitVisualEffect {
+                        source:
+                            crate::game_state::presentation_event::MonsterHitVisualSource::Tower {
+                                kind: crate::game_state::tower::TowerKind::ThreeOfAKind,
+                            },
+                        start_xy: [13.0, 14.0],
+                        impact_xy: [18.0, 19.0],
                         ..
-                    } if *projectile_id == attack_id
+                    }
                 ))
         );
-
-        consume_headed(
-            &mut game_state,
-            [td_core::CoreEvent::ProjectileHit {
-                attack_id: attack_id.raw(),
-                position: [1_100_000, 2_200_000],
-            }],
-            crate::PresentationInstant::zero(),
-        );
-        let hit_effects = game_state.take_pending_action_effects();
         assert!(
-            hit_effects
+            effects
                 .presentation_events
                 .events
                 .iter()
                 .any(|event| matches!(
                     event,
-                    crate::game_state::PresentationEvent::SpawnProjectileHitEffect(
-                        crate::game_state::attack::ProjectileHitEffect::CardBurst,
-                        _,
-                    )
+                    crate::game_state::PresentationEvent::SpawnMonsterHitVisualEffect {
+                        source:
+                            crate::game_state::presentation_event::MonsterHitVisualSource::Tower {
+                                kind: crate::game_state::tower::TowerKind::StraightFlush,
+                            },
+                        start_xy: [26.0, 18.0],
+                        impact_xy: [29.0, 20.0],
+                        chain_delay_ms: 20,
+                    }
                 ))
         );
         assert!(
-            game_state
-                .presentation_metadata
-                .projectile(attack_id)
-                .is_none()
+            effects
+                .presentation_events
+                .events
+                .iter()
+                .any(|event| matches!(
+                    event,
+                    crate::game_state::PresentationEvent::SpawnMonsterHitVisualEffect {
+                        source:
+                            crate::game_state::presentation_event::MonsterHitVisualSource::Tower {
+                                kind: crate::game_state::tower::TowerKind::Straight,
+                            },
+                        start_xy: [17.0, 18.0],
+                        impact_xy: [26.0, 18.0],
+                        ..
+                    }
+                ))
         );
     }
 }

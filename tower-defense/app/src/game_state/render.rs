@@ -1,4 +1,6 @@
 use super::*;
+use crate::asset::image::ATTACK_ATLAS;
+use crate::game_state::field_particle::ATTACK_VISUAL;
 use crate::game_state::tick::scheduler::RenderFrame;
 use crate::headed_game::HeadedGame;
 
@@ -27,11 +29,6 @@ impl Component for RenderGameState<'_> {
                     rewards: &self.game_state.gold_reward_presentation,
                 });
                 ctx.add((render_field_particles, self.game_state.state()));
-                ctx.add(RenderProjectiles {
-                    game_state: self.game_state,
-                    camera,
-                    frame: render_frame,
-                });
                 ctx.add(RenderMonsters {
                     game_state: self.game_state,
                     camera,
@@ -75,14 +72,6 @@ fn render_sprite_batch(
 
 impl Component for GoldFieldParticles<'_> {
     fn render(self, ctx: &RenderCtx) {
-        let sparkle_sprites = self.rewards.sparkle_sprites();
-        render_sprite_batch(
-            ctx,
-            crate::asset::image::PARTICLE_ATTACK,
-            sparkle_sprites,
-            Some(Paint::new(Color::WHITE).set_blend_mode(BlendMode::Screen)),
-        );
-
         let gold_rect =
             crate::game_state::field_particle::atlas::icon_rect(&crate::icon::IconKind::Gold);
         let sprites = self
@@ -136,38 +125,6 @@ impl Component for RenderMonsters<'_> {
                     hit_offset: sample.current.hit_offset,
                     hit_flash: sample.current.hit_flash,
                     camera_zoom_level: self.camera.zoom_level,
-                },
-            );
-        }
-    }
-}
-
-#[derive(Clone, Copy)]
-struct RenderProjectiles<'a> {
-    game_state: &'a GameState,
-    camera: &'a crate::game_state::Camera,
-    frame: Option<RenderFrame<'a>>,
-}
-
-impl Component for RenderProjectiles<'_> {
-    fn render(self, ctx: &RenderCtx) {
-        let Some(frame) = self.frame else {
-            render_projectiles(ctx, self.game_state, self.camera);
-            return;
-        };
-        let Some(current_snapshot) = frame.current_snapshot() else {
-            render_projectiles(ctx, self.game_state, self.camera);
-            return;
-        };
-
-        for snapshot in current_snapshot.spatial_projectiles() {
-            let Some(sample) = frame.sample_projectile(snapshot.id, true) else {
-                continue;
-            };
-            ctx.translate(TILE_PX_SIZE.to_xy() * sample.position).add(
-                crate::game_state::attack::RenderProjectileSnapshot {
-                    projectile_kind: sample.current.projectile_kind,
-                    direction: sample.direction,
                 },
             );
         }
@@ -316,26 +273,6 @@ fn render_backgrounds(ctx: &RenderCtx, game_state: &HeadedGame) {
     }
 }
 
-fn render_projectiles(ctx: &RenderCtx, game_state: &GameState, camera: &crate::game_state::Camera) {
-    let snapshot = crate::game_state::render_snapshot::WorldRenderSnapshot::capture(game_state);
-    render_stuffs(
-        camera,
-        ctx,
-        snapshot.spatial_projectiles().iter().map(|projectile| {
-            (
-                projectile.position.as_map_coord_f32(),
-                crate::game_state::attack::RenderProjectileSnapshot {
-                    projectile_kind: projectile.projectile_kind,
-                    direction: Xy::new(
-                        projectile.direction.x as f32,
-                        projectile.direction.y as f32,
-                    ),
-                },
-            )
-        }),
-    );
-}
-
 fn render_towers(ctx: &RenderCtx, game_state: &HeadedGame) {
     let state = game_state.state();
     let camera = game_state.camera();
@@ -353,9 +290,6 @@ fn render_towers(ctx: &RenderCtx, game_state: &HeadedGame) {
     };
 
     let render_frame = game_state.render_frame();
-    let sim_render_time = render_frame.map(|frame| frame.time).unwrap_or_else(|| {
-        crate::SimRenderTime::new(game_state.sim_tick(), crate::InterpolationAlpha::ZERO)
-    });
 
     let live_snapshot = crate::game_state::render_snapshot::WorldRenderSnapshot::capture(state);
     let current_snapshot = render_frame
@@ -387,9 +321,7 @@ fn render_towers(ctx: &RenderCtx, game_state: &HeadedGame) {
         let tower_xy = Xy::new(snapshot.left_top[0] as f32, snapshot.left_top[1] as f32);
 
         // Culling check
-        if (screen_rect.right() < tower_xy.x || screen_rect.bottom() < tower_xy.y)
-            && tower_metadata.royal_straight_flush_visual.is_none()
-        {
+        if screen_rect.right() < tower_xy.x || screen_rect.bottom() < tower_xy.y {
             continue;
         }
 
@@ -411,11 +343,7 @@ fn render_towers(ctx: &RenderCtx, game_state: &HeadedGame) {
                 .add(
                     crate::game_state::tower::render::RenderTower {
                         tower: &tower,
-                        sim_render_time,
                         animation_kind: tower_metadata.animation_kind,
-                        royal_straight_flush_visual: tower_metadata
-                            .royal_straight_flush_visual
-                            .as_ref(),
                         y_ratio_offset,
                     }
                     .attach_event({
@@ -541,35 +469,38 @@ fn render_cursor_preview(ctx: &RenderCtx, game_state: &HeadedGame) {
 }
 
 fn render_field_particles(ctx: &RenderCtx, _game_state: &GameState) {
-    let attack = crate::asset::image::PARTICLE_ATTACK;
-    let projectiles = crate::asset::image::PARTICLE_PROJECTILES;
     let monsters = crate::asset::image::PARTICLE_MONSTERS;
     let icons = crate::asset::image::PARTICLE_ICONS;
     let digits = crate::asset::image::PARTICLE_DIGITS;
     let dust = crate::asset::image::ui::particle::DUST;
     let screen_paint = Some(Paint::new(Color::WHITE).set_blend_mode(BlendMode::Screen));
 
-    ctx.add(namui::particle::RenderEmitter {
-        emitter: &field_particle::ATTACK_PARTICLES,
-        image: attack,
-        sprite_colors_blend_mode: BlendMode::Modulate,
-        paint: screen_paint.clone(),
-    });
+    {
+        let sprites = ATTACK_VISUAL.latest_sprites();
+        if !sprites.is_empty() {
+            let cloned = Arc::unwrap_or_clone(sprites);
+            ctx.add(RenderingTree::Node(DrawCommand::Image {
+                command: arena_alloc(ImageDrawCommand {
+                    image: ATTACK_ATLAS,
+                    sprites: cloned.clone(),
+                    paint: screen_paint.clone(),
+                    sprite_colors_blend_mode: BlendMode::Modulate,
+                }),
+            }));
+            ctx.add(RenderingTree::Node(DrawCommand::Image {
+                command: arena_alloc(ImageDrawCommand {
+                    image: ATTACK_ATLAS,
+                    sprites: cloned,
+                    paint: None,
+                    sprite_colors_blend_mode: BlendMode::Modulate,
+                }),
+            }));
+        }
+    }
+
     ctx.add(namui::particle::RenderEmitter {
         emitter: &field_particle::MONSTER_CORPSES,
         image: monsters,
-        sprite_colors_blend_mode: BlendMode::Modulate,
-        paint: None,
-    });
-    ctx.add(namui::particle::RenderEmitter {
-        emitter: &field_particle::PROJECTILES,
-        image: projectiles,
-        sprite_colors_blend_mode: BlendMode::Modulate,
-        paint: None,
-    });
-    ctx.add(namui::particle::RenderEmitter {
-        emitter: &field_particle::TRASHES,
-        image: projectiles,
         sprite_colors_blend_mode: BlendMode::Modulate,
         paint: None,
     });
@@ -588,24 +519,6 @@ fn render_field_particles(ctx: &RenderCtx, _game_state: &GameState) {
     ctx.add(namui::particle::RenderEmitter {
         emitter: &field_particle::DAMAGE_TEXTS,
         image: digits,
-        sprite_colors_blend_mode: BlendMode::Modulate,
-        paint: None,
-    });
-    ctx.add(namui::particle::RenderEmitter {
-        emitter: &field_particle::CARDS,
-        image: projectiles,
-        sprite_colors_blend_mode: BlendMode::Modulate,
-        paint: None,
-    });
-    ctx.add(namui::particle::RenderEmitter {
-        emitter: &field_particle::HEARTS,
-        image: projectiles,
-        sprite_colors_blend_mode: BlendMode::Modulate,
-        paint: None,
-    });
-    ctx.add(namui::particle::RenderEmitter {
-        emitter: &field_particle::BLACK_SMOKES,
-        image: attack,
         sprite_colors_blend_mode: BlendMode::Modulate,
         paint: None,
     });

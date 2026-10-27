@@ -41,17 +41,9 @@ macro_rules! define_entity_id {
 
 define_entity_id!(MonsterId);
 define_entity_id!(TowerId);
-define_entity_id!(AttackId);
 
 #[cfg(test)]
 impl TowerId {
-    pub(crate) const fn from_entity_id(id: EntityId) -> Self {
-        Self(id)
-    }
-}
-
-#[cfg(test)]
-impl AttackId {
     pub(crate) const fn from_entity_id(id: EntityId) -> Self {
         Self(id)
     }
@@ -69,8 +61,6 @@ mod tests {
 
         assert_eq!(MonsterId::from_raw(allocator.allocate_raw()).raw(), 1);
         assert_eq!(TowerId::from_raw(allocator.allocate_raw()).raw(), 2);
-        assert_eq!(AttackId::from_raw(allocator.allocate_raw()).raw(), 3);
-        assert_eq!(AttackId::from_raw(9).raw(), 9);
     }
 
     #[test]

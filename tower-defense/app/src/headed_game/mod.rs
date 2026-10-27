@@ -14,8 +14,6 @@ pub(crate) struct HeadedGame {
     pub(crate) presentation_director:
         crate::game_state::presentation_director::PresentationDirector,
     pub(crate) base_animation_state: crate::game_state::BaseAnimationState,
-    pub(crate) black_smoke_sources:
-        Vec<crate::game_state::field_particle::emitter::BlackSmokeSource>,
     pub(crate) status_effect_particle_generator: crate::game_state::StatusEffectParticleGenerator,
     pub(crate) ui_state: crate::game_state::UIState,
     pub(crate) sim_scheduler: crate::game_state::tick::scheduler::FixedTickScheduler,
@@ -96,12 +94,6 @@ impl HeadedGame {
         let monster_metadata = state
             .presentation_metadata
             .monster_render_metadata(&state.monster_animation_runtime);
-        let projectile_metadata = state
-            .presentation_metadata
-            .projectiles
-            .iter()
-            .map(|projectile| (projectile.id, projectile.projectile_kind))
-            .collect::<Vec<_>>();
         let tower_metadata = state
             .presentation_metadata
             .towers
@@ -112,7 +104,6 @@ impl HeadedGame {
             crate::game_state::render_snapshot::WorldRenderSnapshot::capture_from_raw_snapshot(
                 &raw_snapshot,
                 &monster_metadata,
-                &projectile_metadata,
                 &tower_metadata,
             ),
         );
@@ -126,7 +117,6 @@ impl HeadedGame {
             gold_reward_presentation: Default::default(),
             presentation_director: Default::default(),
             base_animation_state: crate::game_state::BaseAnimationState::new(crate::SimTick::ZERO),
-            black_smoke_sources: Default::default(),
             status_effect_particle_generator: crate::game_state::StatusEffectParticleGenerator::new(
                 crate::PresentationInstant::capture(),
             ),
@@ -248,13 +238,6 @@ impl HeadedGame {
             .state
             .presentation_metadata
             .monster_render_metadata(&self.state.monster_animation_runtime);
-        let projectile_metadata = self
-            .state
-            .presentation_metadata
-            .projectiles
-            .iter()
-            .map(|projectile| (projectile.id, projectile.projectile_kind))
-            .collect::<Vec<_>>();
         let tower_metadata = self
             .state
             .presentation_metadata
@@ -266,7 +249,6 @@ impl HeadedGame {
             crate::game_state::render_snapshot::WorldRenderSnapshot::capture_from_raw_snapshot(
                 &raw_snapshot,
                 &monster_metadata,
-                &projectile_metadata,
                 &tower_metadata,
             ),
         );
@@ -287,15 +269,9 @@ impl HeadedGame {
         self.presentation_events.events = events;
     }
 
-    pub(crate) fn apply_presentation_triggers(
-        &mut self,
-        presentation_instant: crate::PresentationInstant,
-    ) {
-        self.state.apply_presentation_triggers(
-            presentation_instant,
-            &mut self.base_animation_state,
-            &mut self.black_smoke_sources,
-        );
+    pub(crate) fn apply_presentation_triggers(&mut self) {
+        self.state
+            .apply_presentation_triggers(&mut self.base_animation_state);
         self.append_pending_presentation_events();
         let events = self.take_presentation_events();
         let mut remaining = Vec::with_capacity(events.len());
@@ -334,13 +310,6 @@ impl HeadedGame {
             .state
             .presentation_metadata
             .monster_render_metadata(&self.state.monster_animation_runtime);
-        let projectile_metadata = self
-            .state
-            .presentation_metadata
-            .projectiles
-            .iter()
-            .map(|projectile| (projectile.id, projectile.projectile_kind))
-            .collect::<Vec<_>>();
         let tower_metadata = self
             .state
             .presentation_metadata
@@ -351,7 +320,6 @@ impl HeadedGame {
         crate::game_state::render_snapshot::WorldRenderSnapshot::capture_from_raw_snapshot(
             &raw_snapshot,
             &monster_metadata,
-            &projectile_metadata,
             &tower_metadata,
         )
     }

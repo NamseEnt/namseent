@@ -117,13 +117,6 @@ impl EngravingSplash {
             damage_pct_raw: self.damage_pct.raw(),
         }
     }
-
-    pub(crate) fn from_core_state(state: td_core::DamageSplash) -> Self {
-        Self {
-            radius: WorldDistance::from_raw(state.radius_raw),
-            damage_pct: FixedRatio::from_raw(state.damage_pct_raw),
-        }
-    }
 }
 
 impl TowerEngravingModifier {

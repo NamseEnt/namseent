@@ -1,16 +1,8 @@
-use crate::game_state::ProjectileTrail;
-use crate::{AttackId, MonsterId, TowerId};
-
 #[derive(Clone)]
 pub enum ParticleSpawnRequest {
     DamageText {
         position: [f32; 2],
         damage: f32,
-    },
-    TrashBounce {
-        projectile_kind: crate::game_state::projectile::ProjectileKind,
-        start_xy: [f32; 2],
-        end_xy: [f32; 2],
     },
     MonsterSoul {
         position: [i64; 2],
@@ -24,7 +16,6 @@ pub enum ParticleSpawnRequest {
 }
 #[derive(Clone, Copy)]
 pub enum SoundCue {
-    KnifeSlash,
     Coin,
     LuggageDrop,
     StartDefenseFanfare,
@@ -34,7 +25,6 @@ pub enum SoundCue {
     PaperCrumpling,
     RedLaserShot,
     Whoop,
-    Wind,
     Flamethrower,
     SmokeBomb,
 }
@@ -53,18 +43,31 @@ pub enum BaseAnimationEvent {
 }
 
 #[derive(Clone)]
+pub enum MonsterHitVisualSource {
+    Tower {
+        kind: crate::game_state::tower::TowerKind,
+    },
+}
+
+#[derive(Clone)]
 pub enum PresentationEvent {
     AnimateBase(BaseAnimationEvent),
     ShakeCamera {
         intensity: f32,
     },
-    SpawnRoyalStraightFlushVisual {
-        tower_id: TowerId,
-        target_xy: [f32; 2],
-        target_monster_id: MonsterId,
-        sim_tick: crate::SimTick,
-    },
     SpawnParticle(ParticleSpawnRequest),
+    SpawnTowerAttackVisualEffect {
+        tower_kind: crate::game_state::tower::TowerKind,
+        start_xy: [f32; 2],
+        end_xy: [f32; 2],
+        attack_range_radius: f32,
+    },
+    SpawnMonsterHitVisualEffect {
+        source: MonsterHitVisualSource,
+        start_xy: [f32; 2],
+        impact_xy: [f32; 2],
+        chain_delay_ms: u64,
+    },
     SpawnGoldReward {
         position: [f32; 2],
         amount: usize,
@@ -85,23 +88,7 @@ pub enum PresentationEvent {
         card_count: usize,
     },
     SaveDebugSnapshot,
-    SpawnProjectileTrail {
-        trail: ProjectileTrail,
-        start_xy: [f32; 2],
-        end_xy: [f32; 2],
-        count: usize,
-    },
-    SpawnProjectileHitEffect(crate::game_state::attack::ProjectileHitEffect, [f32; 2]),
-    SpawnLaserBeam((f32, f32), (f32, f32)),
     SpawnTowerRemoveDustBurst((f32, f32)),
-    SyncProjectileTrailState {
-        projectile_id: AttackId,
-        trail: ProjectileTrail,
-        start_xy: [f32; 2],
-        end_xy: [f32; 2],
-        moved_distance: f32,
-        dt_secs: f32,
-    },
 }
 
 #[derive(Clone, Default)]
