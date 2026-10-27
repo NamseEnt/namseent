@@ -69,6 +69,67 @@ macro_rules! runtime_state_accessors {
 }
 
 impl UpgradeEntry {
+    pub(crate) fn append_observation_effects(
+        &self,
+        source: super::observation::EffectSource,
+        source_index: usize,
+        config: &crate::GameConfigState,
+        rows: &mut Vec<super::observation::ContentEffectObservation>,
+    ) {
+        use super::observation::{ContentEffectKind as K, ContentEffectObservation};
+        let cache = self.behavior.cache(self);
+        let mut append = |kind, parameter_index, value_raw, enabled| {
+            rows.push(ContentEffectObservation {
+                source,
+                source_index,
+                key_id: self.kind().raw() as u16 + 1,
+                kind,
+                parameter_index,
+                value_raw,
+                enabled,
+            })
+        };
+        for (kind, value) in [
+            (K::MaxHp, cache.max_hp_plus_raw),
+            (K::ItemCapacity, cache.item_capacity_bonus as i64),
+            (K::TreasureCapacity, cache.treasure_capacity_bonus as i64),
+            (K::ShopSlots, cache.shop_slot_expand as i64),
+            (K::GainRerolls, cache.dice_chance_plus as i64),
+            (K::ShopDiscount, cache.shop_item_price_minus as i64),
+        ] {
+            if value != 0 {
+                append(kind, 0, value, true);
+            }
+        }
+        for (kind, value) in [
+            (
+                K::FourCardStraightFlush,
+                cache.shorten_straight_flush_to_4_cards,
+            ),
+            (K::SkipStraightRank, cache.skip_rank_for_straight),
+            (K::SameSuit, cache.treat_suits_as_same),
+            (K::PreserveShield, !cache.clear_shield_on_stage_start),
+        ] {
+            if value {
+                append(
+                    kind,
+                    0,
+                    1,
+                    kind != K::SameSuit || config.treasures.black_white_enabled,
+                );
+            }
+        }
+        for (index, value) in (0..).map_while(|i| self.scalar_value(i)).enumerate() {
+            append(K::ScalarParameter, index, value as i64, true);
+        }
+        for (index, value) in (0..).map_while(|i| self.ratio_value(i)).enumerate() {
+            append(K::RatioParameter, index, value, true);
+        }
+        for (index, value) in (0..).map_while(|i| self.bool_value(i)).enumerate() {
+            append(K::BoolParameter, index, i64::from(value), true);
+        }
+    }
+
     pub fn id(&self) -> u64 {
         self.id
     }
@@ -119,6 +180,8 @@ impl UpgradeEntry {
             | UpgradeRuntimeState::Mirror(_)
             | UpgradeRuntimeState::NameTag(_)
             | UpgradeRuntimeState::PerfectPottery(_) => None,
+            #[cfg(feature = "experimental-content")]
+            UpgradeRuntimeState::TrainingMelon(_) => None,
         }
     }
 
@@ -402,6 +465,13 @@ impl UpgradeEntry {
         watermelon_mut,
         Watermelon,
         codec_impl::WatermelonUpgradeState
+    );
+    #[cfg(feature = "experimental-content")]
+    runtime_state_accessors!(
+        training_melon,
+        training_melon_mut,
+        TrainingMelon,
+        codec_impl::TrainingMelonUpgradeState
     );
 }
 
@@ -1908,6 +1978,44 @@ mod tests {
             seen_rarities[upgrade_rarity(kind).index()] = true;
         }
         assert_eq!(seen_rarities, [true, true, true, true]);
+    }
+
+    #[cfg(feature = "experimental-content")]
+    #[test]
+    fn training_melon_is_selectable_acquired_and_applies_watermelon_effect() {
+        let mut core = test_core();
+        core.hp_raw = 30_000;
+        core.flow = crate::GameFlowState::TreasureSelection {
+            options: vec![generated_upgrade(crate::UpgradeKind::TrainingMelon)],
+            pending_selection: None,
+        };
+        let offered = core.observation(1, 1, 16, 16);
+        assert_eq!(offered.treasure_options, vec!["training_melon"]);
+        assert!(offered.content_effects.iter().any(|effect| {
+            effect.source == crate::EffectSource::TreasureOption
+                && effect.key_id == crate::UpgradeKind::TrainingMelon.id()
+                && effect.kind == crate::ContentEffectKind::MaxHp
+                && effect.value_raw == 8_000
+        }));
+        assert!(core.can_select_treasure(0));
+        core.select_treasure(0).expect("legal treasure choice");
+        assert_eq!(core.upgrades().len(), 1);
+        assert_eq!(
+            core.upgrades().entries().first().unwrap().kind(),
+            crate::UpgradeKind::TrainingMelon
+        );
+        assert_eq!(core.hp_raw(), 42_000);
+        assert_eq!(core.max_hp_raw(), 68_000);
+        assert!(
+            core.observation(1, 1, 16, 16)
+                .content_effects
+                .iter()
+                .any(|effect| {
+                    effect.key_id == crate::UpgradeKind::TrainingMelon.id()
+                        && effect.kind == crate::ContentEffectKind::MaxHp
+                        && effect.value_raw == 8_000
+                })
+        );
     }
 
     #[test]

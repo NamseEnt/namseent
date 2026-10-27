@@ -1,0 +1,85 @@
+{
+  "date": "2026-10-14",
+  "tests": [
+    {
+      "name": "core_default",
+      "command": "cargo test --manifest-path tower-defense/core/Cargo.toml",
+      "passed": 200,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "1daeebe57afb16fdd9f44db4c26975a4d1203bc64d40f2f58aa77c0e41f43514"
+    },
+    {
+      "name": "core_experimental",
+      "command": "cargo test --manifest-path tower-defense/core/Cargo.toml --features experimental-content",
+      "passed": 203,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "32411d870b65f3ffb5fe60e5219417f59dc042429628f3780f9397811f295644"
+    },
+    {
+      "name": "simulator_default",
+      "command": "cargo test --release --manifest-path tower-defense/simulator/Cargo.toml -- --test-threads=1",
+      "passed": 439,
+      "failed": 0,
+      "ignored": 24,
+      "log_sha256": "400960ce81af089abf99cd51f7057adecac75c2942f12d12ae3304209be7a2e1"
+    },
+    {
+      "name": "simulator_experimental",
+      "command": "cargo test --release --manifest-path tower-defense/simulator/Cargo.toml --features experimental-content -- --test-threads=1",
+      "passed": 444,
+      "failed": 0,
+      "ignored": 31,
+      "log_sha256": "187b191ce84b45931883b9f84bf90ee4ac9c9e489c70808f34607dd4b44ee8db"
+    },
+    {
+      "name": "app_native",
+      "command": "LIBRARY_PATH=<local-native-link-directory> cargo test --manifest-path tower-defense/app/Cargo.toml",
+      "passed": 324,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "41469314b33796133ed3fb55f28193ec7077b2e2f342d2b566cae4d7232ca503"
+    },
+    {
+      "name": "debug_checkpoint_resume",
+      "command": "cargo test --manifest-path tower-defense/simulator/Cargo.toml --lib ml::semantic_bc::tests::checkpoint_roundtrip_and_resume_reproduce_outputs -- --exact",
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "d7a6fbb7e516d59e47524b58b00840fffe17d1cabaf173fe66a1e30ed3e5e866"
+    }
+  ],
+  "lint": {
+    "core_all_targets_all_features": "passed",
+    "simulator_all_targets_default": "passed",
+    "simulator_all_targets_experimental": "passed"
+  },
+  "app_compile": "passed",
+  "python_scripts_syntax": "passed",
+  "ignored_scope": "Existing exhaustive/GPU/long-training tests plus opt-in terminal teacher probes and retained-local-checkpoint integration tests. Synthetic service gradient/save-load remains an ordinary test.",
+  "production_smoke": {
+    "spec": "tower-defense/simulator/configs/production-all-options.json",
+    "completed_iterations": 1,
+    "source": "artifacts/phase4b/kl-epoch-transaction-r2-p2/iter-0200",
+    "checkpoint": "artifacts/retraining/production-all-options-pr-validation/run/iter-0001",
+    "process": [
+      {
+        "pid": 1282518,
+        "exe": "/home/namse/namseent/tower-defense/simulator/target/release/td-simulator",
+        "command": "target/release/td-simulator ml phase4 retrain --spec configs/production-all-options.json --threads 1 ",
+        "binary_sha256": "ec8dae0ed2969aff420805cceda732bb4b53b2624c17a5f8594cd3f1a85faf67"
+      }
+    ],
+    "sqlite_rows": {
+      "simulations": 1,
+      "simulation_events": 245,
+      "simulation_stage_results": 27
+    },
+    "performance_claim": false
+  },
+  "environment_notes": [
+    "App tests used local linker aliases to installed libfontconfig.so.1 and libfreetype.so.6 because development symlinks were absent; no system packages were changed.",
+    "Historical experiment artifacts and interrupted runs are not final submission test counts."
+  ]
+}

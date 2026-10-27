@@ -55,6 +55,19 @@ pub enum InputContract {
     Raw,
     /// Encoded features passed through the frozen contract table.
     Normalized,
+    RawEffects,
+    NormalizedEffects,
+}
+impl InputContract {
+    pub fn has_effects(self) -> bool {
+        matches!(self, Self::RawEffects | Self::NormalizedEffects)
+    }
+    pub fn with_effects(self) -> Self {
+        match self {
+            Self::Raw | Self::RawEffects => Self::RawEffects,
+            _ => Self::NormalizedEffects,
+        }
+    }
 }
 
 /// Global feature slots squashed by the contract.
@@ -90,7 +103,7 @@ fn squash_set(set: &mut EntitySet, columns: impl Fn(usize) -> bool) {
 /// `decision` with the contract applied (`Raw` returns it unchanged).
 pub fn apply_contract(decision: &EncodedDecision, contract: InputContract) -> EncodedDecision {
     let mut decision = decision.clone();
-    if contract == InputContract::Raw {
+    if matches!(contract, InputContract::Raw | InputContract::RawEffects) {
         return decision;
     }
     for slot in SQUASHED_GLOBAL_SLOTS {

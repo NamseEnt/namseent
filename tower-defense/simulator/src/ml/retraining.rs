@@ -1,6 +1,7 @@
 //! Explicit checkpoint transfer to compatible content, rules and configuration changes.
 
 use super::contract::MlContract;
+use super::feature_contract::InputContract;
 use super::model::ENTITY_ENCODER_SCHEMA_VERSION;
 use super::phase4_dataset::{GAME_RULES_EPOCH, Phase4Split, core_tree_hash};
 use super::phase4_eval::{EvalPolicy, evaluate_policies};
@@ -19,6 +20,154 @@ use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+
+const LEGACY_ENCODER_HASHES: &[(&str, &str)] = &[
+    (
+        "contract.rs",
+        "8a5d60564f9392a89b16b0d912dea1890435619919a0a27f0cfe81918361c27c",
+    ),
+    (
+        "features.rs",
+        "9bd7e218d5563d373c1eb813ccc0ed1baab4b9200627a7b1b72585787829449a",
+    ),
+    (
+        "feature_contract.rs",
+        "48baf83ea75b0cdf910c17f4be6cbd2d4512d5cd5e292fd6a6166c701a6c301a",
+    ),
+    (
+        "model.rs",
+        "9d8acc12407a3d24b208804f32e7c23938030aabdc36eee55a6d51a7067bfc95",
+    ),
+    (
+        "policy_v2.rs",
+        "368f3f693dd2c62cdcc5e963b223528d73367e69cab7f637386eb0b4c42c2dd6",
+    ),
+    (
+        "semantic_bc.rs",
+        "1a6475e973208e7bd56169b7613fcedf64981f0605e6e167dbc8c355e01ef423",
+    ),
+    (
+        "semantic_candidates.rs",
+        "9a5821cd078bfb8d24032c0de30a46995c22f9c6976296542af2c251058a4340",
+    ),
+    (
+        "spatial.rs",
+        "7923a637caf1111347f349909b3ec52c9db48313de55316660ed894c6f34cd84",
+    ),
+    (
+        "vocabulary.rs",
+        "083ab3186b2f20274789cffc1e13e096f544098a9f2fc3a0085abc2b3f3aea25",
+    ),
+    (
+        "encoding/mod.rs",
+        "1c62e3e9b3feaf5eaca61e92991c337305e9efc231aedc456e3077186b50f78e",
+    ),
+    (
+        "encoding/entity.rs",
+        "3ad25fd83a4ebe02701e7ba3419443d900baa17490e67ebcae6fed5d7b3853c3",
+    ),
+    (
+        "encoding/observation.rs",
+        "e8c344802538d58db5b11d54a702be7876e86fa8ddf1156f199d73f059d49d83",
+    ),
+    (
+        "encoding/normalize.rs",
+        "0ac20eb35cc581cf5803b80b8ec3f7a927abc6f2a44ec7707299a868fec5f411",
+    ),
+    (
+        "encoding/batch.rs",
+        "ad2ec02adeae078f912ad354710f64f322bb5860ae43a53e716c23e222dfb70c",
+    ),
+    (
+        "encoding/tensor.rs",
+        "99c9a16ce222fb286e358867ff72f1897667832b6c93036049ab6942c207b886",
+    ),
+];
+
+// Exact schema-11 manifest before PR-only lint cleanup. The changed policy
+// expressions and effect test imports preserve encoding/model semantics.
+const PRE_PR_SCHEMA11_SOURCES: &[(&str, &str)] = &[
+    (
+        "candidate",
+        "b902db193542d9085d706aceee3b5e8811162e7d5c304c3c6eb303ccadde2abb",
+    ),
+    (
+        "card_service",
+        "2edfe5c47fc299fbedea11f78a5c9dc4b14e30588b2795326b4a353af01ef34b",
+    ),
+    (
+        "effects",
+        "cc7558acf0055064cc507376910c779e16dfb614d63f6755f6dd64db895bc0be",
+    ),
+    (
+        "feature_contract",
+        "2488ec9c859eeda35ce4518d3bdf481c4428a075ce2523252db1b62240e651fe",
+    ),
+    (
+        "features",
+        "cc5ff7fd77d2889b38dfba9986683d10f26f93a5a625969181e15e17f2b7fb35",
+    ),
+    (
+        "model",
+        "20ef417c858ba152dd673bee516a8080da6656204411ac07d6a91b4e52f76374",
+    ),
+    (
+        "normalization",
+        "0ac20eb35cc581cf5803b80b8ec3f7a927abc6f2a44ec7707299a868fec5f411",
+    ),
+    (
+        "observation",
+        "51059fca61218a4691a9223dad870a67adb8c09d81b46b3984309488ee189427",
+    ),
+    (
+        "policy",
+        "954aab282cf69e9e0577a7dda69bf2e49abf35ea0f8f6143bbaedb7bb14be7ba",
+    ),
+];
+
+// Manifest written by the validated entity-6 / candidate-1 source-converted
+// run. It captures the exact encoder implementation used before schema 7/2.
+const ENTITY6_CANDIDATE1_SOURCES: &[(&str, &str)] = &[
+    (
+        "candidate",
+        "fe84cd66c909ff41525fe1d30370a8628d1d0f830a9b9cdb04c1c2c8c946362c",
+    ),
+    (
+        "effects",
+        "11f120bf4c734f7872f0d51c276416b2774c4b58759327773011abcfb0000ff1",
+    ),
+    (
+        "feature_contract",
+        "2488ec9c859eeda35ce4518d3bdf481c4428a075ce2523252db1b62240e651fe",
+    ),
+    (
+        "features",
+        "cc5ff7fd77d2889b38dfba9986683d10f26f93a5a625969181e15e17f2b7fb35",
+    ),
+    (
+        "model",
+        "59e197688ab039152ab9fe0ded2f467a54fa39ec61ea6d3a648eabfc7d2e5938",
+    ),
+    (
+        "normalization",
+        "0ac20eb35cc581cf5803b80b8ec3f7a927abc6f2a44ec7707299a868fec5f411",
+    ),
+    (
+        "observation",
+        "594433b25f2ea972ad781e4ebfb1747ecb3030abc127dd91af151260bd9a5765",
+    ),
+    (
+        "policy",
+        "d95d02ca95d6d5e0f60b5f8b2578cf865c31d95a37b653dbdc072e30a1f1e86e",
+    ),
+];
+
+fn is_entity6_candidate1_sources(sources: &std::collections::BTreeMap<String, String>) -> bool {
+    sources.len() == ENTITY6_CANDIDATE1_SOURCES.len()
+        && ENTITY6_CANDIDATE1_SOURCES
+            .iter()
+            .all(|(name, hash)| sources.get(*name).is_some_and(|actual| actual == hash))
+}
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct EnvironmentContract {
@@ -78,6 +227,138 @@ impl EnvironmentContract {
             "checkpoint observation/action/feature contract is incompatible; a structural migration adapter is required"
         );
         Ok(())
+    }
+
+    pub fn check_transfer_encoding(&self) -> Result<()> {
+        if self.check_encoding().is_ok() {
+            return Ok(());
+        }
+        if self.ml.observation_schema_version == 11
+            && self.entity_encoder_version == 8
+            && self.candidate_encoder_version == SEMANTIC_CANDIDATE_ENCODER_VERSION
+            && self.policy_candidate_set_version == POLICY_CANDIDATE_SET_VERSION
+            && self.encoding_sources.len() == PRE_PR_SCHEMA11_SOURCES.len()
+            && PRE_PR_SCHEMA11_SOURCES.iter().all(|(key, hash)| {
+                self.encoding_sources
+                    .get(*key)
+                    .is_some_and(|actual| actual == hash)
+            })
+        {
+            let mut migrated = self.clone();
+            migrated.encoding_sources = encoding_sources();
+            migrated.check_encoding()?;
+            return Ok(());
+        }
+        // Explicit side-path migration for the retained CardPolisher iteration
+        // 2 contract. It verifies every source encoder digest from that
+        // artifact before widening only the entity encoder to schema 8.
+        const CARD_POLISHER_V7: [(&str, &str); 8] = [
+            (
+                "candidate",
+                "b434979dd2f803bede266790f507d80b166ecb96e511cecc55d2e221b2e3c12d",
+            ),
+            (
+                "effects",
+                "cc7558acf0055064cc507376910c779e16dfb614d63f6755f6dd64db895bc0be",
+            ),
+            (
+                "feature_contract",
+                "2488ec9c859eeda35ce4518d3bdf481c4428a075ce2523252db1b62240e651fe",
+            ),
+            (
+                "features",
+                "cc5ff7fd77d2889b38dfba9986683d10f26f93a5a625969181e15e17f2b7fb35",
+            ),
+            (
+                "model",
+                "109c56dc0bf05508687ac5dbe2de4537d5ef78c5b67ba9d4a094ae687fb17c03",
+            ),
+            (
+                "normalization",
+                "0ac20eb35cc581cf5803b80b8ec3f7a927abc6f2a44ec7707299a868fec5f411",
+            ),
+            (
+                "observation",
+                "51059fca61218a4691a9223dad870a67adb8c09d81b46b3984309488ee189427",
+            ),
+            (
+                "policy",
+                "f0daef376920718e3ec9aa837786444fc9cedb3137a68f31f8705568f257e740",
+            ),
+        ];
+        if self.ml.observation_schema_version == 10
+            && self.entity_encoder_version == 7
+            && self.candidate_encoder_version == SEMANTIC_CANDIDATE_ENCODER_VERSION
+            && self.policy_candidate_set_version == POLICY_CANDIDATE_SET_VERSION
+            && self.encoding_sources.len() == CARD_POLISHER_V7.len()
+            && CARD_POLISHER_V7.iter().all(|(key, hash)| {
+                self.encoding_sources
+                    .get(*key)
+                    .is_some_and(|actual| actual == hash)
+            })
+        {
+            let mut migrated = self.clone();
+            migrated.ml.observation_schema_version = td_core::OBSERVATION_SCHEMA_VERSION;
+            migrated.entity_encoder_version = ENTITY_ENCODER_SCHEMA_VERSION;
+            migrated.encoding_sources = encoding_sources();
+            migrated.check_encoding()?;
+            return Ok(());
+        }
+        if (self.ml.observation_schema_version == 10
+            || self.ml.observation_schema_version == td_core::OBSERVATION_SCHEMA_VERSION)
+            && self.entity_encoder_version == 6
+            && self.candidate_encoder_version == 1
+            && self.policy_candidate_set_version == POLICY_CANDIDATE_SET_VERSION
+            && is_entity6_candidate1_sources(&self.encoding_sources)
+        {
+            let mut migrated = self.clone();
+            migrated.ml.observation_schema_version = td_core::OBSERVATION_SCHEMA_VERSION;
+            migrated.entity_encoder_version = ENTITY_ENCODER_SCHEMA_VERSION;
+            migrated.candidate_encoder_version = SEMANTIC_CANDIDATE_ENCODER_VERSION;
+            migrated.encoding_sources = encoding_sources();
+            migrated.check_encoding()?;
+            return Ok(());
+        }
+        ensure!(
+            self.ml.observation_schema_version == 9,
+            "unsupported source observation schema for effects migration"
+        );
+        let names = [
+            ("features", "features.rs"),
+            ("model", "model.rs"),
+            ("policy", "policy_v2.rs"),
+            ("candidate", "semantic_candidates.rs"),
+            ("observation", "encoding/observation.rs"),
+            ("normalization", "encoding/normalize.rs"),
+            ("feature_contract", "feature_contract.rs"),
+        ];
+        ensure!(
+            !self.encoding_sources.is_empty(),
+            "historical source needs Git verification"
+        );
+        ensure!(
+            self.encoding_sources.len() == names.len(),
+            "unsupported legacy encoder manifest"
+        );
+        for (key, path) in names {
+            let expected = LEGACY_ENCODER_HASHES
+                .iter()
+                .find(|(p, _)| *p == path)
+                .unwrap()
+                .1;
+            ensure!(
+                self.encoding_sources
+                    .get(key)
+                    .is_some_and(|hash| hash == expected),
+                "unrecognized source encoder {key}"
+            );
+        }
+        let mut migrated = self.clone();
+        migrated.ml.observation_schema_version = td_core::OBSERVATION_SCHEMA_VERSION;
+        migrated.entity_encoder_version = ENTITY_ENCODER_SCHEMA_VERSION;
+        migrated.candidate_encoder_version = SEMANTIC_CANDIDATE_ENCODER_VERSION;
+        migrated.encoding_sources = encoding_sources();
+        migrated.check_encoding()
     }
 
     pub fn check_run(&self, config: &GameConfig) -> Result<()> {
@@ -146,9 +427,11 @@ fn validate_catalog_extension(
             }
             observation_key.push(ch.to_ascii_lowercase());
         }
+        let mapped_id = super::vocabulary::upgrade_key_id(&observation_key) as usize;
         ensure!(
-            super::vocabulary::upgrade_key_id(&observation_key) as usize == index + 1,
-            "treasure {key}: register its stable observation vocabulary ID before retraining"
+            mapped_id == index + 1,
+            "treasure {key}: observation key {observation_key} maps to ID {mapped_id}, expected {}; register its stable observation vocabulary ID before retraining",
+            index + 1
         );
     }
     for (family, old) in source {
@@ -170,6 +453,8 @@ fn encoding_sources() -> std::collections::BTreeMap<String, String> {
         ("observation", include_str!("encoding/observation.rs")),
         ("normalization", include_str!("encoding/normalize.rs")),
         ("feature_contract", include_str!("feature_contract.rs")),
+        ("effects", include_str!("effect_inputs.rs")),
+        ("card_service", include_str!("card_service_inputs.rs")),
     ]
     .into_iter()
     .map(|(key, source)| {
@@ -228,15 +513,17 @@ fn verify_legacy_encoding(revision: &str) -> Result<()> {
                 &object,
             ])
             .output()?;
-        // The only byte-different legacy adapter is additive candidate expansion;
-        // pin both source and target blobs so future encoder edits cannot inherit it.
+        let known = LEGACY_ENCODER_HASHES
+            .iter()
+            .find(|(name, _)| *name == path)
+            .map(|(_, hash)| *hash);
+        let source_hash = format!("{:x}", Sha256::digest(&output.stdout));
         ensure!(
             output.status.success()
                 && (output.stdout == compiled.as_bytes()
+                    || known == Some(source_hash.as_str())
                     || (path == "semantic_candidates.rs"
-                        && format!("{:x}", Sha256::digest(compiled.as_bytes()))
-                            == "9a5821cd078bfb8d24032c0de30a46995c22f9c6976296542af2c251058a4340"
-                        && format!("{:x}", Sha256::digest(&output.stdout))
+                        && source_hash
                             == "56d519a1d5bb718bfba024de780d33bbce41d55651f20321854f66af148cfffb")),
             "legacy source encoding cannot be verified at {path}; an explicit migration adapter is required"
         );
@@ -305,8 +592,22 @@ pub fn numeric_changes(source: &GameConfig, target: &GameConfig) -> Result<Vec<C
     Ok(changes)
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TransferInitialization {
+    #[default]
+    ReuseWeights,
+    Scratch,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct NumericTransfer {
+    #[serde(default)]
+    pub content_teacher: Option<super::content_teacher::ContentTeacherSpec>,
+    #[serde(default)]
+    pub effect_inputs: bool,
+    #[serde(default)]
+    pub initialization: TransferInitialization,
     pub source_checkpoint: PathBuf,
     pub source_actor_sha256: String,
     pub source_critic_sha256: String,
@@ -321,17 +622,45 @@ pub struct NumericTransfer {
     pub optimizer_policy: String,
     #[serde(default)]
     pub target_candidate_mode: CandidateMode,
+    #[serde(default = "current_entity_encoder_version")]
+    pub target_entity_encoder_version: u32,
+    #[serde(default = "current_candidate_encoder_version")]
+    pub target_candidate_encoder_version: u32,
+    #[serde(default = "current_observation_schema_version")]
+    pub target_observation_schema_version: u32,
+    #[serde(default)]
+    pub target_input_contract: InputContract,
+    #[serde(default)]
+    pub copied_parts: Vec<String>,
+    #[serde(default)]
+    pub initialized_parts: Vec<String>,
+}
+
+fn current_entity_encoder_version() -> u32 {
+    ENTITY_ENCODER_SCHEMA_VERSION
+}
+fn current_candidate_encoder_version() -> u32 {
+    SEMANTIC_CANDIDATE_ENCODER_VERSION
+}
+fn current_observation_schema_version() -> u32 {
+    td_core::OBSERVATION_SCHEMA_VERSION
 }
 
 impl NumericTransfer {
     pub fn validate(&self, target: &GameConfig) -> Result<()> {
-        self.source_environment.check_encoding()?;
+        self.source_environment.check_transfer_encoding()?;
         if self.legacy_source_contract {
             verify_legacy_encoding(&self.source_git_commit)?;
         }
         ensure!(
             self.optimizer_policy == "fresh_adam",
             "unsupported optimizer transfer policy"
+        );
+        ensure!(
+            self.target_entity_encoder_version == ENTITY_ENCODER_SCHEMA_VERSION
+                && self.target_candidate_encoder_version == SEMANTIC_CANDIDATE_ENCODER_VERSION
+                && self.target_observation_schema_version == td_core::OBSERVATION_SCHEMA_VERSION,
+            "transfer target input contract is not the current supported schema"
         );
         ensure!(
             self.changes == numeric_changes(&self.source_environment.game_config, target)?,
@@ -367,7 +696,12 @@ impl NumericTransfer {
                 && self.target_candidate_mode == CandidateMode::Top8)
                 && actor.model_config == self.source_bc_metadata.model_config
                 && actor.kind_mode == self.source_bc_metadata.config.kind_mode
-                && actor.input_contract == self.source_bc_metadata.config.input_contract,
+                && (actor.input_contract == self.source_bc_metadata.config.input_contract
+                    || actor.input_contract
+                        == self.source_bc_metadata.config.input_contract.with_effects())
+                && (self.target_input_contract == actor.input_contract
+                    || (self.effect_inputs
+                        && self.target_input_contract == actor.input_contract.with_effects())),
             "retraining requires Top8 or all-build-options and a matching model/input contract"
         );
         // The normal loader still validates representation and checkpoint versions.
@@ -385,7 +719,13 @@ fn default_development_seeds() -> usize {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct RetrainingSpec {
+    #[serde(default)]
+    pub content_teacher: Option<super::content_teacher::ContentTeacherSpec>,
     pub schema_version: u32,
+    #[serde(default)]
+    pub effect_inputs: bool,
+    #[serde(default)]
+    pub initialization: TransferInitialization,
     /// Optional explicit Top8 -> all legal construction options migration.
     pub candidate_mode: Option<CandidateMode>,
     pub source_checkpoint: PathBuf,
@@ -402,6 +742,8 @@ pub struct RetrainingSpec {
     pub evaluate_every: usize,
     #[serde(default = "default_development_seeds")]
     pub development_seeds: usize,
+    #[serde(default)]
+    pub development_seed_start: Option<u64>,
 }
 
 fn read_json<T: serde::de::DeserializeOwned>(path: &Path) -> Result<T> {
@@ -459,16 +801,52 @@ pub fn prepare_transfer(
                 "legacy checkpoint has no source dataset provenance"
             );
             for provenance in &source.init_bc_metadata.train_provenance {
-                let mut compatible = provenance.clone();
-                compatible.game_rules_epoch = GAME_RULES_EPOCH;
-                compatible.check_current(config)?;
                 ensure!(
-                    provenance.candidate_encoder_version == SEMANTIC_CANDIDATE_ENCODER_VERSION,
-                    "legacy candidate encoder is incompatible"
+                    provenance.observation_schema_version == 9
+                        && provenance.candidate_encoder_version == 1
+                        && provenance.dataset_schema_version == 2
+                        && provenance.catalog_schema_version == 1
+                        && provenance.action_wire_schema_version == 4
+                        && provenance.environment_action_schema_version == 8
+                        && provenance.policy_candidate_set_version == POLICY_CANDIDATE_SET_VERSION,
+                    "unsupported historical dataset provenance"
                 );
+                let mut compatible = provenance.clone();
+                compatible.dataset_schema_version =
+                    super::phase4_dataset::PHASE4_DATASET_SCHEMA_VERSION;
+                compatible.game_rules_epoch = GAME_RULES_EPOCH;
+                compatible.observation_schema_version = td_core::OBSERVATION_SCHEMA_VERSION;
+                compatible.catalog_schema_version = super::contract::CATALOG_SCHEMA_VERSION;
+                compatible.action_wire_schema_version = super::contract::ACTION_WIRE_SCHEMA_VERSION;
+                compatible.environment_action_schema_version =
+                    crate::environment::ACTION_SCHEMA_VERSION;
+                verify_legacy_encoding(&source.git_commit)?;
+                compatible.check_current(config)?;
             }
 
             let mut environment = EnvironmentContract::capture(config);
+            environment.ml.observation_schema_version = 9;
+            environment.entity_encoder_version = 6;
+            environment.candidate_encoder_version = 1;
+            environment.encoding_sources = [
+                ("features", "features.rs"),
+                ("model", "model.rs"),
+                ("policy", "policy_v2.rs"),
+                ("candidate", "semantic_candidates.rs"),
+                ("observation", "encoding/observation.rs"),
+                ("normalization", "encoding/normalize.rs"),
+                ("feature_contract", "feature_contract.rs"),
+            ]
+            .into_iter()
+            .map(|(key, path)| {
+                let hash = LEGACY_ENCODER_HASHES
+                    .iter()
+                    .find(|(known, _)| *known == path)
+                    .expect("legacy encoder hash is registered")
+                    .1;
+                (key.to_string(), hash.to_string())
+            })
+            .collect();
             environment.game_rules_epoch = source.game_rules_epoch;
             environment.core_tree_hash = std::process::Command::new("git")
                 .args([
@@ -488,6 +866,9 @@ pub fn prepare_transfer(
     };
     let source_budget = semantic_ppo::budget_until(&source.history, actor.iteration);
     let transfer = NumericTransfer {
+        content_teacher: None,
+        effect_inputs: false,
+        initialization: TransferInitialization::ReuseWeights,
         source_actor_sha256: file_sha256(&source_checkpoint.join("actor.bin"))?,
         source_critic_sha256: file_sha256(&source_checkpoint.join("critic.bin"))?,
         source_actor_metadata_sha256: file_sha256(&source_checkpoint.join("ppo-actor.json"))?,
@@ -501,6 +882,21 @@ pub fn prepare_transfer(
         critic_inputs: source.critic_inputs,
         optimizer_policy: "fresh_adam".to_string(),
         target_candidate_mode: actor.candidate_mode,
+        target_entity_encoder_version: ENTITY_ENCODER_SCHEMA_VERSION,
+        target_candidate_encoder_version: SEMANTIC_CANDIDATE_ENCODER_VERSION,
+        target_observation_schema_version: td_core::OBSERVATION_SCHEMA_VERSION,
+        target_input_contract: actor.input_contract,
+        copied_parts: vec![
+            "matching actor parameters (same-name, same-shape)".to_string(),
+            "matching critic parameters (same-name, same-shape)".to_string(),
+            "source input contract and candidate mode unless explicitly widened".to_string(),
+            "learned effect and entity-migration adapter parameters".to_string(),
+        ],
+        initialized_parts: vec![
+            "actor and critic Adam optimizers: fresh state".to_string(),
+            "actor and critic card-service context residual adapters: zero initialized with stable IDs".to_string(),
+            "Core observation 10/entity encoder 7 to observation 11/entity encoder 8: explicit allowlisted CardPolisher side-path migration".to_string(),
+        ],
     };
     transfer.validate(target)?;
     Ok((transfer, source))
@@ -563,6 +959,7 @@ fn validate_training_seeds(start: u64, episodes: usize, iterations: usize) -> Re
         Phase4Split::Phase4bFinal,
         Phase4Split::V2Final,
         Phase4Split::RetrainingValidation,
+        Phase4Split::EffectAdaptationValidation,
     ] {
         let reserved = split.range();
         ensure!(
@@ -590,7 +987,12 @@ pub fn run_spec(path: &Path) -> Result<()> {
         spec.evaluate_every > 0 && spec.development_seeds > 0,
         "retraining requires development evaluation"
     );
-    Phase4Split::PpoDevelopment.seeds(Some(spec.development_seeds))?;
+    let development_seed_start = spec
+        .development_seed_start
+        .unwrap_or(*Phase4Split::PpoDevelopment.range().start());
+    Phase4Split::PpoDevelopment
+        .seeds_starting_at(development_seed_start, spec.development_seeds)?;
+    spec.development_seed_start = Some(development_seed_start);
     let base = path
         .canonicalize()?
         .parent()
@@ -615,6 +1017,31 @@ pub fn run_spec(path: &Path) -> Result<()> {
     let source_config = spec.source_config.as_deref().map(load_jsonc).transpose()?;
     let (mut transfer, parent) =
         prepare_transfer(&spec.source_checkpoint, source_config.as_ref(), &target)?;
+    transfer.content_teacher = spec.content_teacher.clone();
+    transfer.effect_inputs = spec.effect_inputs;
+    transfer.initialization = spec.initialization;
+    let source_actor: PpoActorFile = read_json(&transfer.source_checkpoint.join("ppo-actor.json"))?;
+    transfer.target_input_contract = if transfer.effect_inputs {
+        source_actor.input_contract.with_effects()
+    } else {
+        source_actor.input_contract
+    };
+    if transfer.initialization == TransferInitialization::Scratch {
+        transfer.copied_parts.clear();
+        transfer.copied_parts.push(
+            "source configuration, source checkpoint hashes, and transfer provenance".to_string(),
+        );
+        transfer.initialized_parts.insert(
+            0,
+            "actor and critic model weights: seeded scratch initialization".to_string(),
+        );
+    }
+    if transfer.effect_inputs && !source_actor.input_contract.has_effects() {
+        transfer.initialized_parts.insert(
+            0,
+            "actor and critic effect residual adapters: zero weights and bias".to_string(),
+        );
+    }
     if let Some(mode) = spec.candidate_mode {
         transfer.target_candidate_mode = mode;
         transfer.validate(&target)?;
@@ -632,6 +1059,42 @@ pub fn run_spec(path: &Path) -> Result<()> {
         ppo.episodes_per_iteration,
         spec.iterations,
     )?;
+    if let Some(teacher) = &spec.content_teacher {
+        ensure!(
+            spec.effect_inputs
+                && teacher.games_per_config > 0
+                && teacher.scenario_count > 0
+                && teacher.epochs > 0
+                && teacher.learning_rate.is_finite()
+                && teacher.learning_rate > 0.0,
+            "invalid content teacher configuration"
+        );
+        validate_training_seeds(teacher.seed_start, teacher.games_per_config, 1)?;
+        let teacher_end = teacher
+            .seed_start
+            .checked_add(u64::try_from(teacher.games_per_config)? - 1)
+            .context("teacher seed overflow")?;
+        let training_count = ppo
+            .episodes_per_iteration
+            .checked_mul(spec.iterations)
+            .context("training budget overflow")?;
+        let training_end = spec
+            .train_seed_start
+            .checked_add(u64::try_from(training_count)? - 1)
+            .context("training seed overflow")?;
+        ensure!(
+            teacher_end < spec.train_seed_start || teacher.seed_start > training_end,
+            "teacher and PPO seed ranges overlap"
+        );
+        for record in &parent.history {
+            if record.iteration > 0 {
+                ensure!(
+                    teacher_end < record.train_seeds.0 || teacher.seed_start > record.train_seeds.1,
+                    "teacher seeds overlap source training"
+                );
+            }
+        }
+    }
     let end =
         spec.train_seed_start + u64::try_from(ppo.episodes_per_iteration * spec.iterations)? - 1;
     for record in &parent.history {
@@ -681,6 +1144,7 @@ pub fn run_spec(path: &Path) -> Result<()> {
             iterations: spec.iterations,
             evaluate_every: spec.evaluate_every,
             development_seeds: spec.development_seeds,
+            development_seed_start,
         },
     )?;
     write_json_atomic(&spec.run_dir.join("retraining-spec.json"), &spec)?;
@@ -716,7 +1180,8 @@ pub fn run_spec(path: &Path) -> Result<()> {
             policy: Box::new(SemanticPolicy::from_path(&selected)?),
         },
     ];
-    let seeds = Phase4Split::PpoDevelopment.seeds(Some(spec.development_seeds))?;
+    let seeds = Phase4Split::PpoDevelopment
+        .seeds_starting_at(development_seed_start, spec.development_seeds)?;
     let evaluation = evaluate_policies(
         Arc::clone(&target),
         "retraining_development",
@@ -727,15 +1192,28 @@ pub fn run_spec(path: &Path) -> Result<()> {
             ("retrained".to_string(), "canonical".to_string()),
         ],
     )?;
+    let content_teacher_report: Option<serde_json::Value> =
+        if spec.run_dir.join("content-teacher-report.json").exists() {
+            Some(read_json(
+                &spec.run_dir.join("content-teacher-report.json"),
+            )?)
+        } else {
+            None
+        };
     let report = serde_json::json!({
         "schema_version": 1, "environment": metadata.environment,
+        "initialization": transfer.initialization, "effect_inputs": transfer.effect_inputs, "content_teacher":content_teacher_report,
         "source_checkpoint": transfer.source_checkpoint, "source_budget": transfer.source_budget,
+        "source_hashes": {"actor": transfer.source_actor_sha256, "critic": transfer.source_critic_sha256, "actor_metadata": transfer.source_actor_metadata_sha256},
+        "source_contract": {"observation_schema": transfer.source_environment.ml.observation_schema_version, "entity_encoder": transfer.source_environment.entity_encoder_version, "candidate_encoder": transfer.source_environment.candidate_encoder_version, "candidate_mode": source_actor.candidate_mode, "input_contract": source_actor.input_contract},
+        "target_contract": {"observation_schema": transfer.target_observation_schema_version, "entity_encoder": transfer.target_entity_encoder_version, "candidate_encoder": transfer.target_candidate_encoder_version, "candidate_mode": transfer.target_candidate_mode, "input_contract": transfer.target_input_contract},
+        "copied_parts": transfer.copied_parts, "initialized_parts": transfer.initialized_parts,
         "post_change_budget": metadata.history.last().map(|record| record.cumulative).unwrap_or_default(),
         "completed_iterations": metadata.completed_iterations, "selected_iteration": selected_iteration,
         "selection_rule": "greatest development mean terminal progress; latest iteration breaks ties",
         "preparation_seconds": preparation_seconds,
         "workflow_invocation_seconds": workflow_started.elapsed().as_secs_f64(),
-        "budget_scope": "post_change_budget includes rollout, optimizer, and in-training evaluation; preparation and report evaluation are separate",
+        "budget_scope": "post_change_budget includes PPO rollout, optimizer, and in-training evaluation; content_teacher reports its separate simulation/training costs; preparation and report evaluation are separate",
         "evaluation": evaluation, "speedup_verified": false,
         "note": "Development result only; scratch controls and independent repeats are required to establish retraining efficiency."
     });
@@ -751,6 +1229,101 @@ pub fn run_spec(path: &Path) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use burn::{
+        module::{Module, ModuleVisitor, Param, ParamId},
+        tensor::Tensor,
+    };
+
+    fn params<B: burn::tensor::backend::Backend>(
+        model: &super::super::model::DeepSetsActorCritic<B>,
+    ) -> Vec<(ParamId, Vec<f32>)> {
+        struct Snapshot<B: burn::tensor::backend::Backend> {
+            values: Vec<(ParamId, Vec<f32>)>,
+            marker: std::marker::PhantomData<B>,
+        }
+        impl<B: burn::tensor::backend::Backend> ModuleVisitor<B> for Snapshot<B> {
+            fn visit_float<const D: usize>(&mut self, parameter: &Param<Tensor<B, D>>) {
+                self.values.push((
+                    parameter.id,
+                    parameter.val().clone().into_data().to_vec::<f32>().unwrap(),
+                ));
+            }
+        }
+        let mut visitor = Snapshot::<B> {
+            values: Vec::new(),
+            marker: std::marker::PhantomData,
+        };
+        model.visit(&mut visitor);
+        visitor.values
+    }
+
+    #[test]
+    #[ignore = "requires the retained TrainingMelon source checkpoint"]
+    fn existing_source_effect_and_migration_adapters_survive_transfer_materialization() {
+        let checkpoint = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("artifacts/retraining/training-melon-20261013/run-final-freshdev/iter-0002");
+        let device = super::super::model::default_policy_device();
+        let metadata: PpoActorFile = read_json(&checkpoint.join("ppo-actor.json")).unwrap();
+        let actor = semantic_ppo::load_transfer_actor_as::<super::super::model::InferenceBackend>(
+            &checkpoint,
+            &device,
+        )
+        .expect("load selected transfer source actor");
+        let actor_before = params(&actor.scorer);
+        let actor_materialized = actor
+            .scorer
+            .clone()
+            .with_effect_adapters(metadata.model_config, &device);
+        let actor_materialized =
+            actor_materialized.with_migration_adapters(metadata.model_config, &device);
+        assert_eq!(actor_before, params(&actor_materialized));
+
+        let critic =
+            crate::ml::semantic_bc::load_model_file::<super::super::model::InferenceBackend>(
+                metadata.model_config,
+                &checkpoint.join("critic.bin"),
+                &device,
+            )
+            .expect("load source critic");
+        let critic_before = params(&critic);
+        let critic_materialized = critic
+            .clone()
+            .with_effect_adapters(metadata.model_config, &device)
+            .with_migration_adapters(metadata.model_config, &device);
+        assert_eq!(critic_before, params(&critic_materialized));
+
+        let adapter_ids = [
+            0x4546465354410000_u64,
+            0x4546465354410001,
+            0x45464643414e0000,
+            0x45464643414e0001,
+            0x4546465452450000,
+            0x4546465452450001,
+            0x4d49475253544100,
+            0x4d49475253544101,
+            0x4d49475243414e00,
+            0x4d49475243414e01,
+        ]
+        .map(ParamId::from);
+        let mut adapter_norms = Vec::new();
+        for (index, id) in adapter_ids.into_iter().enumerate() {
+            let actor_values = actor_before
+                .iter()
+                .find(|(actual, _)| *actual == id)
+                .unwrap_or_else(|| panic!("source actor adapter {id:?} missing"));
+            let critic_values = critic_before
+                .iter()
+                .find(|(actual, _)| *actual == id)
+                .unwrap_or_else(|| panic!("source critic adapter {id:?} missing"));
+            let norm =
+                |values: &[f32]| values.iter().map(|value| value * value).sum::<f32>().sqrt();
+            adapter_norms.push((index, norm(&actor_values.1), norm(&critic_values.1)));
+        }
+        println!(
+            "SOURCE_ADAPTER_VALUE_NORMS={{\"index_actor_critic_l2\":{:?},\"all_values_preserved\":true}}",
+            adapter_norms
+        );
+    }
 
     #[test]
     fn rule_change_allows_weight_transfer_but_never_run_resume() {
@@ -774,6 +1347,29 @@ mod tests {
         target.get_mut("items").unwrap().swap(0, 1);
         assert!(validate_catalog_extension(&source, &target).is_err());
         assert!(validate_catalog_extension(&target, &source).is_err());
+        #[cfg(feature = "experimental-content")]
+        {
+            let mut treasure_source = source.clone();
+            treasure_source.get_mut("treasures").unwrap().pop();
+            let mut treasure_target = treasure_source.clone();
+            treasure_target
+                .get_mut("treasures")
+                .unwrap()
+                .push("TrainingMelon".into());
+            validate_catalog_extension(&treasure_source, &treasure_target).unwrap();
+            treasure_target.get_mut("treasures").unwrap().swap(0, 1);
+            assert!(validate_catalog_extension(&treasure_source, &treasure_target).is_err());
+            let mut service_source = source.clone();
+            service_source.get_mut("card_services").unwrap().pop();
+            let mut service_target = service_source.clone();
+            service_target
+                .get_mut("card_services")
+                .unwrap()
+                .push("card_polisher".into());
+            validate_catalog_extension(&service_source, &service_target).unwrap();
+            service_target.get_mut("card_services").unwrap().swap(0, 1);
+            assert!(validate_catalog_extension(&service_source, &service_target).is_err());
+        }
     }
 
     #[test]
@@ -823,6 +1419,123 @@ mod tests {
         );
         contract.entity_encoder_version += 1;
         assert!(contract.check_encoding().is_err());
+    }
+
+    #[test]
+    fn pre_pr_schema11_transfer_accepts_only_the_audited_lint_cleanup_manifest() {
+        let config = GameConfig::default_config();
+        let mut source = EnvironmentContract::capture(&config);
+        source.encoding_sources = PRE_PR_SCHEMA11_SOURCES
+            .iter()
+            .map(|(key, hash)| (key.to_string(), hash.to_string()))
+            .collect();
+        assert!(source.check_encoding().is_err());
+        source.check_transfer_encoding().unwrap();
+        source
+            .encoding_sources
+            .insert("policy".into(), "unaudited-policy".into());
+        assert!(source.check_transfer_encoding().is_err());
+    }
+
+    #[test]
+    fn entity6_candidate1_contract_requires_the_exact_encoder_manifest() {
+        let config = GameConfig::default_config();
+        let mut source = EnvironmentContract::capture(&config);
+        source.entity_encoder_version = 6;
+        source.candidate_encoder_version = 1;
+        source.encoding_sources = ENTITY6_CANDIDATE1_SOURCES
+            .iter()
+            .map(|(key, hash)| (key.to_string(), hash.to_string()))
+            .collect();
+        assert!(source.check_encoding().is_err());
+        source.check_transfer_encoding().unwrap();
+
+        source.encoding_sources.insert(
+            "candidate".to_string(),
+            "unknown-candidate-encoder".to_string(),
+        );
+        assert!(source.check_transfer_encoding().is_err());
+        source.entity_encoder_version = 5;
+        assert!(source.check_transfer_encoding().is_err());
+    }
+
+    #[test]
+    fn available_entity6_candidate1_artifact_is_transfer_loadable() {
+        let checkpoint = Path::new(env!("CARGO_MANIFEST_DIR")).join(
+            "artifacts/retraining/effect-adaptation-isolated-20261011/source-converted/iter-0000",
+        );
+        if !checkpoint.exists() {
+            return;
+        }
+        let actor: PpoActorFile = read_json(&checkpoint.join("ppo-actor.json")).unwrap();
+        let environment = actor.environment.as_ref().unwrap();
+        assert_eq!(environment.entity_encoder_version, 6);
+        assert_eq!(environment.candidate_encoder_version, 1);
+        assert_eq!(actor.candidate_mode, CandidateMode::Top8);
+        let (transfer, _) = prepare_transfer(&checkpoint, None, &environment.game_config)
+            .expect("validated schema-6/schema-1 checkpoint transfers to current inputs");
+        assert!(!transfer.legacy_source_contract);
+        let loaded = semantic_ppo::load_transfer_actor_as::<crate::ml::model::InferenceBackend>(
+            &checkpoint,
+            &crate::ml::model::default_policy_device(),
+        )
+        .expect("source actor loads through the explicit transfer loader");
+        assert_eq!(loaded.inputs, actor.input_contract);
+        assert!(
+            semantic_ppo::load_ppo_actor_as::<crate::ml::model::InferenceBackend>(
+                &checkpoint,
+                &crate::ml::model::default_policy_device(),
+            )
+            .is_err(),
+            "ordinary checkpoint loading remains strict"
+        );
+    }
+
+    #[test]
+    fn historical_observation9_entity6_checkpoint_uses_combined_explicit_migration() {
+        let checkpoint = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("artifacts/phase4b/kl-epoch-transaction-r2-p2/iter-0200");
+        if !checkpoint.exists() {
+            return;
+        }
+        let converted = Path::new(env!("CARGO_MANIFEST_DIR")).join(
+            "artifacts/retraining/effect-adaptation-isolated-20261011/source-converted/iter-0000/ppo-actor.json",
+        );
+        let converted_actor: PpoActorFile = read_json(&converted).unwrap();
+        let config = converted_actor.environment.unwrap().game_config;
+        let (transfer, _) = prepare_transfer(&checkpoint, Some(&config), &config)
+            .expect("historical observation-9/entity-6/candidate-1 source is verified");
+        assert!(transfer.legacy_source_contract);
+        let loaded = semantic_ppo::load_transfer_actor_as::<crate::ml::model::InferenceBackend>(
+            &checkpoint,
+            &crate::ml::model::default_policy_device(),
+        )
+        .expect("historical actor loads via transfer-only compatibility");
+        assert!(!loaded.inputs.has_effects());
+    }
+
+    #[test]
+    fn available_effect_adapter_checkpoint_keeps_learned_adapter_and_adds_zero_path() {
+        let checkpoint = Path::new(env!("CARGO_MANIFEST_DIR")).join(
+            "artifacts/retraining/effect-adaptation-isolated-20261011/effect-reuse_weights-r1/iter-0004",
+        );
+        if !checkpoint.exists() {
+            return;
+        }
+        let actor_file: PpoActorFile = read_json(&checkpoint.join("ppo-actor.json")).unwrap();
+        let environment = actor_file.environment.as_ref().unwrap();
+        assert_eq!(environment.entity_encoder_version, 6);
+        assert_eq!(environment.candidate_encoder_version, 1);
+        assert!(actor_file.input_contract.has_effects());
+        prepare_transfer(&checkpoint, None, &environment.game_config)
+            .expect("learned-effect schema-6/schema-1 checkpoint validates");
+        let actor = semantic_ppo::load_transfer_actor_as::<crate::ml::model::InferenceBackend>(
+            &checkpoint,
+            &crate::ml::model::default_policy_device(),
+        )
+        .expect("learned effect adapter checkpoint loads");
+        assert!(actor.scorer.has_effect_adapters());
+        assert!(actor.scorer.has_migration_adapters());
     }
 
     #[test]

@@ -880,6 +880,9 @@ mod tests {
             for prefix in [0usize, 14, 33] {
                 let mut source = GameEnvironment::new(config(), game_seed);
                 for _ in 0..prefix {
+                    if source.decision_point() == DecisionPoint::Terminal {
+                        break;
+                    }
                     let action = canonical_scripted_semantic_action(&source).unwrap();
                     let mut outcome = source.semantic_step(action).unwrap();
                     crate::teacher::settle_forced_actions(&mut source, &mut outcome).unwrap();

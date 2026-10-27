@@ -30,6 +30,8 @@ pub(super) mod lunch_box;
 pub(super) mod milk;
 pub(super) mod rice_ball;
 pub(super) mod rubber_cone;
+#[cfg(feature = "experimental-content")]
+pub(super) mod shield_berry;
 pub(super) mod support;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -45,6 +47,8 @@ pub(crate) enum ItemRuntimeState {
     Milk(milk::MilkItemState),
     RiceBall(rice_ball::RiceBallItemState),
     RubberCone(rubber_cone::RubberConeItemState),
+    #[cfg(feature = "experimental-content")]
+    ShieldBerry(shield_berry::ShieldBerryItemState),
 }
 
 #[enum_dispatch(ItemBehavior)]
@@ -61,6 +65,8 @@ pub(crate) enum ItemBehaviorImpl {
     Milk(milk::Behavior),
     RiceBall(rice_ball::Behavior),
     RubberCone(rubber_cone::Behavior),
+    #[cfg(feature = "experimental-content")]
+    ShieldBerry(shield_berry::Behavior),
 }
 
 impl ItemBehaviorImpl {
@@ -77,6 +83,8 @@ impl ItemBehaviorImpl {
             crate::ItemKind::Milk => Self::Milk(milk::Behavior),
             crate::ItemKind::RiceBall => Self::RiceBall(rice_ball::Behavior),
             crate::ItemKind::RubberCone => Self::RubberCone(rubber_cone::Behavior),
+            #[cfg(feature = "experimental-content")]
+            crate::ItemKind::ShieldBerry => Self::ShieldBerry(shield_berry::Behavior),
         }
     }
 }

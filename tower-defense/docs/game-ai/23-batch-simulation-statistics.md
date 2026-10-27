@@ -13,15 +13,15 @@
 ```sh
 cargo build --release --bin td-simulator
 target/release/td-simulator simulate \
-  --checkpoint artifacts/phase4b/kl-epoch-transaction-r2-p2/iter-0200 \
-  --config configs/original.jsonc \
+  --checkpoint artifacts/retraining/production-all-options-pr-validation/run/iter-0001 \
+  --config configs/retraining-study-20261011/original.jsonc \
   --samples 1000 --seed-start 6100000 --threads 8 \
   --db ai-stats.db --all-stats
 
 target/release/td-simulator stats --db ai-stats.db
 ```
 
-`configs/original.jsonc`에는 해당 checkpoint의 학습 설정을 제공한다. 현재 기본 밸런스가 학습 당시와 다르면 설정을 생략한 실행은 거부된다. 변경 설정에서 평가하려면 아래의 명시적 허용 옵션을 사용한다.
+Use the matching recorded configuration. Create this checkpoint using the ordinary production-transfer spec in [27](27-retraining-quickstart.md); historical observation-9 checkpoints require explicit migration to the current contract before strict inference. Configuration mismatches remain rejected unless the explicit evaluation override below is supplied.
 
 `--checkpoint`는 PPO iteration 디렉터리(`ppo-actor.json`), BC run 디렉터리(`bc.json`), 과거 neural checkpoint 파일을 받는다. 모델은 실행 전에 한 번 로딩하며, 현재 PPO/BC는 기존 semantic 정책의 greedy 선택을 사용한다. 실행 중 학습하지 않는다. 미래 RNG를 참조하거나 scripted로 실패를 대신 처리하지 않는다.
 
@@ -55,4 +55,4 @@ target/release/td-simulator stats --db ai-stats.db
 
 ## 구현 상태
 
-현재 semantic PPO/BC를 `simulate`에 연결하고 이벤트·stage 기록 및 기존 통계 출력을 보완했다. release binary로 개발 seed 4000000–4000003의 실제 종료 게임 4판과 `all-stats`·SQLite 저장을 확인했다. 각 판의 진행도는 기존 terminal evaluator와 float 표현 오차 이내에서 일치했다. trace와 streaming 기록의 동등성, 실행별 집계 분리와 미완료 게임 제외 테스트도 통과했다. 전체 테스트의 기존 실패와 추가 실험 결과는 [24](24-construction-and-content-adaptation.md)에 기록한다.
+현재 semantic PPO/BC를 `simulate`에 연결하고 이벤트·stage 기록 및 기존 통계 출력을 보완했다. release binary로 개발 seed 4000000–4000003의 실제 종료 게임 4판과 `all-stats`·SQLite 저장을 확인했다. 각 판의 진행도는 기존 terminal evaluator와 float 표현 오차 이내에서 일치했다. trace와 streaming 기록의 동등성, 실행별 집계 분리와 미완료 게임 제외 테스트도 통과했다. 기존 실패 수정과 추가 실험 결과는 [25](25-effect-inputs-and-retraining-study.md)에 기록한다.

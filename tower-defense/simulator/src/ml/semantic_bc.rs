@@ -682,6 +682,35 @@ pub fn load_policy_file<B: Backend>(
     path: &Path,
     device: &B::Device,
 ) -> Result<PolicyNet<B>> {
+    // Burn's derived MessagePack record decoder exceeds a native test worker's
+    // 2 MiB stack in debug builds. Keep decoding on a bounded dedicated stack;
+    // this also supports callers that run inference on small worker threads.
+    std::thread::scope(|scope| {
+        std::thread::Builder::new()
+            .name("policy-checkpoint-loader".into())
+            .stack_size(8 * 1024 * 1024)
+            .spawn_scoped(scope, || {
+                load_policy_file_on_checkpoint_stack(
+                    representation_version,
+                    config,
+                    mode,
+                    path,
+                    device,
+                )
+            })
+            .context("spawn policy checkpoint decoder")?
+            .join()
+            .map_err(|_| anyhow::anyhow!("policy checkpoint decoder panicked"))?
+    })
+}
+
+fn load_policy_file_on_checkpoint_stack<B: Backend>(
+    representation_version: u32,
+    config: ModelConfig,
+    mode: KindMode,
+    path: &Path,
+    device: &B::Device,
+) -> Result<PolicyNet<B>> {
     let bytes = std::fs::read(path).with_context(|| format!("read {}", path.display()))?;
     match representation_version {
         1 => {
@@ -698,7 +727,7 @@ pub fn load_policy_file<B: Backend>(
                     .with_family_only(family_only),
             )
         }
-        POLICY_REPRESENTATION_VERSION => policy_from_bytes::<B>(config, mode, bytes, device),
+        3 | POLICY_REPRESENTATION_VERSION => policy_from_bytes::<B>(config, mode, bytes, device),
         other => bail!("{}: unknown policy representation {other}", path.display()),
     }
 }
@@ -852,6 +881,14 @@ pub fn train_bc_run(run_dir: &Path, input: BcTrainInput<'_>) -> Result<BcCheckpo
     if input.metadata.policy_representation_version != POLICY_REPRESENTATION_VERSION {
         bail!("BC training writes policy representation {POLICY_REPRESENTATION_VERSION} only");
     }
+    if config.input_contract.has_effects()
+        && !matches!(
+            config.candidate_mode,
+            CandidateMode::Top8 | CandidateMode::AllBuildOptions
+        )
+    {
+        bail!("effect inputs currently require Top8 or all-build-options");
+    }
     std::fs::create_dir_all(run_dir)?;
     let device = default_policy_device();
     let model_config = input.metadata.model_config;
@@ -890,7 +927,7 @@ pub fn train_bc_run(run_dir: &Path, input: BcTrainInput<'_>) -> Result<BcCheckpo
         );
         (metadata, model)
     } else {
-        let model = match input.init_model {
+        let mut model = match input.init_model {
             Some(model) => model.with_mode(kind_mode),
             None => seeded_policy_net::<TrainBackend>(
                 model_config,
@@ -900,6 +937,9 @@ pub fn train_bc_run(run_dir: &Path, input: BcTrainInput<'_>) -> Result<BcCheckpo
             )?,
         }
         .with_inputs(config.input_contract);
+        if config.input_contract.has_effects() {
+            model.scorer = model.scorer.with_effect_adapters(model_config, &device);
+        }
         let metadata = input.metadata;
         let directory = epoch_dir(run_dir, 0);
         std::fs::create_dir_all(&directory)?;
@@ -1196,6 +1236,8 @@ impl SemanticPolicy {
         {
             let mut source = encoded.clone();
             source.candidates = projection.source_candidates.clone();
+            source.candidate_effects = projection.source_candidate_effects.clone();
+            source.candidate_extensions = projection.source_candidate_extensions.clone();
             source.legal_mask = projection.source_legal_mask.clone();
             source.families = projection.source_families.clone();
             source.projection = None;
@@ -1242,6 +1284,8 @@ impl SemanticPolicy {
             // full-position conditional head.
             let mut source = encoded.clone();
             source.candidates = projection.source_candidates.clone();
+            source.candidate_effects = projection.source_candidate_effects.clone();
+            source.candidate_extensions = projection.source_candidate_extensions.clone();
             source.legal_mask = projection.source_legal_mask.clone();
             source.families = projection.source_families.clone();
             source.projection = None;
@@ -1709,6 +1753,12 @@ mod tests {
     fn bc_actor_weights_load_into_ppo_model_with_separate_value_head() {
         let device = default_policy_device();
         let trained = new_materialized_model(ModelConfig::default(), &device).unwrap();
+        assert!(
+            !trained
+                .clone()
+                .without_card_service_adapters()
+                .has_card_service_adapters()
+        );
         let bytes = model_to_full_precision_bytes(trained.clone().valid()).unwrap();
         let ppo =
             model_from_full_precision_bytes::<TrainBackend>(ModelConfig::default(), bytes, &device)
