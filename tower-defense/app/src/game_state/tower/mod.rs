@@ -1,26 +1,14 @@
 pub mod render;
-mod royal_straight_flush;
 mod skill;
 
 use super::*;
-use crate::game_state::attack::{AttackType, ProjectileGroup};
 use crate::l10n::tower::TowerKindText;
-use crate::{AttackId, MonsterId, SimTick, TowerId, WorldCoord, WorldDistance, WorldVec};
+use crate::{SimTick, TowerId, WorldCoord, WorldDistance, WorldVec};
 use namui::*;
 pub(crate) use render::Animation;
 pub use render::{AnimationKind, tower_animation_tick};
-pub(crate) use royal_straight_flush::RoyalStraightFlushVisual;
-pub use royal_straight_flush::royal_straight_flush_hit_delay;
-pub use royal_straight_flush::tick_royal_straight_flush_visuals;
-pub(crate) use royal_straight_flush::{
-    RoyalStraightFlushVisualParams, spawn_royal_straight_flush_visual,
-};
 pub use skill::*;
 use std::ops::Deref;
-
-const PROJECTILE_SPEED: Velocity = WorldSpeed::from_raw(12 * crate::world::WORLD_UNITS_PER_TILE);
-const FAST_PROJECTILE_SPEED: Velocity =
-    WorldSpeed::from_raw(16 * crate::world::WORLD_UNITS_PER_TILE);
 
 #[derive(Clone, PartialEq, State)]
 pub struct Tower {
@@ -33,26 +21,22 @@ pub struct Tower {
     core_damage_multiplier_raw: i64,
     cached_upgrade: CachedTowerUpgradeDamage,
     pub(in crate::game_state::tower) animation: Animation,
-    pub(self) royal_straight_flush_visual: Option<RoyalStraightFlushVisual>,
 }
 
 #[derive(Clone, PartialEq)]
 pub(crate) struct TowerPresentationState {
     animation: Animation,
-    royal_straight_flush_visual: Option<RoyalStraightFlushVisual>,
 }
 
 impl Tower {
     pub(crate) fn presentation_state(&self) -> TowerPresentationState {
         TowerPresentationState {
             animation: self.animation.clone(),
-            royal_straight_flush_visual: self.royal_straight_flush_visual.clone(),
         }
     }
 
     pub(crate) fn restore_presentation_state(&mut self, state: TowerPresentationState) {
         self.animation = state.animation;
-        self.royal_straight_flush_visual = state.royal_straight_flush_visual;
     }
 
     pub(crate) fn to_core_state(&self) -> td_core::TowerState {
@@ -117,24 +101,6 @@ pub struct CachedTowerUpgradeDamage {
     pub damage: Damage,
 }
 
-pub struct ShootProjectileParams {
-    pub id: AttackId,
-    pub target_indicator: ProjectileTargetIndicator,
-    pub key: u64,
-    pub speed: Velocity,
-    pub trail: ProjectileTrail,
-    pub projectile_group: ProjectileGroup,
-    pub hit_effect: attack::ProjectileHitEffect,
-    pub damage: Damage,
-    pub sim_tick: SimTick,
-    pub source_tower: Option<attack::TowerInfo>,
-}
-
-pub struct AttackTypeParams {
-    pub target_xy: WorldCoord,
-    pub sim_tick: SimTick,
-}
-
 impl Tower {
     pub fn new(template: &TowerTemplate, left_top: MapCoord, sim_tick: SimTick) -> Self {
         Self {
@@ -156,7 +122,6 @@ impl Tower {
                 damage: template.default_damage,
             },
             animation: Animation::new(sim_tick),
-            royal_straight_flush_visual: None,
         }
     }
 
@@ -172,47 +137,6 @@ impl Tower {
     #[cfg(test)]
     pub(crate) fn cooldown_ticks(&self) -> u64 {
         self.cooldown.ticks()
-    }
-
-    pub fn shoot_projectile(&mut self, params: ShootProjectileParams) -> attack::InFlightAttack {
-        self.mark_fired(params.sim_tick);
-
-        attack::InFlightAttack::new_spatial(
-            params.id,
-            attack::SpatialAttack::new_direct(
-                self.head_world_xy(),
-                params.target_indicator,
-                params.key,
-                params.projectile_group.kind_for(params.key),
-                params.speed,
-                params.trail,
-                params.hit_effect,
-            ),
-            params.damage,
-            params.source_tower,
-        )
-        .with_on_hit_splashes(self.engraving_modifier().on_hit_splashes)
-    }
-
-    pub fn shoot_laser(
-        &mut self,
-        id: AttackId,
-        target_xy: WorldCoord,
-        target_monster_id: MonsterId,
-        damage: Damage,
-        sim_tick: SimTick,
-        source_tower: Option<attack::TowerInfo>,
-    ) -> attack::InFlightAttack {
-        self.mark_fired(sim_tick);
-
-        let beam = attack::laser::LaserBeam::new(
-            self.head_world_xy(),
-            target_xy,
-            sim_tick,
-            target_monster_id,
-        );
-        attack::InFlightAttack::new_laser(id, beam, damage, source_tower)
-            .with_on_hit_splashes(self.engraving_modifier().on_hit_splashes)
     }
 
     pub fn refresh_cached_upgrade_damage(
@@ -253,46 +177,6 @@ impl Tower {
         self.animation.clone()
     }
 
-    pub fn royal_straight_flush_visual(&self) -> Option<&RoyalStraightFlushVisual> {
-        self.royal_straight_flush_visual.as_ref()
-    }
-
-    pub fn attack_type(&self, _params: AttackTypeParams) -> AttackType {
-        match self.kind {
-            TowerKind::RubberCone => AttackType::Projectile {
-                speed: PROJECTILE_SPEED,
-                trail: ProjectileTrail::None,
-                projectile_group: ProjectileGroup::Trash,
-                hit_effect: attack::ProjectileHitEffect::TrashBounce,
-            },
-            TowerKind::High => AttackType::InstantDamage,
-            TowerKind::OnePair => AttackType::InstantDamage,
-            TowerKind::TwoPair => AttackType::InstantDamage,
-            TowerKind::ThreeOfAKind => AttackType::InstantDamage,
-            TowerKind::Straight => AttackType::Laser,
-            TowerKind::RoyalFlush => AttackType::InstantDamage,
-            TowerKind::StraightFlush => AttackType::InstantDamage,
-            TowerKind::Flush => AttackType::Projectile {
-                speed: FAST_PROJECTILE_SPEED,
-                trail: ProjectileTrail::Sparkle,
-                projectile_group: ProjectileGroup::Girl,
-                hit_effect: attack::ProjectileHitEffect::SparkleBurst,
-            },
-            TowerKind::FullHouse => {
-                let head_xy = self.head_world_xy();
-                AttackType::FullHouseRain { tower_xy: head_xy }
-            }
-            TowerKind::FourOfAKind => AttackType::Projectile {
-                speed: FAST_PROJECTILE_SPEED,
-                trail: ProjectileTrail::WindCurve,
-                projectile_group: ProjectileGroup::Cards,
-                hit_effect: attack::ProjectileHitEffect::CardBurst,
-            },
-        }
-    }
-
-    /// cooldown과 animation을 한 번에 설정. shoot_projectile/shoot_laser와 달리
-    /// FullHouse/RSF처럼 별도 shoot_* 메서드가 없는 공격 타입이 호출한다.
     pub fn mark_fired(&mut self, sim_tick: SimTick) {
         self.cooldown = self.effective_shoot_interval();
         self.animation.transition(AnimationKind::Attack, sim_tick);

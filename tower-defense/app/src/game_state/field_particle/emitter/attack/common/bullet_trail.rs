@@ -19,7 +19,8 @@ pub(in crate::game_state::field_particle::emitter::attack) fn spawn(
     let path_length_tiles = delta_x.hypot(delta_y);
     let angle = (delta_y * crate::game_state::TILE_PX_SIZE.height.as_f32())
         .atan2(delta_x * crate::game_state::TILE_PX_SIZE.width.as_f32());
-    let rotation = (angle.cos(), angle.sin());
+    let (rotation_sin, rotation_cos) = angle.sin_cos();
+    let rotation = (rotation_cos, rotation_sin);
     let step_count = (path_length_tiles / SPACING_TILES).ceil() as usize;
     for index in 0..=step_count {
         let progress = if step_count == 0 {

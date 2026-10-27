@@ -8,15 +8,15 @@ pub const LIGHTNING_COLOR: [f32; 3] = [0.6, 0.95, 1.0];
 #[derive(Clone)]
 pub struct StraightLightning {
     center_xy: (f32, f32),
-    angle_rad: f32,
     segment_length_tiles: f32,
     variant: usize,
-    flip_vertical: bool,
+    rotation: (f32, f32),
     scale_multiplier: f32,
     color: [f32; 3],
     created_at: Instant,
     delay: Duration,
     progress: f32,
+    eased_progress: f32,
     started: bool,
 }
 
@@ -30,17 +30,24 @@ impl StraightLightning {
         created_at: Instant,
         delay: Duration,
     ) -> Self {
+        let angle = angle_rad
+            + if flip_vertical {
+                std::f32::consts::PI
+            } else {
+                0.0
+            };
+        let (rotation_sin, rotation_cos) = angle.sin_cos();
         Self {
             center_xy,
-            angle_rad,
             segment_length_tiles,
             variant,
-            flip_vertical,
+            rotation: (rotation_cos, rotation_sin),
             scale_multiplier: 1.0,
             color: LIGHTNING_COLOR,
             created_at,
             delay,
             progress: 0.0,
+            eased_progress: 0.0,
             started: false,
         }
     }
@@ -64,6 +71,11 @@ impl StraightLightning {
         } else {
             0.0
         };
+        self.eased_progress = if self.started && self.progress < 1.0 {
+            ATTACK_FRAME_EASE_OUT.sample(self.progress)
+        } else {
+            0.0
+        };
     }
 
     pub fn render(&self) -> particle::ParticleSprites {
@@ -73,29 +85,22 @@ impl StraightLightning {
         }
 
         let frames = frames_for_variant(self.variant);
-        let frame_index = ((ATTACK_FRAME_EASE_OUT.sample(self.progress) * frames.len() as f32)
-            as usize)
-            .min(frames.len() - 1);
+        let frame_index =
+            ((self.eased_progress * frames.len() as f32) as usize).min(frames.len() - 1);
         let frame = frames[frame_index];
         let scale = crate::game_state::TILE_PX_SIZE.width.as_f32() * self.segment_length_tiles
             / frame.width().as_f32();
         let thickness = scale * frame.height().as_f32() * THICKNESS_SCALE * self.scale_multiplier;
-        let angle = self.angle_rad
-            + if self.flip_vertical {
-                std::f32::consts::PI
-            } else {
-                0.0
-            };
         let opacity = 1.0 - self.progress;
         let color = Color::from_f01(self.color[0], self.color[1], self.color[2], opacity);
         let half_length_px =
             crate::game_state::TILE_PX_SIZE.width.as_f32() * self.segment_length_tiles / 2.0;
         let center_x = self.center_xy.0 * crate::game_state::TILE_PX_SIZE.width.as_f32();
         let center_y = self.center_xy.1 * crate::game_state::TILE_PX_SIZE.height.as_f32();
-        let start_x = center_x - angle.cos() * half_length_px;
-        let start_y = center_y - angle.sin() * half_length_px;
-        let end_x = center_x + angle.cos() * half_length_px;
-        let end_y = center_y + angle.sin() * half_length_px;
+        let start_x = center_x - self.rotation.0 * half_length_px;
+        let start_y = center_y - self.rotation.1 * half_length_px;
+        let end_x = center_x + self.rotation.0 * half_length_px;
+        let end_y = center_y + self.rotation.1 * half_length_px;
         if let Some(sprite) = crate::game_state::field_particle::atlas::line_sprite_from_rect(
             frame,
             px(start_x),

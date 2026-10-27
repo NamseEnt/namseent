@@ -9,7 +9,7 @@ use sha2::{Digest, Sha256};
 use std::collections::HashSet;
 use std::sync::{Mutex, OnceLock};
 
-pub(crate) const CURRENT_SCHEMA_VERSION: u16 = 6;
+pub(crate) const CURRENT_SCHEMA_VERSION: u16 = 8;
 const STORAGE_KEY: &str = "tower-defense-game-state";
 const STORAGE_MAGIC: &[u8; 4] = b"TDGS";
 
@@ -126,10 +126,6 @@ fn validate_entity_snapshots(state: &td_core::CoreState) -> bool {
             .towers()
             .iter()
             .all(|tower| tower.id.is_some_and(&mut insert_id))
-        && state
-            .in_flight_attacks()
-            .iter()
-            .all(|attack| insert_id(attack.id))
         && {
             let mut item_ids = HashSet::new();
             state
@@ -257,7 +253,6 @@ mod tests {
                 animation_kind: crate::game_state::tower::AnimationKind::Attack,
                 y_ratio_offset: 0.25,
                 animation: Default::default(),
-                royal_straight_flush_visual: None,
             },
         );
         let expected_hash = original.authoritative_hash();
@@ -268,7 +263,7 @@ mod tests {
             .collect::<String>();
         assert_eq!(
             fixture_digest,
-            "a618f5c87fbe0f6a766ba6bb85faa41232103969416f29e1e9f1a22d51695a0c"
+            "4b2fc80c60157e15d9c1ecb846528360863a100a80ac042e7dfc1a9bb6d3a0ba"
         );
         let decoded = decode(&bytes).expect("persisted game state decoding");
         let mut restored_game_state = crate::game_state::create_game_state_with_seed(0xA11CE);
@@ -282,10 +277,6 @@ mod tests {
         assert_eq!(
             restored_game_state.presentation_metadata.monsters.len(),
             original.presentation_metadata.monsters.len()
-        );
-        assert_eq!(
-            restored_game_state.presentation_metadata.projectiles.len(),
-            original.presentation_metadata.projectiles.len()
         );
         assert_eq!(
             restored_game_state.presentation_metadata.towers.len(),

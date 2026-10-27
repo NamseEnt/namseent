@@ -32,8 +32,9 @@ pub(super) fn spawn(start_xy: (f32, f32), end_xy: (f32, f32), created_at: Instan
     }
 
     let angle = direction_y.atan2(direction_x);
+    let direction = (direction_x / length, direction_y / length);
     spawn_muzzle_flashes(start_xy, angle, created_at);
-    spawn_muzzle_rings(start_xy, (angle.cos(), angle.sin()), created_at);
+    spawn_muzzle_rings(start_xy, direction, created_at);
     spawn_star_flares(start_xy, end_xy, created_at);
     super::common::residual_spark::spawn_along_line(
         start_xy,

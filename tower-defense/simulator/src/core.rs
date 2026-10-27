@@ -940,64 +940,6 @@ mod tests {
     }
 
     #[test]
-    fn step_resolves_raw_timed_attack_before_raw_tower_shooting() {
-        let mut core = GameCore::new(GameConfig::default_config(), 7);
-        core.apply(PlayerCommand::StartSelectingTower)
-            .expect("start selecting tower should be accepted");
-        core.apply(PlayerCommand::SelectTower {
-            selected_slot_indices: vec![0],
-        })
-        .expect("tower selection should be accepted");
-        core.apply(PlayerCommand::PlaceTower {
-            hand_slot_index: 0,
-            left: 0,
-            top: 0,
-        })
-        .expect("tower placement should be accepted");
-        core.apply(PlayerCommand::StartDefense)
-            .expect("start defense should be accepted");
-        core.advance_tick();
-
-        let monster = core
-            .session
-            .monsters()
-            .first()
-            .expect("first monster should have spawned");
-        let monster_id = monster.id;
-        let hp_before = monster.hp_raw;
-        mutate_raw_state(&mut core, |parts| {
-            parts.next_entity_id = td_core::EntityIdAllocator::from_next_id(10_000);
-            parts.towers.clear();
-            parts.in_flight_attacks.push(td_core::InFlightAttackState {
-                id: 9_999,
-                damage_raw: 1_000,
-                source_tower: None,
-                kind: td_core::InFlightAttackKindState::Timed(td_core::TimedAttackState {
-                    target_monster_id: monster_id,
-                    execute_at: 2,
-                }),
-                on_hit_splashes: vec![],
-            });
-        });
-
-        core.advance_tick();
-
-        let monster = core
-            .session
-            .monsters()
-            .iter()
-            .find(|monster| monster.id == monster_id)
-            .expect("monster should survive the test hit");
-        assert_eq!(monster.hp_raw, hp_before - 1_000);
-        assert!(
-            core.session
-                .in_flight_attacks()
-                .iter()
-                .all(|attack| attack.id != 9_999)
-        );
-    }
-
-    #[test]
     fn raw_damage_updates_defense_progress_by_applied_hp() {
         let mut core = GameCore::new(GameConfig::default_config(), 7);
         core.apply(PlayerCommand::StartSelectingTower)
@@ -1312,13 +1254,10 @@ mod tests {
             CoreEvent::TowerAttack {
                 tower_id: 9,
                 target_id: 3,
-                attack_kind: 0,
                 tower_kind: 0,
                 start_xy: [0, 0],
                 end_xy: [0, 0],
                 attack_range_raw: 0,
-                attack_ids: vec![12],
-                projectile_attack_ids: Vec::new(),
             },
             CoreEvent::CardServiceSelectionRequested {
                 service_kind: "eraser".to_string(),
@@ -1358,7 +1297,6 @@ mod tests {
 
         assert_eq!(snapshot.sim_tick, core.raw_state().sim_tick());
         assert!(snapshot.monsters.is_empty());
-        assert!(snapshot.spatial_attacks.is_empty());
         assert!(snapshot.towers.is_empty());
     }
 

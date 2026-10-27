@@ -53,12 +53,12 @@ impl Component for Ticker {
                     }
                     advance_simulation_tick_at(game_state, presentation_instant);
                     game_state.consume_core_events(presentation_instant);
-                    game_state.apply_presentation_triggers(presentation_instant);
+                    game_state.apply_presentation_triggers();
                     game_state.flush_pending_action_effects();
                     executed_ticks += 1;
                     let sim_tick = game_state.sim_tick();
                     game_state.update_base_animations(sim_tick);
-                    tick_world_visuals(game_state, sim_tick, presentation_instant);
+                    tick_world_visuals(game_state, sim_tick);
                     let render_snapshot = game_state.capture_render_snapshot();
                     game_state
                         .sim_scheduler
@@ -102,19 +102,9 @@ pub(crate) fn advance_simulation_tick_at(
     game_state.step_raw_simulation_at(presentation_instant);
 }
 
-fn tick_world_visuals(
-    game_state: &mut crate::headed_game::HeadedGame,
-    sim_tick: SimTick,
-    presentation_instant: PresentationInstant,
-) {
+fn tick_world_visuals(game_state: &mut crate::headed_game::HeadedGame, sim_tick: SimTick) {
     let dt = sim_step_duration();
     tower::tower_animation_tick(&mut game_state.state, sim_tick);
-    tower::tick_royal_straight_flush_visuals(
-        &mut game_state.state,
-        sim_tick,
-        presentation_instant,
-        &mut game_state.black_smoke_sources,
-    );
     monster::monster_animation_tick(&mut game_state.state, dt);
 }
 
@@ -155,19 +145,13 @@ fn update_presentation_frame(
         game_state.cleanup_unused_tower_popup_states();
     }
 
-    let presentation_now = presentation_instant.as_namui();
     status_effect_particle_generator::tick_status_effect_particle_generator(
         &mut game_state.state,
         &mut game_state.status_effect_particle_generator,
         presentation_instant,
     );
 
-    field_particle::emitter::tick_black_smoke_emitters(
-        &mut game_state.black_smoke_sources,
-        presentation_now,
-        dt,
-    );
-    field_particle::tick_all_emitters(presentation_now, dt);
+    field_particle::tick_all_emitters(presentation_instant.as_namui(), dt);
 }
 
 #[cfg(test)]
@@ -191,30 +175,6 @@ mod tests {
             monster.max_hp.raw().hash(&mut hasher);
             monster.damage.raw().hash(&mut hasher);
             monster.stage_progress_counted.hash(&mut hasher);
-        }
-        game_state.in_flight_attacks.len().hash(&mut hasher);
-        for attack in &game_state.in_flight_attacks {
-            attack.id.hash(&mut hasher);
-            attack.damage.raw().hash(&mut hasher);
-            std::mem::discriminant(&attack.kind).hash(&mut hasher);
-            match &attack.kind {
-                crate::game_state::attack::InFlightAttackKind::Spatial(spatial) => {
-                    spatial.xy.hash(&mut hasher);
-                    spatial.velocity.hash(&mut hasher);
-                    spatial.target_indicator.id().hash(&mut hasher);
-                    spatial.stable_key.hash(&mut hasher);
-                }
-                crate::game_state::attack::InFlightAttackKind::Timed(timed) => {
-                    timed.target_monster_id.hash(&mut hasher);
-                    timed.execute_at.hash(&mut hasher);
-                }
-                crate::game_state::attack::InFlightAttackKind::Laser(laser) => {
-                    laser.start_xy.hash(&mut hasher);
-                    laser.end_xy.hash(&mut hasher);
-                    laser.created_at.hash(&mut hasher);
-                    laser.target_monster_id.hash(&mut hasher);
-                }
-            }
         }
         hasher.finish()
     }
@@ -245,10 +205,6 @@ mod tests {
                 headless_monster.center_xy_tile()
             );
         }
-        assert_eq!(
-            rendered.in_flight_attacks.len(),
-            headless.in_flight_attacks.len()
-        );
     }
 
     #[test]
@@ -289,7 +245,7 @@ mod tests {
         assert!(game_state.camera.shake_intensity == 0.0);
         assert!(game_state.render_base_scales() == before_scales);
 
-        game_state.apply_presentation_triggers(PresentationInstant::zero());
+        game_state.apply_presentation_triggers();
 
         assert!(game_state.camera.shake_intensity == 30.0);
     }
@@ -305,32 +261,6 @@ mod tests {
         assert!(!left.monsters.is_empty());
         assert!(!right.monsters.is_empty());
 
-        let add_homing_attack = |game_state: &mut GameState| {
-            let target = &game_state.monsters[0];
-            let target_xy = target.center_world_xy();
-            let target_indicator = target.projectile_target_indicator;
-            let attack_id = crate::AttackId::from_entity_id(game_state.allocate_entity_id());
-            game_state.in_flight_attacks.push(
-                crate::game_state::attack::InFlightAttack::new_spatial(
-                    attack_id,
-                    crate::game_state::attack::SpatialAttack::new_homing(
-                        target_xy - crate::WorldVec::new(8 * crate::world::WORLD_UNITS_PER_TILE, 0),
-                        target_indicator,
-                        0x00A7_7ACE,
-                        crate::game_state::projectile::ProjectileKind::Cards00,
-                        crate::game_state::projectile::ProjectileTrail::None,
-                        crate::game_state::attack::ProjectileHitEffect::CardBurst,
-                    ),
-                    Damage::from_integer(1_000_000),
-                    None,
-                ),
-            );
-        };
-        add_homing_attack(&mut left);
-        add_homing_attack(&mut right);
-        left.sync_raw_core_from_projection();
-        right.sync_raw_core_from_projection();
-        let initial_gold = left.gold;
         let mut saw_core_event = false;
 
         for _ in 0..240 {
@@ -359,59 +289,10 @@ mod tests {
                 assert_eq!(a.damage, b.damage);
                 assert_eq!(a.stage_progress_counted, b.stage_progress_counted);
             }
-            assert_eq!(left.in_flight_attacks.len(), right.in_flight_attacks.len());
-            for (a, b) in left
-                .in_flight_attacks
-                .iter()
-                .zip(right.in_flight_attacks.iter())
-            {
-                assert_eq!(a.id, b.id);
-                assert_eq!(a.damage, b.damage);
-                assert_eq!(a.source_tower, b.source_tower);
-                assert_eq!(a.on_hit_splashes, b.on_hit_splashes);
-                match (&a.kind, &b.kind) {
-                    (
-                        crate::game_state::attack::InFlightAttackKind::Spatial(a),
-                        crate::game_state::attack::InFlightAttackKind::Spatial(b),
-                    ) => {
-                        assert_eq!(a.xy, b.xy);
-                        assert_eq!(a.target_indicator.id(), b.target_indicator.id());
-                        assert_eq!(a.velocity, b.velocity);
-                        assert_eq!(a.projectile_kind, b.projectile_kind);
-                        assert_eq!(a.trail, b.trail);
-                        assert_eq!(a.behavior, b.behavior);
-                        assert_eq!(a.hit_effect, b.hit_effect);
-                        assert_eq!(a.movement_remainder, b.movement_remainder);
-                        assert_eq!(a.stable_key, b.stable_key);
-                    }
-                    (
-                        crate::game_state::attack::InFlightAttackKind::Timed(a),
-                        crate::game_state::attack::InFlightAttackKind::Timed(b),
-                    ) => {
-                        assert_eq!(a.target_monster_id, b.target_monster_id);
-                        assert_eq!(a.execute_at, b.execute_at);
-                    }
-                    (
-                        crate::game_state::attack::InFlightAttackKind::Laser(a),
-                        crate::game_state::attack::InFlightAttackKind::Laser(b),
-                    ) => {
-                        assert_eq!(a.start_xy, b.start_xy);
-                        assert_eq!(a.end_xy, b.end_xy);
-                        assert_eq!(a.created_at, b.created_at);
-                        assert_eq!(a.target_monster_id, b.target_monster_id);
-                    }
-                    _ => panic!("attack kinds diverged"),
-                }
-            }
             left.clear_presentation_events();
             right.clear_presentation_events();
         }
-        assert!(
-            left.gold > initial_gold,
-            "injected attack must resolve a death"
-        );
-        assert!(saw_core_event, "injected attack must emit a core event");
-        assert!(left.in_flight_attacks.is_empty());
+        assert!(saw_core_event, "simulation must emit core events");
     }
 
     #[test]
@@ -430,10 +311,6 @@ mod tests {
                 for monster in snapshot.monsters() {
                     let _ = frame.sample_monster(monster.id, true);
                     let _ = frame.sample_monster(monster.id, false);
-                }
-                for projectile in snapshot.spatial_projectiles() {
-                    let _ = frame.sample_projectile(projectile.id, true);
-                    let _ = frame.sample_projectile(projectile.id, false);
                 }
             }
         }

@@ -9,7 +9,7 @@ mod headed_game;
 mod image_filter_utils; // now private; selective re-exports below
 pub use game_state::monster::MonsterKind;
 pub use game_state::{
-    AttackId, CommandError, EntityId, MonsterId, PlayerCommand, RecordedPlayerCommand, TowerId,
+    CommandError, EntityId, MonsterId, PlayerCommand, RecordedPlayerCommand, TowerId,
 };
 pub use td_core::{CommandOutput, CoreEvent};
 pub mod atlas;

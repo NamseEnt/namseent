@@ -6,8 +6,7 @@ pub mod skill;
 
 use crate::{
     Damage, FixedRatio, Health, MapCoordF32, MonsterId, WorldCoord, WorldVec,
-    game_state::{monster::render::MonsterAnimation, projectile::ProjectileTargetIndicator},
-    route::MoveOnRoute,
+    game_state::monster::render::MonsterAnimation, route::MoveOnRoute,
 };
 #[cfg(test)]
 use crate::{SimTick, route::Route};
@@ -27,7 +26,6 @@ pub struct Monster {
     id: MonsterId,
     pub move_on_route: MoveOnRoute,
     pub kind: MonsterKind,
-    pub projectile_target_indicator: ProjectileTargetIndicator,
     pub hp: Health,
     pub max_hp: Health,
     pub stage_progress_counted: bool,
@@ -43,7 +41,6 @@ pub struct Monster {
 #[derive(Clone, PartialEq)]
 pub(crate) struct MonsterPresentationState {
     animation: MonsterAnimation,
-    projectile_target_indicator: ProjectileTargetIndicator,
 }
 
 impl Monster {
@@ -60,7 +57,6 @@ impl Monster {
             id,
             move_on_route: MoveOnRoute::new(route, template.velocity),
             kind: template.kind,
-            projectile_target_indicator: ProjectileTargetIndicator::from_id(id),
             hp: adjusted_max_hp,
             max_hp: adjusted_max_hp,
             stage_progress_counted: false,
@@ -81,13 +77,11 @@ impl Monster {
     pub(crate) fn presentation_state(&self) -> MonsterPresentationState {
         MonsterPresentationState {
             animation: self.animation.clone(),
-            projectile_target_indicator: self.projectile_target_indicator,
         }
     }
 
     pub(crate) fn restore_presentation_state(&mut self, state: MonsterPresentationState) {
         self.animation = state.animation;
-        self.projectile_target_indicator = state.projectile_target_indicator;
     }
 
     pub(crate) fn to_core_state(&self) -> td_core::MonsterState {
@@ -118,9 +112,6 @@ impl Monster {
             id: MonsterId::from_raw(state.id),
             move_on_route: MoveOnRoute::from_core_state(state.move_on_route)?,
             kind: MonsterKind::from_core_raw(state.kind)?,
-            projectile_target_indicator: ProjectileTargetIndicator::from_id(MonsterId::from_raw(
-                state.id,
-            )),
             hp: Health::from_raw(state.hp_raw),
             max_hp: Health::from_raw(state.max_hp_raw),
             stage_progress_counted: state.stage_progress_counted,

@@ -1,13 +1,10 @@
-use crate::{
-    AttackId, MapCoordF32, MonsterId, SimRenderTime, TowerId, WorldCoord, WorldDistance, WorldVec,
-};
+use crate::{MapCoordF32, MonsterId, SimRenderTime, TowerId, WorldCoord, WorldDistance, WorldVec};
 use namui::*;
 
 #[derive(Clone, State)]
 pub(crate) struct WorldRenderSnapshot {
     pub(crate) sim_tick: crate::SimTick,
     monsters: Vec<MonsterRenderSnapshot>,
-    spatial_projectiles: Vec<SpatialProjectileRenderSnapshot>,
     towers: Vec<TowerRenderSnapshot>,
 }
 
@@ -27,14 +24,6 @@ pub(crate) struct MonsterRenderSnapshot {
 }
 
 #[derive(Clone, State)]
-pub(crate) struct SpatialProjectileRenderSnapshot {
-    pub(crate) id: AttackId,
-    pub(crate) position: WorldCoord,
-    pub(crate) direction: WorldVec,
-    pub(crate) projectile_kind: crate::game_state::projectile::ProjectileKind,
-}
-
-#[derive(Clone, State)]
 pub(crate) struct TowerRenderSnapshot {
     pub(crate) id: TowerId,
     pub(crate) left_top: [usize; 2],
@@ -50,7 +39,6 @@ impl WorldRenderSnapshot {
         Self {
             sim_tick,
             monsters: Vec::new(),
-            spatial_projectiles: Vec::new(),
             towers: Vec::new(),
         }
     }
@@ -60,11 +48,6 @@ impl WorldRenderSnapshot {
         metadata.refresh_from_core(game_state.raw_core_state());
         let monster_metadata =
             metadata.monster_render_metadata(&game_state.monster_animation_runtime);
-        let projectile_metadata = metadata
-            .projectiles
-            .iter()
-            .map(|projectile| (projectile.id, projectile.projectile_kind))
-            .collect::<Vec<_>>();
         let tower_metadata = metadata
             .towers
             .iter()
@@ -73,7 +56,6 @@ impl WorldRenderSnapshot {
         Self::capture_from_raw_snapshot(
             &game_state.raw_render_snapshot(),
             &monster_metadata,
-            &projectile_metadata,
             &tower_metadata,
         )
     }
@@ -81,7 +63,6 @@ impl WorldRenderSnapshot {
     pub(crate) fn capture_from_raw_snapshot(
         core_snapshot: &td_core::RenderSnapshot,
         monster_metadata: &[(MonsterId, Angle, f32, Xy<f32>, f32)],
-        projectile_metadata: &[(AttackId, crate::game_state::projectile::ProjectileKind)],
         tower_metadata: &[(TowerId, crate::game_state::tower::AnimationKind, f32)],
     ) -> Self {
         let mut monsters = core_snapshot
@@ -117,25 +98,6 @@ impl WorldRenderSnapshot {
             .collect::<Vec<_>>();
         monsters.sort_by_key(|monster| monster.id);
 
-        let mut spatial_projectiles = core_snapshot
-            .spatial_attacks
-            .iter()
-            .map(|raw| {
-                let projectile_kind = projectile_metadata
-                    .iter()
-                    .find(|(id, _)| id.raw() == raw.id)
-                    .map(|(_, kind)| *kind)
-                    .unwrap_or(crate::game_state::projectile::ProjectileKind::Trash01);
-                SpatialProjectileRenderSnapshot {
-                    id: AttackId::from_raw(raw.id),
-                    position: WorldCoord::new(raw.position[0], raw.position[1]),
-                    direction: WorldVec::new(raw.direction[0], raw.direction[1]),
-                    projectile_kind,
-                }
-            })
-            .collect::<Vec<_>>();
-        spatial_projectiles.sort_by_key(|projectile| projectile.id);
-
         let mut towers = core_snapshot
             .towers
             .iter()
@@ -169,7 +131,6 @@ impl WorldRenderSnapshot {
         Self {
             sim_tick: crate::SimTick::from_ticks(core_snapshot.sim_tick.ticks()),
             monsters,
-            spatial_projectiles,
             towers,
         }
     }
@@ -181,13 +142,6 @@ impl WorldRenderSnapshot {
             .map(|index| &self.monsters[index])
     }
 
-    fn spatial_projectile(&self, id: AttackId) -> Option<&SpatialProjectileRenderSnapshot> {
-        self.spatial_projectiles
-            .binary_search_by_key(&id, |projectile| projectile.id)
-            .ok()
-            .map(|index| &self.spatial_projectiles[index])
-    }
-
     fn tower(&self, id: TowerId) -> Option<&TowerRenderSnapshot> {
         self.towers
             .binary_search_by_key(&id, |tower| tower.id)
@@ -197,10 +151,6 @@ impl WorldRenderSnapshot {
 
     pub(crate) fn monsters(&self) -> &[MonsterRenderSnapshot] {
         &self.monsters
-    }
-
-    pub(crate) fn spatial_projectiles(&self) -> &[SpatialProjectileRenderSnapshot] {
-        &self.spatial_projectiles
     }
 
     pub(crate) fn towers(&self) -> &[TowerRenderSnapshot] {
@@ -301,43 +251,6 @@ impl RenderSnapshotHistory {
         })
     }
 
-    pub(crate) fn sample_projectile(
-        &self,
-        id: AttackId,
-        render_time: SimRenderTime,
-        interpolate: bool,
-    ) -> Option<SpatialProjectileRenderSample<'_>> {
-        let current = self.current.as_ref()?.spatial_projectile(id)?;
-        let previous = self
-            .previous
-            .as_ref()
-            .and_then(|snapshot| snapshot.spatial_projectile(id));
-        let can_interpolate = interpolate && previous.is_some();
-        let position = if can_interpolate {
-            lerp_world_coord(
-                previous.expect("checked above").position,
-                current.position,
-                render_time.alpha.as_f32(),
-            )
-        } else {
-            current.position.as_map_coord_f32()
-        };
-        let direction = if can_interpolate {
-            lerp_world_vec(
-                previous.expect("checked above").direction,
-                current.direction,
-                render_time.alpha.as_f32(),
-            )
-        } else {
-            world_vec_as_xy(current.direction)
-        };
-        Some(SpatialProjectileRenderSample {
-            current,
-            position,
-            direction,
-        })
-    }
-
     pub(crate) fn sample_tower_at(
         &self,
         id: TowerId,
@@ -369,12 +282,6 @@ pub(crate) struct MonsterRenderSample<'a> {
     pub(crate) direction: Xy<f32>,
     pub(crate) rotation: Angle,
     pub(crate) y_offset: f32,
-}
-
-pub(crate) struct SpatialProjectileRenderSample<'a> {
-    pub(crate) current: &'a SpatialProjectileRenderSnapshot,
-    pub(crate) position: MapCoordF32,
-    pub(crate) direction: Xy<f32>,
 }
 
 fn lerp_world_coord(previous: WorldCoord, current: WorldCoord, alpha: f32) -> MapCoordF32 {
@@ -432,15 +339,6 @@ mod tests {
         let mut snapshot = WorldRenderSnapshot::empty(SimTick::from_ticks(tick));
         snapshot.monsters = monsters;
         snapshot
-    }
-
-    fn projectile(id: u64, x: i64, direction: WorldVec) -> SpatialProjectileRenderSnapshot {
-        SpatialProjectileRenderSnapshot {
-            id: AttackId::from_raw(id),
-            position: WorldCoord::new(x, 0),
-            direction,
-            projectile_kind: crate::game_state::projectile::ProjectileKind::Cards00,
-        }
     }
 
     #[test]
@@ -504,40 +402,5 @@ mod tests {
             )
             .unwrap();
         assert_eq!(sample.position.x, 0.0);
-    }
-
-    #[test]
-    fn projectile_spawn_despawn_and_direction_are_sampled_by_id() {
-        let mut history = RenderSnapshotHistory::default();
-        let mut previous = WorldRenderSnapshot::empty(SimTick::ZERO);
-        previous.spatial_projectiles = vec![projectile(1, 0, WorldVec::new(0, 10))];
-        history.rebase(previous);
-        let mut current = WorldRenderSnapshot::empty(SimTick::from_ticks(1));
-        current.spatial_projectiles = vec![
-            projectile(1, 1_000_000, WorldVec::new(10, 0)),
-            projectile(2, 2_000_000, WorldVec::new(0, 20)),
-        ];
-        history.commit(current);
-
-        let time = SimRenderTime::new(SimTick::ZERO, InterpolationAlpha::from_f32(0.5));
-        let existing = history
-            .sample_projectile(AttackId::from_raw(1), time, true)
-            .unwrap();
-        assert_eq!(existing.position.x, 0.5);
-        assert_eq!(existing.direction, Xy::new(5.0, 5.0));
-
-        let spawned = history
-            .sample_projectile(AttackId::from_raw(2), time, true)
-            .unwrap();
-        assert_eq!(spawned.position.x, 2.0);
-
-        let mut despawned = WorldRenderSnapshot::empty(SimTick::from_ticks(2));
-        despawned.spatial_projectiles = vec![projectile(2, 3_000_000, WorldVec::new(0, 20))];
-        history.commit(despawned);
-        assert!(
-            history
-                .sample_projectile(AttackId::from_raw(1), time, true)
-                .is_none()
-        );
     }
 }

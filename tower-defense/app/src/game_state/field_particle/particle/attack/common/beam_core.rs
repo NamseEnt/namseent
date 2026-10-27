@@ -10,10 +10,11 @@ const SEGMENT_OVERLAP_TILES: f32 = 0.2;
 #[derive(Clone)]
 pub struct BeamCore {
     start_xy: (f32, f32),
-    angle: f32,
+    direction: (f32, f32),
     target_length_tiles: f32,
     created_at: Instant,
     elapsed: Duration,
+    width: f32,
     started: bool,
 }
 
@@ -21,12 +22,15 @@ impl BeamCore {
     pub fn new(start_xy: (f32, f32), end_xy: (f32, f32), created_at: Instant) -> Self {
         let direction_x = end_xy.0 - start_xy.0;
         let direction_y = end_xy.1 - start_xy.1;
+        let angle = direction_y.atan2(direction_x);
+        let (direction_sin, direction_cos) = angle.sin_cos();
         Self {
             start_xy,
-            angle: direction_y.atan2(direction_x),
+            direction: (direction_cos, direction_sin),
             target_length_tiles: direction_x.hypot(direction_y),
             created_at,
             elapsed: Duration::ZERO,
+            width: 0.0,
             started: false,
         }
     }
@@ -45,6 +49,11 @@ impl BeamCore {
 
     pub fn tick(&mut self, now: Instant, _dt: Duration) {
         self.elapsed = now - self.created_at;
+        self.width = if self.elapsed < EXTEND_DURATION + RETRACT_DURATION {
+            Self::width_at(self.elapsed)
+        } else {
+            0.0
+        };
         self.started = true;
     }
 
@@ -59,8 +68,7 @@ impl BeamCore {
         let frame = frames[frame_index.min(frames.len() - 1)];
         let total_length_px =
             self.target_length_tiles * crate::game_state::TILE_PX_SIZE.width.as_f32();
-        let thickness =
-            crate::game_state::TILE_PX_SIZE.height.as_f32() * Self::width_at(self.elapsed);
+        let thickness = crate::game_state::TILE_PX_SIZE.height.as_f32() * self.width;
         if total_length_px <= f32::EPSILON || thickness <= f32::EPSILON {
             return sprites;
         }
@@ -96,10 +104,10 @@ impl BeamCore {
         for segment_index in 0..segment_count {
             let segment_start_px = segment_index as f32 * segment_stride_px;
             let segment_end_px = (segment_start_px + segment_length_px).min(total_length_px);
-            let segment_start_x_px = start_x_px + self.angle.cos() * segment_start_px;
-            let segment_start_y_px = start_y_px + self.angle.sin() * segment_start_px;
-            let segment_end_x_px = start_x_px + self.angle.cos() * segment_end_px;
-            let segment_end_y_px = start_y_px + self.angle.sin() * segment_end_px;
+            let segment_start_x_px = start_x_px + self.direction.0 * segment_start_px;
+            let segment_start_y_px = start_y_px + self.direction.1 * segment_start_px;
+            let segment_end_x_px = start_x_px + self.direction.0 * segment_end_px;
+            let segment_end_y_px = start_y_px + self.direction.1 * segment_end_px;
             let color = Color::from_f01(0.6, 0.95, 1.0, opacity);
             if let Some(sprite) = crate::atlas::line_sprite_from_rect(
                 frame,

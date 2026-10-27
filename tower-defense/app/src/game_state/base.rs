@@ -135,9 +135,7 @@ impl GameState {
 
     pub(crate) fn apply_presentation_triggers(
         &mut self,
-        presentation_instant: crate::PresentationInstant,
         base_animation_state: &mut BaseAnimationState,
-        black_smoke_sources: &mut Vec<field_particle::emitter::BlackSmokeSource>,
     ) {
         let events = std::mem::take(&mut self.pending_presentation_events.events);
         let mut remaining = Vec::with_capacity(events.len());
@@ -149,40 +147,6 @@ impl GameState {
                 PresentationEvent::AnimateBase(BaseAnimationEvent::PlayerDamage { intensity }) => {
                     base_animation_state.trigger_player_damage(self.sim_tick(), intensity);
                 }
-                PresentationEvent::SpawnRoyalStraightFlushVisual {
-                    tower_id,
-                    target_xy,
-                    target_monster_id,
-                    sim_tick,
-                } => {
-                    let tower_center_xy = self
-                        .raw_render_snapshot()
-                        .towers
-                        .iter()
-                        .find(|tower| tower.id == tower_id.raw())
-                        .map(|tower| {
-                            (
-                                tower.left_top[0] as f32 + 1.5,
-                                tower.left_top[1] as f32 + 1.5,
-                            )
-                        });
-                    if let Some(tower_center_xy) = tower_center_xy {
-                        crate::game_state::tower::spawn_royal_straight_flush_visual(
-                            &mut self.presentation_metadata,
-                            &mut self.pending_presentation_events,
-                            crate::game_state::tower::RoyalStraightFlushVisualParams {
-                                tower_id,
-                                tower_center_xy,
-                                target_xy: (target_xy[0], target_xy[1]),
-                                target_monster_id,
-                                sim_tick,
-                                presentation_instant,
-                            },
-                            black_smoke_sources,
-                        );
-                    }
-                }
-
                 event => remaining.push(event),
             }
         }

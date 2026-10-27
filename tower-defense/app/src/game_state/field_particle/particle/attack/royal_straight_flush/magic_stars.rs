@@ -24,6 +24,10 @@ struct Star {
     delay: Duration,
     duration: Duration,
     shrink: bool,
+    progress: Option<f32>,
+    eased_progress: f32,
+    scale_factor: f32,
+    render_rotation: (f32, f32),
 }
 
 #[derive(Clone)]
@@ -55,6 +59,10 @@ impl MagicStars {
             delay: Duration::ZERO,
             duration: FLARE_DURATION,
             shrink: false,
+            progress: None,
+            eased_progress: 0.0,
+            scale_factor: 1.0,
+            render_rotation: (1.0, 0.0),
         });
         stars.extend(make_path_stars(start_xy, direction, length, &mut rng));
         stars.extend(make_radial_stars(start_xy, &mut rng));
@@ -72,6 +80,20 @@ impl MagicStars {
 
     pub fn tick(&mut self, now: Instant, _dt: Duration) {
         self.elapsed = now - self.created_at;
+        for star in &mut self.stars {
+            star.progress = progress_after_delay(self.elapsed, star.delay, star.duration);
+            if let Some(progress) = star.progress {
+                star.eased_progress = ATTACK_FRAME_EASE_OUT.sample(progress);
+                star.scale_factor = if star.shrink {
+                    1.0 - ATTACK_FRAME_EASE_IN.sample(progress)
+                } else {
+                    1.0
+                };
+                let angle = star.rotation + star.rotation_delta * star.eased_progress;
+                let (rotation_sin, rotation_cos) = angle.sin_cos();
+                star.render_rotation = (rotation_cos, rotation_sin);
+            }
+        }
     }
 
     pub fn render(&self) -> particle::ParticleSprites {
@@ -79,33 +101,30 @@ impl MagicStars {
         let frames = &crate::atlas::generated::ATTACK_ROYAL_STRAIGHT_FLUSH_MAGIC_STAR_FLARE_00;
         let tile_size = crate::game_state::TILE_PX_SIZE;
         for star in &self.stars {
-            let Some(progress) = progress_after_delay(self.elapsed, star.delay, star.duration)
-            else {
+            let Some(progress) = star.progress else {
                 continue;
             };
-            let eased_progress = ATTACK_FRAME_EASE_OUT.sample(progress);
-            let frame = frames[frame_index(eased_progress, frames.len())];
-            let scale_tiles = if star.shrink {
-                star.scale_tiles * (1.0 - ATTACK_FRAME_EASE_IN.sample(progress))
-            } else {
-                star.scale_tiles
-            };
+            let frame = frames[frame_index(star.eased_progress, frames.len())];
+            let scale_tiles = star.scale_tiles * star.scale_factor;
             if scale_tiles <= f32::EPSILON {
                 continue;
             }
             let center_xy = (
-                star.start_xy.0 + star.direction.0 * star.travel_distance_tiles * eased_progress,
-                star.start_xy.1 + star.direction.1 * star.travel_distance_tiles * eased_progress,
+                star.start_xy.0
+                    + star.direction.0 * star.travel_distance_tiles * star.eased_progress,
+                star.start_xy.1
+                    + star.direction.1 * star.travel_distance_tiles * star.eased_progress,
             );
             let scale = tile_size.width.as_f32() * scale_tiles / frame.width().as_f32();
             let color =
                 Color::from_f01(star.color[0], star.color[1], star.color[2], 1.0 - progress);
-            sprites.push(crate::atlas::centered_rotated_sprite(
+            sprites.push(crate::atlas::centered_rotated_sprite_with_sin_cos(
                 frame,
                 px(center_xy.0 * tile_size.width.as_f32()),
                 px(center_xy.1 * tile_size.height.as_f32()),
                 scale,
-                star.rotation + star.rotation_delta * eased_progress,
+                star.render_rotation.0,
+                star.render_rotation.1,
                 Some(color),
             ));
         }
@@ -191,6 +210,10 @@ fn make_moving_star(
         delay: Duration::from_millis(rng.gen_range(0_i64..=MAX_DELAY_MS)),
         duration: Duration::from_millis(rng.gen_range(150_i64..=MAX_DURATION_MS)),
         shrink: true,
+        progress: None,
+        eased_progress: 0.0,
+        scale_factor: 1.0,
+        render_rotation: (1.0, 0.0),
     }
 }
 

@@ -26,6 +26,7 @@ pub(in crate::game_state::field_particle::emitter::attack) fn spawn_along_line(
     let spark_count = (length_tiles * sparks_per_tile).ceil().max(1.0) as usize;
     let spacing = length_tiles / spark_count as f32;
     let tile_size = crate::game_state::TILE_PX_SIZE;
+    let lateral_offset_limit = spread_width_tiles.max(0.0) / 2.0;
     let attack_angle =
         (delta_y * tile_size.height.as_f32()).atan2(delta_x * tile_size.width.as_f32());
     let mut rng = rand::thread_rng();
@@ -33,7 +34,6 @@ pub(in crate::game_state::field_particle::emitter::attack) fn spawn_along_line(
     for spark_index in 0..spark_count {
         let nominal_distance = (spark_index as f32 + 0.5) * spacing;
         let distance = (nominal_distance + rng.gen_range(-1.0..=1.0)).clamp(0.0, length_tiles);
-        let lateral_offset_limit = spread_width_tiles.max(0.0) / 2.0;
         let lateral_offset = rng.gen_range(-lateral_offset_limit..=lateral_offset_limit);
         let center_xy = (
             start_xy.0 + direction.0 * distance + perpendicular.0 * lateral_offset,

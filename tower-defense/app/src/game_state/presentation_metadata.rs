@@ -1,7 +1,5 @@
-use crate::game_state::attack::ProjectileHitEffect;
-use crate::game_state::projectile::ProjectileKind;
-use crate::game_state::tower::{Animation, AnimationKind, RoyalStraightFlushVisual};
-use crate::{Angle, AttackId, MonsterId, TowerId};
+use crate::game_state::tower::{Animation, AnimationKind};
+use crate::{Angle, MonsterId, TowerId};
 use namui::*;
 
 #[derive(Clone, State, Default)]
@@ -11,7 +9,6 @@ pub(crate) struct PresentationMetadataStore {
     /// Entity positions, health, status effects, and attack state are never
     /// read from these caches; those values come from `td_core`.
     pub(crate) monsters: Vec<MonsterPresentationCache>,
-    pub(crate) projectiles: Vec<ProjectilePresentationCache>,
     pub(crate) towers: Vec<TowerPresentationCache>,
 }
 
@@ -23,15 +20,6 @@ pub(crate) struct MonsterPresentationCache {
     pub(crate) y_offset: f32,
 }
 
-/// Presentation-only projectile asset and effect metadata.
-#[derive(Clone, State)]
-pub(crate) struct ProjectilePresentationCache {
-    pub(crate) id: AttackId,
-    pub(crate) projectile_kind: ProjectileKind,
-    pub(crate) trail: crate::game_state::projectile::ProjectileTrail,
-    pub(crate) hit_effect: ProjectileHitEffect,
-}
-
 /// Presentation-only tower animation state retained across raw-core refreshes.
 #[derive(Clone)]
 pub(crate) struct TowerPresentationCache {
@@ -39,7 +27,6 @@ pub(crate) struct TowerPresentationCache {
     pub(crate) animation_kind: crate::game_state::tower::AnimationKind,
     pub(crate) y_ratio_offset: f32,
     pub(crate) animation: Animation,
-    pub(crate) royal_straight_flush_visual: Option<RoyalStraightFlushVisual>,
 }
 
 impl namui::bincode::Encode for TowerPresentationCache {
@@ -65,7 +52,6 @@ impl namui::bincode::Decode<()> for TowerPresentationCache {
             animation_kind,
             y_ratio_offset,
             animation: Animation::default(),
-            royal_straight_flush_visual: None,
         })
     }
 }
@@ -104,7 +90,6 @@ impl namui::Deserialize for TowerPresentationCache {
             animation_kind,
             y_ratio_offset,
             animation: Animation::default(),
-            royal_straight_flush_visual: None,
         })
     }
 }
@@ -117,7 +102,6 @@ impl PresentationMetadataStore {
     pub(crate) fn refresh_from_core(&mut self, raw: &td_core::CoreState) {
         let previous_towers = std::mem::take(&mut self.towers);
         let previous_monsters = std::mem::take(&mut self.monsters);
-        let previous_projectiles = std::mem::take(&mut self.projectiles);
         self.monsters = raw
             .monsters()
             .iter()
@@ -133,15 +117,6 @@ impl PresentationMetadataStore {
                         y_offset: 0.0,
                     })
             })
-            .collect();
-        let active_attack_ids = raw
-            .in_flight_attacks()
-            .iter()
-            .map(|attack| AttackId::from_raw(attack.id))
-            .collect::<std::collections::HashSet<_>>();
-        self.projectiles = previous_projectiles
-            .into_iter()
-            .filter(|projectile| active_attack_ids.contains(&projectile.id))
             .collect();
         self.towers = raw
             .towers()
@@ -162,7 +137,6 @@ impl PresentationMetadataStore {
                     animation_kind: AnimationKind::Idle1,
                     y_ratio_offset: 0.0,
                     animation: Animation::new(crate::SimTick::from_ticks(raw.sim_tick().ticks())),
-                    royal_straight_flush_visual: None,
                 })
             })
             .collect();
@@ -187,32 +161,6 @@ impl PresentationMetadataStore {
                 )
             })
             .collect()
-    }
-
-    pub(crate) fn insert_projectile(
-        &mut self,
-        id: AttackId,
-        projectile_kind: ProjectileKind,
-        trail: crate::game_state::projectile::ProjectileTrail,
-        hit_effect: ProjectileHitEffect,
-    ) {
-        self.projectiles.retain(|projectile| projectile.id != id);
-        self.projectiles.push(ProjectilePresentationCache {
-            id,
-            projectile_kind,
-            trail,
-            hit_effect,
-        });
-    }
-
-    pub(crate) fn projectile(&self, id: AttackId) -> Option<&ProjectilePresentationCache> {
-        self.projectiles
-            .iter()
-            .find(|projectile| projectile.id == id)
-    }
-
-    pub(crate) fn remove_projectile(&mut self, id: AttackId) {
-        self.projectiles.retain(|projectile| projectile.id != id);
     }
 
     pub(crate) fn tower(&self, id: TowerId) -> Option<&TowerPresentationCache> {

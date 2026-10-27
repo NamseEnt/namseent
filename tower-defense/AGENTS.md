@@ -98,7 +98,7 @@ Before committing UI changes that use `ctx.add`, verify:
 
 ## Time Domain Rules
 
-- Use `SimTick` and `SimTickSpan` for all authoritative gameplay time, including spawn schedules, cooldowns, status effects, timed attacks, movement, and world animation state.
+- Use `SimTick` and `SimTickSpan` for all authoritative gameplay time, including spawn schedules, cooldowns, status effects, movement, and world animation state.
 - Use `PresentationInstant` and `PresentationDelta` for UI, notification, hover, long-press, menu-transition, sound, and particle playback time.
 - Capture one `PresentationInstant` at the root render frame and pass it to presentation consumers; do not call `namui::time::now()` independently from each child render.
 - Do not introduce `GameState::now()`, `game_now`, or unqualified `now` parameters in gameplay or UI-facing APIs. Parameter and field names must identify `sim_tick`, `sim_span`, `presentation_instant`, or `presentation_delta`.

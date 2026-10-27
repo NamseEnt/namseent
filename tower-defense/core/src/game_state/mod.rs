@@ -66,7 +66,6 @@ pub struct CoreState {
     deck: crate::DeckState,
     items: crate::game_state::item::ItemCollection,
     monster_spawn: crate::MonsterSpawnState,
-    in_flight_attacks: Vec<crate::InFlightAttackState>,
     user_status_effects: Vec<crate::UserStatusEffect>,
     next_entity_id: crate::EntityIdAllocator,
     metrics: GameMetrics,
@@ -273,7 +272,6 @@ pub struct PreCombatOutput {
 pub struct RenderSnapshot {
     pub sim_tick: crate::SimTick,
     pub monsters: Vec<RenderMonsterSnapshot>,
-    pub spatial_attacks: Vec<RenderSpatialAttackSnapshot>,
     pub towers: Vec<RenderTowerSnapshot>,
 }
 
@@ -286,13 +284,6 @@ pub struct RenderMonsterSnapshot {
     pub kind: u8,
     pub hp_raw: i64,
     pub max_hp_raw: i64,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct RenderSpatialAttackSnapshot {
-    pub id: u64,
-    pub position: [i64; 2],
-    pub direction: [i64; 2],
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -420,10 +411,6 @@ impl CoreState {
 
     pub fn monster_spawn(&self) -> &crate::MonsterSpawnState {
         &self.monster_spawn
-    }
-
-    pub fn in_flight_attacks(&self) -> &[crate::InFlightAttackState] {
-        &self.in_flight_attacks
     }
 
     pub fn user_status_effects(&self) -> &[crate::UserStatusEffect] {
@@ -559,7 +546,6 @@ impl CoreState {
                 next_spawn_tick: None,
                 spawn_interval_ticks: 0,
             },
-            in_flight_attacks: Vec::new(),
             user_status_effects: Vec::new(),
             next_entity_id: crate::EntityIdAllocator::default(),
             metrics: crate::GameMetrics {
@@ -605,23 +591,6 @@ impl CoreState {
             .collect::<Vec<_>>();
         monsters.sort_by_key(|monster| monster.id);
 
-        let mut spatial_attacks = self
-            .in_flight_attacks
-            .iter()
-            .filter_map(|attack| match &attack.kind {
-                crate::InFlightAttackKindState::Spatial(spatial) => {
-                    Some(RenderSpatialAttackSnapshot {
-                        id: attack.id,
-                        position: spatial.position,
-                        direction: spatial.velocity,
-                    })
-                }
-                crate::InFlightAttackKindState::Timed(_)
-                | crate::InFlightAttackKindState::Laser(_) => None,
-            })
-            .collect::<Vec<_>>();
-        spatial_attacks.sort_by_key(|attack| attack.id);
-
         let mut towers = self
             .towers
             .iter()
@@ -643,7 +612,6 @@ impl CoreState {
         RenderSnapshot {
             sim_tick: self.sim_tick,
             monsters,
-            spatial_attacks,
             towers,
         }
     }
@@ -737,10 +705,6 @@ impl CoreState {
                 .iter()
                 .filter_map(|tower| tower.id)
                 .any(|tower_id| !valid_entity_id(tower_id))
-            || self
-                .in_flight_attacks
-                .iter()
-                .any(|attack| !valid_entity_id(attack.id))
         {
             return false;
         }
@@ -1602,7 +1566,6 @@ impl CoreState {
 
     fn clear_active_entities(&mut self) {
         self.monsters.clear();
-        self.in_flight_attacks.clear();
     }
 
     fn record_accepted_player_command_with_event_metadata(
@@ -1708,18 +1671,7 @@ impl CoreState {
         //    activate monster/tower skills, move monsters.
         self.advance_pre_combat();
 
-        // 2. Advance in-flight attacks and resolve hits.
-        //    Returns Vec<Vec<ResolvedAttack>> (one batch per attack kind).
-        let attack_batches = self.advance_in_flight_attacks();
-        for batch in &attack_batches {
-            let (hits, sources) = resolved_attacks_to_damage_hits(batch);
-            let deaths = self.apply_damage_hits(hits, &sources);
-            if !deaths.is_empty() {
-                self.trigger_monster_death_upgrades();
-            }
-        }
-
-        // 3. Tower attacks.
+        // 2. Tower attacks.
         let tower_output = self.generate_tower_attacks();
         let area_damage_sources: Vec<Option<crate::AttackSourceState>> = tower_output
             .area_damage_sources
@@ -1749,7 +1701,7 @@ impl CoreState {
             self.trigger_monster_death_upgrades();
         }
 
-        // 4. Resolve base damage from escaped monsters.
+        // 3. Resolve base damage from escaped monsters.
         self.resolve_base_damage();
         if self.hp_raw == 0 && matches!(self.flow, crate::GameFlowState::Defense(_)) {
             let clear_rate_raw = self.clear_rate_raw();
@@ -1759,7 +1711,7 @@ impl CoreState {
             return None;
         }
 
-        // 5. Check defense end.
+        // 4. Check defense end.
         let completed_stage = self.progress.stage;
         let mut defense_end = self.resolve_defense_end()?;
         self.push_event(crate::CoreEvent::DefenseEnded {
@@ -1861,22 +1813,10 @@ impl CoreState {
         }
     }
 
-    pub(crate) fn advance_in_flight_attacks(&mut self) -> Vec<Vec<crate::ResolvedAttack>> {
-        crate::advance_in_flight_attacks_with_events(
-            &mut self.in_flight_attacks,
-            &self.monsters,
-            self.sim_tick.ticks(),
-            &mut self.events.events,
-        )
-    }
-
     pub(crate) fn generate_tower_attacks(&mut self) -> crate::TowerAttackOutput {
         let output = crate::generate_tower_attacks(
             &mut self.towers,
             &self.monsters,
-            &mut self.in_flight_attacks,
-            &mut self.next_entity_id,
-            self.sim_tick.ticks(),
             &self.stage_modifiers.disabled_ranks,
             &self.stage_modifiers.disabled_suits,
         );
@@ -2073,33 +2013,6 @@ impl CoreState {
 
         Some((damage_raw, actual_damage_raw))
     }
-}
-
-fn resolved_attacks_to_damage_hits(
-    attacks: &[crate::ResolvedAttack],
-) -> (Vec<crate::DamageHit>, Vec<Option<crate::AttackSourceState>>) {
-    let mut sources: Vec<Option<crate::AttackSourceState>> = Vec::new();
-    let mut hits: Vec<crate::DamageHit> = Vec::with_capacity(attacks.len());
-    for resolved in attacks {
-        let source_index = if let Some(source) = &resolved.attack.source_tower {
-            let idx = sources.len();
-            sources.push(Some(*source));
-            idx
-        } else {
-            // No source tower — use a sentinel index that won't be looked up.
-            // apply_damage_hits only accesses sources when damage_raw > 0,
-            // and tower damage stats only record when source exists.
-            usize::MAX
-        };
-        hits.push(crate::DamageHit {
-            target_index: resolved.target_index,
-            damage_raw: resolved.attack.damage_raw,
-            at_xy: resolved.at_xy,
-            source_index,
-            splashes: resolved.attack.on_hit_splashes.clone(),
-        });
-    }
-    (hits, sources)
 }
 
 fn divide_round_positive(numerator: i128, denominator: i128) -> i64 {

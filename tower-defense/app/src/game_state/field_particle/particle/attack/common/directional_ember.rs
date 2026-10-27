@@ -17,6 +17,8 @@ pub struct DirectionalEmber {
     delay: Duration,
     created_at: Instant,
     progress: f32,
+    travel_progress: f32,
+    fade_progress: f32,
     started: bool,
 }
 
@@ -31,9 +33,10 @@ impl DirectionalEmber {
     ) -> Self {
         let mut rng = rand::thread_rng();
         let lifetime = Duration::from_millis(rng.gen_range(MIN_LIFETIME_MS..=MAX_LIFETIME_MS));
+        let (rotation_sin, rotation_cos) = direction_angle.sin_cos();
         Self {
             start_xy,
-            direction: (direction_angle.cos(), direction_angle.sin()),
+            direction: (rotation_cos, rotation_sin),
             distance_tiles,
             scale,
             color,
@@ -42,6 +45,8 @@ impl DirectionalEmber {
             delay: Duration::ZERO,
             created_at,
             progress: 0.0,
+            travel_progress: 0.0,
+            fade_progress: 0.0,
             started: false,
         }
     }
@@ -59,6 +64,13 @@ impl DirectionalEmber {
         } else {
             0.0
         };
+        if self.started && self.progress < 1.0 {
+            self.travel_progress = ATTACK_FRAME_EASE_OUT.sample(self.progress);
+            self.fade_progress = ATTACK_FRAME_EASE_IN.sample(self.progress);
+        } else {
+            self.travel_progress = 0.0;
+            self.fade_progress = 0.0;
+        }
     }
 
     pub fn render(&self) -> particle::ParticleSprites {
@@ -67,11 +79,10 @@ impl DirectionalEmber {
             return sprites;
         }
 
-        let travel_progress = ATTACK_FRAME_EASE_OUT.sample(self.progress);
-        let opacity = 1.0 - ATTACK_FRAME_EASE_IN.sample(self.progress);
+        let opacity = 1.0 - self.fade_progress;
         let xy = (
-            self.start_xy.0 + self.direction.0 * self.distance_tiles * travel_progress,
-            self.start_xy.1 + self.direction.1 * self.distance_tiles * travel_progress,
+            self.start_xy.0 + self.direction.0 * self.distance_tiles * self.travel_progress,
+            self.start_xy.1 + self.direction.1 * self.distance_tiles * self.travel_progress,
         );
         let frame = frame_for_variant(self.variant);
         let center_x = px(xy.0 * crate::game_state::TILE_PX_SIZE.width.as_f32());
@@ -84,16 +95,15 @@ impl DirectionalEmber {
             self.color[2].clamp(0.0, 1.0),
             opacity,
         );
-        sprites.push(
-            crate::game_state::field_particle::atlas::centered_rotated_sprite(
-                frame,
-                center_x,
-                center_y,
-                scale,
-                self.direction.1.atan2(self.direction.0),
-                Some(color),
-            ),
-        );
+        sprites.push(crate::atlas::centered_rotated_sprite_with_sin_cos(
+            frame,
+            center_x,
+            center_y,
+            scale,
+            self.direction.0,
+            self.direction.1,
+            Some(color),
+        ));
         sprites
     }
 

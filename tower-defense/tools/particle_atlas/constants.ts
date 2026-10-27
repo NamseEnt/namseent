@@ -4,6 +4,7 @@ export const ASSET_DIR = path.join(
     import.meta.dirname,
     "..",
     "..",
+    "app",
     "asset",
     "image",
 );
@@ -11,6 +12,7 @@ export const OUTPUT_RS = path.join(
     import.meta.dirname,
     "..",
     "..",
+    "app",
     "src",
     "game_state",
     "field_particle",
@@ -20,6 +22,7 @@ export const OUTPUT_MAP_DECORATION_RS = path.join(
     import.meta.dirname,
     "..",
     "..",
+    "app",
     "src",
     "game_state",
     "map_decoration_atlas.rs",

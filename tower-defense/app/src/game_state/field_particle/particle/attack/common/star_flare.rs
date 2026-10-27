@@ -28,8 +28,11 @@ pub struct StarFlare {
     delay: Duration,
     duration: Duration,
     growth_duration: Duration,
+    peak_progress: f32,
     fade_after_growth: bool,
     progress: f32,
+    scale_progress: f32,
+    rotation: (f32, f32),
     started: bool,
 }
 
@@ -50,8 +53,11 @@ impl StarFlare {
             delay: Duration::ZERO,
             duration: DEFAULT_DURATION,
             growth_duration: DEFAULT_DURATION / 2,
+            peak_progress: 0.5,
             fade_after_growth: false,
             progress: 0.0,
+            scale_progress: 0.0,
+            rotation: (1.0, 0.0),
             started: false,
         }
     }
@@ -59,6 +65,7 @@ impl StarFlare {
     pub fn with_timing(mut self, duration: Duration, growth_duration: Duration) -> Self {
         self.duration = duration;
         self.growth_duration = growth_duration.min(duration);
+        self.peak_progress = self.growth_duration.as_secs_f32() / self.duration.as_secs_f32();
         self.fade_after_growth = true;
         self
     }
@@ -94,6 +101,14 @@ impl StarFlare {
         } else {
             0.0
         };
+        if self.started && self.progress < 1.0 {
+            self.scale_progress = Self::scale_progress_with_peak(self.progress, self.peak_progress);
+            let (rotation_sin, rotation_cos) = self.rotation_angle().sin_cos();
+            self.rotation = (rotation_cos, rotation_sin);
+        } else {
+            self.scale_progress = 0.0;
+            self.rotation = (1.0, 0.0);
+        }
     }
 
     pub fn render(&self) -> particle::ParticleSprites {
@@ -103,15 +118,14 @@ impl StarFlare {
         }
 
         let frame = crate::atlas::generated::ATTACK_COMMON_STAR_FLARE;
-        let peak_progress = self.growth_duration.as_secs_f32() / self.duration.as_secs_f32();
-        let scale_tiles =
-            self.max_scale_tiles * Self::scale_progress_with_peak(self.progress, peak_progress);
+        let scale_tiles = self.max_scale_tiles * self.scale_progress;
         let scale =
             crate::game_state::TILE_PX_SIZE.width.as_f32() * scale_tiles / frame.width().as_f32();
         let center_x = px(self.center_xy.0 * crate::game_state::TILE_PX_SIZE.width.as_f32());
         let center_y = px(self.center_xy.1 * crate::game_state::TILE_PX_SIZE.height.as_f32());
-        let alpha = if self.fade_after_growth && self.progress > peak_progress {
-            1.0 - (self.progress - peak_progress) / (1.0 - peak_progress).max(f32::EPSILON)
+        let alpha = if self.fade_after_growth && self.progress > self.peak_progress {
+            1.0 - (self.progress - self.peak_progress)
+                / (1.0 - self.peak_progress).max(f32::EPSILON)
         } else {
             1.0
         };
@@ -122,16 +136,15 @@ impl StarFlare {
             alpha.clamp(0.0, 1.0),
         );
 
-        sprites.push(
-            crate::game_state::field_particle::atlas::centered_rotated_sprite(
-                frame,
-                center_x,
-                center_y,
-                scale,
-                self.rotation_angle(),
-                Some(color),
-            ),
-        );
+        sprites.push(crate::atlas::centered_rotated_sprite_with_sin_cos(
+            frame,
+            center_x,
+            center_y,
+            scale,
+            self.rotation.0,
+            self.rotation.1,
+            Some(color),
+        ));
         sprites
     }
 

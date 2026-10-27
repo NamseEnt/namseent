@@ -30,66 +30,6 @@ pub(super) fn spawn(
     scale: f32,
     kind: RingKind,
 ) {
-    spawn_with_color(
-        start_xy,
-        end_xy,
-        created_at,
-        delay_offset,
-        delay_step,
-        scale,
-        kind,
-    );
-}
-
-pub(super) fn spawn_with_color(
-    start_xy: (f32, f32),
-    end_xy: (f32, f32),
-    created_at: Instant,
-    delay_offset: Duration,
-    delay_step: Duration,
-    scale: f32,
-    kind: RingKind,
-) {
-    spawn_with_color_inner(
-        start_xy,
-        end_xy,
-        created_at,
-        delay_offset,
-        delay_step,
-        scale,
-        kind,
-    );
-}
-
-pub(super) fn spawn_with_color_and_ease_in_fade(
-    start_xy: (f32, f32),
-    end_xy: (f32, f32),
-    created_at: Instant,
-    delay_offset: Duration,
-    delay_step: Duration,
-    scale: f32,
-    kind: RingKind,
-) {
-    spawn_with_color_inner(
-        start_xy,
-        end_xy,
-        created_at,
-        delay_offset,
-        delay_step,
-        scale,
-        kind,
-    );
-}
-
-fn spawn_with_color_inner(
-    start_xy: (f32, f32),
-    end_xy: (f32, f32),
-    created_at: Instant,
-    delay_offset: Duration,
-    delay_step: Duration,
-    scale: f32,
-    kind: RingKind,
-) {
     let delta_x = end_xy.0 - start_xy.0;
     let delta_y = end_xy.1 - start_xy.1;
     let path_length_tiles = delta_x.hypot(delta_y);

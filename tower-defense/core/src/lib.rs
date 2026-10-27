@@ -107,12 +107,10 @@ pub use game_state::stage::{
     MAX_STAGE_COUNT, STAGES_PER_ACT, StageKind, act_for_stage, boss_stage_for_act, is_boss_stage,
     is_normal_stage, is_treasure_stage, stage_in_act, stage_kind, treasure_stage_for_act,
 };
+pub(crate) use game_state::tick::damage_hit_sort_key;
 pub use game_state::tick::{
     AreaDamageEvent, AttackSourceState, DamageHit, DamageHitResult, DamageSplash,
-    InFlightAttackKindState, InFlightAttackState, LaserAttackState, ResolvedAttack,
-    SpatialAttackBehaviorState, SpatialAttackState, TimedAttackState,
 };
-pub(crate) use game_state::tick::{advance_in_flight_attacks_with_events, damage_hit_sort_key};
 pub use game_state::tower::RemoveTowerOutput;
 pub use game_state::tower::{
     ActivatedTowerSkill, TowerAttackOutput, TowerSkill, TowerSkillKind, TowerSkillTemplate,
@@ -137,8 +135,8 @@ pub use game_state::upgrade::{
 #[allow(deprecated)]
 pub use game_state::{
     CoreProgress, FastTickOutput, GameMetrics, PreCombatOutput, PresentationTickOutput,
-    RecordedTickOutput, RenderMonsterSnapshot, RenderSnapshot, RenderSpatialAttackSnapshot,
-    RenderTowerSnapshot, TickEventsOutput, TickOutput, TickTransition, TowerDamageStats,
+    RecordedTickOutput, RenderMonsterSnapshot, RenderSnapshot, RenderTowerSnapshot,
+    TickEventsOutput, TickOutput, TickTransition, TowerDamageStats,
 };
 pub use game_state::{CoreState, PlacementCheck, TowerPlacementContext};
 use route::multiply_ratio_raw;
@@ -193,138 +191,6 @@ pub fn segment_hits_point(
         world::WorldCoord::new(point[0], point[1]),
         world::WorldDistance::from_raw(radius_raw),
     )
-}
-
-fn scale_component(component: i64, distance: i64, denominator: i64) -> i64 {
-    if denominator <= 0 {
-        return 0;
-    }
-    let value = i128::from(component).saturating_mul(i128::from(distance));
-    let denominator = i128::from(denominator);
-    let scaled = if value >= 0 {
-        value.saturating_add(denominator / 2) / denominator
-    } else {
-        value.saturating_sub(denominator / 2) / denominator
-    };
-    scaled.clamp(i128::from(i64::MIN), i128::from(i64::MAX)) as i64
-}
-
-pub fn advance_direct_projectile(
-    position: &mut [i64; 2],
-    velocity: &mut [i64; 2],
-    movement_remainder: &mut i64,
-    target: [i64; 2],
-    speed_raw: i64,
-    ticks_per_second: u64,
-) {
-    if ticks_per_second == 0 {
-        return;
-    }
-    let direction = [target[0] - position[0], target[1] - position[1]];
-    let distance = integer_sqrt(distance_squared(direction, [0, 0]).max(0) as u128)
-        .min(i64::MAX as u128) as i64;
-    let numerator = i128::from(speed_raw.max(0)).saturating_add(i128::from(*movement_remainder));
-    let ticks_per_second = i128::from(ticks_per_second);
-    let step = (numerator / ticks_per_second).clamp(0, i128::from(i64::MAX)) as i64;
-    *movement_remainder = (numerator % ticks_per_second) as i64;
-    if distance == 0 || step >= distance {
-        *position = target;
-        *velocity = [0, 0];
-        return;
-    }
-    *velocity = [
-        scale_component(direction[0], speed_raw.max(0), distance),
-        scale_component(direction[1], speed_raw.max(0), distance),
-    ];
-    position[0] = position[0].saturating_add(scale_component(direction[0], step, distance));
-    position[1] = position[1].saturating_add(scale_component(direction[1], step, distance));
-}
-
-pub struct HomingProjectileParams {
-    pub acceleration_raw: i64,
-    pub turn_rate_raw: i64,
-    pub max_speed_raw: i64,
-    pub target: [i64; 2],
-    pub ticks_per_second: u64,
-    pub direct_switch_distance_raw: i64,
-    pub direct_acceleration_multiplier_raw: i64,
-}
-
-pub fn advance_homing_projectile(
-    position: &mut [i64; 2],
-    velocity: &mut [i64; 2],
-    acceleration_remainder: &mut i64,
-    turn_remainder: &mut i64,
-    movement_remainder: &mut i64,
-    params: HomingProjectileParams,
-) {
-    if params.ticks_per_second == 0 {
-        return;
-    }
-    let direction = [
-        params.target[0] - position[0],
-        params.target[1] - position[1],
-    ];
-    let distance = integer_sqrt(distance_squared(direction, [0, 0]).max(0) as u128)
-        .min(i64::MAX as u128) as i64;
-    if distance == 0 {
-        *position = params.target;
-        *velocity = [0, 0];
-        return;
-    }
-
-    let direct_steering = distance <= params.direct_switch_distance_raw.max(0);
-    let effective_acceleration = if direct_steering {
-        multiply_ratio_raw(
-            params.acceleration_raw,
-            params.direct_acceleration_multiplier_raw,
-        )
-    } else {
-        params.acceleration_raw
-    };
-    let ticks_per_second = i128::from(params.ticks_per_second);
-    let full_acceleration =
-        i128::from(effective_acceleration).saturating_add(i128::from(*acceleration_remainder));
-    let acceleration_per_tick =
-        (full_acceleration / ticks_per_second).clamp(0, i128::from(i64::MAX)) as i64;
-    *acceleration_remainder = (full_acceleration % ticks_per_second) as i64;
-
-    let current_speed = integer_sqrt(distance_squared(*velocity, [0, 0]).max(0) as u128)
-        .min(i64::MAX as u128) as i64;
-    let speed = current_speed
-        .saturating_add(acceleration_per_tick)
-        .min(params.max_speed_raw.max(0));
-    let desired = [
-        scale_component(direction[0], speed, distance),
-        scale_component(direction[1], speed, distance),
-    ];
-    if direct_steering {
-        *velocity = desired;
-    } else {
-        let turn_numerator =
-            i128::from(params.turn_rate_raw).saturating_add(i128::from(*turn_remainder));
-        let turn_per_tick =
-            (turn_numerator / ticks_per_second).clamp(0, i128::from(RATIO_SCALE)) as i64;
-        *turn_remainder = (turn_numerator % ticks_per_second) as i64;
-        velocity[0] = velocity[0].saturating_add(scale_component(
-            desired[0].saturating_sub(velocity[0]),
-            turn_per_tick,
-            RATIO_SCALE,
-        ));
-        velocity[1] = velocity[1].saturating_add(scale_component(
-            desired[1].saturating_sub(velocity[1]),
-            turn_per_tick,
-            RATIO_SCALE,
-        ));
-    }
-
-    let current_speed = integer_sqrt(distance_squared(*velocity, [0, 0]).max(0) as u128)
-        .min(i64::MAX as u128) as i64;
-    let numerator = i128::from(current_speed).saturating_add(i128::from(*movement_remainder));
-    let step = (numerator / ticks_per_second).clamp(0, i128::from(i64::MAX)) as i64;
-    *movement_remainder = (numerator % ticks_per_second) as i64;
-    position[0] = position[0].saturating_add(scale_component(direction[0], step, distance));
-    position[1] = position[1].saturating_add(scale_component(direction[1], step, distance));
 }
 
 fn splash_damage_raw(damage_raw: i64, splashes: &[DamageSplash], distance_squared: i128) -> i64 {
@@ -695,20 +561,16 @@ impl CoreEventQueue {
 #[cfg(test)]
 mod tests {
     use super::game_state::monster::{apply_damage_hits, prepare_monster_death};
-    use super::game_state::tick::{advance_in_flight_attacks_with_events, timed_attack_is_due};
     use super::{
-        ActionKind, AgentAction, AreaDamageEvent, AttackSourceState, CardState, CommandError,
-        CoreEvent, CoreEventQueue, DamageHit, DamageSplash, EntitySnapshots, GameConfigState,
-        GameMetrics, HandItemState, HandSlotState, HandState, HomingProjectileParams,
-        InFlightAttackKindState, InFlightAttackState, LaserAttackState, MonsterSkill,
-        MonsterSkillKind, MonsterSkillTarget, MonsterSkillTemplate, MonsterState,
-        MonsterStatusEffect, MonsterStatusEffectKind, MoveOnRouteState, PlayerCommand, RngState,
-        RouteState, SimTick, SimTickSpan, SpatialAttackBehaviorState, SpatialAttackState,
-        TimedAttackState, TowerSkill, TowerSkillKind, TowerSkillTemplate, TowerState,
-        TowerStatusEffect, TowerStatusEffectEnd, TowerStatusEffectKind, TowerTemplateState,
-        UserStatusEffect, UserStatusEffectKind, WORLD_UNITS_PER_TILE, activate_monster_skills,
-        activate_tower_skills, adjust_incoming_damage, advance_direct_projectile,
-        advance_homing_projectile, advance_monster_states, advance_move_on_route,
+        ActionKind, AgentAction, AreaDamageEvent, CardState, CommandError, CoreEvent,
+        CoreEventQueue, DamageHit, DamageSplash, EntitySnapshots, GameConfigState, GameMetrics,
+        HandItemState, HandSlotState, HandState, MonsterSkill, MonsterSkillKind,
+        MonsterSkillTarget, MonsterSkillTemplate, MonsterState, MonsterStatusEffect,
+        MonsterStatusEffectKind, MoveOnRouteState, PlayerCommand, RngState, RouteState, SimTick,
+        SimTickSpan, TowerSkill, TowerSkillKind, TowerSkillTemplate, TowerState, TowerStatusEffect,
+        TowerStatusEffectEnd, TowerStatusEffectKind, TowerTemplateState, UserStatusEffect,
+        UserStatusEffectKind, WORLD_UNITS_PER_TILE, activate_monster_skills, activate_tower_skills,
+        adjust_incoming_damage, advance_monster_states, advance_move_on_route,
         advance_tower_cooldowns, apply_monster_damage, apply_monster_skill_activations,
         apply_ratio_product_raw, apply_tower_skill_activations, damage_hit_sort_key,
         expand_area_damage_events, expand_on_hit_splashes, hand_card_id_slots, remove_dead_monster,
@@ -727,168 +589,6 @@ mod tests {
     fn ratio_product_rounds_once_after_sorting_factors() {
         assert_eq!(apply_ratio_product_raw(1, &[1_500_000, 1_500_000]), 2);
         assert_eq!(apply_ratio_product_raw(1, &[1_500_000, 1_000_000]), 2);
-    }
-
-    #[test]
-    fn timed_attack_due_semantics_are_inclusive() {
-        let attack = TimedAttackState {
-            target_monster_id: 7,
-            execute_at: 12,
-        };
-        assert!(!timed_attack_is_due(attack, 11));
-        assert!(timed_attack_is_due(attack, 12));
-        assert!(timed_attack_is_due(attack, 13));
-    }
-
-    #[test]
-    fn laser_attack_state_round_trips_without_host_types() {
-        let state = LaserAttackState {
-            start_xy: [10, 20],
-            end_xy: [30, 40],
-            created_at: 12,
-            target_monster_id: 7,
-        };
-        let encoded = serde_json::to_string(&state).unwrap();
-        assert_eq!(
-            serde_json::from_str::<LaserAttackState>(&encoded).unwrap(),
-            state
-        );
-    }
-
-    #[test]
-    fn spatial_attack_state_round_trips_without_presentation_fields() {
-        let state = SpatialAttackState {
-            position: [10, 20],
-            target_monster_id: 7,
-            velocity: [30, 40],
-            behavior: SpatialAttackBehaviorState::Homing {
-                velocity: [30, 40],
-                acceleration_raw: 1_000,
-                turn_rate_raw: 2_000,
-                max_speed_raw: 3_000,
-                acceleration_remainder: 4,
-                turn_remainder: 5,
-            },
-            movement_remainder: 6,
-            stable_key: 8,
-        };
-        let encoded = serde_json::to_string(&state).unwrap();
-        assert_eq!(
-            serde_json::from_str::<SpatialAttackState>(&encoded).unwrap(),
-            state
-        );
-        assert!(!encoded.contains("projectile_kind"));
-        assert!(!encoded.contains("trail"));
-        assert!(!encoded.contains("hit_effect"));
-    }
-
-    #[test]
-    fn in_flight_attack_state_round_trips_as_one_core_composite() {
-        let state = InFlightAttackState {
-            id: 11,
-            damage_raw: 42_000,
-            source_tower: Some(AttackSourceState {
-                tower_id: 9,
-                tower_kind: 0,
-                rank: Some(12),
-                suit: Some(0),
-            }),
-            kind: InFlightAttackKindState::Spatial(SpatialAttackState {
-                position: [10, 20],
-                target_monster_id: 7,
-                velocity: [30, 40],
-                behavior: SpatialAttackBehaviorState::Direct,
-                movement_remainder: 3,
-                stable_key: 4,
-            }),
-            on_hit_splashes: vec![DamageSplash {
-                radius_raw: 2_000_000,
-                damage_pct_raw: 500_000,
-            }],
-        };
-        let encoded = serde_json::to_string(&state).unwrap();
-        assert_eq!(
-            serde_json::from_str::<InFlightAttackState>(&encoded).unwrap(),
-            state
-        );
-    }
-
-    #[test]
-    fn in_flight_attacks_advance_in_deterministic_kind_order() {
-        let monster = MonsterState {
-            id: 7,
-            move_on_route: MoveOnRouteState {
-                route: RouteState {
-                    map_coords: vec![],
-                    world_coords: vec![],
-                    segment_lengths: vec![],
-                    cumulative_lengths: vec![],
-                },
-                route_index: 0,
-                route_progress_raw: 0,
-                map_coord: [0, 0],
-                velocity_raw: 0,
-                movement_remainder: 0,
-                motion_revision: 0,
-            },
-            kind: 0,
-            hp_raw: 100,
-            max_hp_raw: 100,
-            stage_progress_counted: false,
-            skills: vec![],
-            status_effects: vec![],
-            damage_raw: 0,
-            reward: 0,
-        };
-        let attack = |id, kind| InFlightAttackState {
-            id,
-            damage_raw: 1,
-            source_tower: None,
-            kind,
-            on_hit_splashes: vec![],
-        };
-        let mut attacks = vec![
-            attack(
-                3,
-                InFlightAttackKindState::Spatial(SpatialAttackState {
-                    position: [0, WORLD_UNITS_PER_TILE / 2],
-                    target_monster_id: 7,
-                    velocity: [0, WORLD_UNITS_PER_TILE * 60],
-                    behavior: SpatialAttackBehaviorState::Direct,
-                    movement_remainder: 0,
-                    stable_key: 0,
-                }),
-            ),
-            attack(
-                1,
-                InFlightAttackKindState::Laser(LaserAttackState {
-                    start_xy: [0, 0],
-                    end_xy: [0, 0],
-                    created_at: 0,
-                    target_monster_id: 7,
-                }),
-            ),
-            attack(
-                2,
-                InFlightAttackKindState::Timed(TimedAttackState {
-                    target_monster_id: 7,
-                    execute_at: 4,
-                }),
-            ),
-        ];
-
-        let batches =
-            advance_in_flight_attacks_with_events(&mut attacks, &[monster], 4, &mut Vec::new());
-
-        assert!(attacks.is_empty());
-        assert_eq!(
-            batches
-                .iter()
-                .map(|batch| batch[0].attack.id)
-                .collect::<Vec<_>>(),
-            vec![2, 1, 3]
-        );
-        assert_eq!(batches[2][0].at_xy, [WORLD_UNITS_PER_TILE / 2; 2]);
     }
 
     #[test]
@@ -1040,67 +740,6 @@ mod tests {
         assert!(segment_hits_point([0, 0], [1_000, 0], [1_050, 0], 50));
         assert!(!segment_hits_point([0, 0], [1_000, 0], [500, 51], 50));
         assert!(segment_hits_point([100, 100], [100, 100], [100, 100], 0));
-    }
-
-    #[test]
-    fn direct_projectile_movement_preserves_remainder_and_reaches_target() {
-        let mut position = [0, 0];
-        let mut velocity = [0, -1_001];
-        let mut remainder = 0;
-
-        advance_direct_projectile(
-            &mut position,
-            &mut velocity,
-            &mut remainder,
-            [0, -10_000],
-            1_001,
-            60,
-        );
-        assert_eq!(position, [0, -16]);
-        assert_eq!(velocity, [0, -1_001]);
-        assert_eq!(remainder, 41);
-
-        advance_direct_projectile(
-            &mut position,
-            &mut velocity,
-            &mut remainder,
-            [0, -10],
-            60_000,
-            60,
-        );
-        assert_eq!(position, [0, -10]);
-        assert_eq!(velocity, [0, 0]);
-    }
-
-    #[test]
-    fn homing_projectile_uses_direct_steering_inside_switch_distance() {
-        let mut position = [0, 0];
-        let mut velocity = [0, -24_000_000];
-        let mut acceleration_remainder = 0;
-        let mut turn_remainder = 0;
-        let mut movement_remainder = 0;
-
-        advance_homing_projectile(
-            &mut position,
-            &mut velocity,
-            &mut acceleration_remainder,
-            &mut turn_remainder,
-            &mut movement_remainder,
-            HomingProjectileParams {
-                acceleration_raw: 1_024_000_000,
-                turn_rate_raw: 2_000_000,
-                max_speed_raw: 36_000_000,
-                target: [1_000_000, 0],
-                ticks_per_second: 60,
-                direct_switch_distance_raw: 4_000_000,
-                direct_acceleration_multiplier_raw: 100_000,
-            },
-        );
-
-        assert!(velocity[0] > 0);
-        assert_eq!(velocity[1], 0);
-        assert!(position[0] > 0);
-        assert_eq!(position[1], 0);
     }
 
     #[test]

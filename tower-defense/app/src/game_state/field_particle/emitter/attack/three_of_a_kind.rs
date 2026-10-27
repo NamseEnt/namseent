@@ -43,6 +43,7 @@ pub(super) fn spawn(
     let available_radius = (attack_range_radius - 0.25).max(0.0);
     let max_end_scale = MAX_SMOKE_END_SCALE.min(available_radius);
     let max_distance = (available_radius - max_end_scale + SMOKE_RANGE_OVERDRAW_TILES).max(0.0);
+    let safe_max_distance = max_distance.max(0.001);
     let smoke_count = (attack_range_radius.max(0.0) * SMOKE_COUNT_AT_REFERENCE_RADIUS
         / REFERENCE_RADIUS_TILES)
         .ceil() as usize;
@@ -59,9 +60,9 @@ pub(super) fn spawn(
         } else {
             offset_distance
         };
-        let distance_ratio = final_distance / max_distance.max(0.001);
+        let distance_ratio = final_distance / safe_max_distance;
         let delay = Duration::from_millis(
-            (MAX_SMOKE_DELAY_MS * offset_distance / max_distance.max(0.001)).round() as i64,
+            (MAX_SMOKE_DELAY_MS * offset_distance / safe_max_distance).round() as i64,
         );
         let smoke_start_xy = (
             start_xy.0 + direction.0 * offset_distance,

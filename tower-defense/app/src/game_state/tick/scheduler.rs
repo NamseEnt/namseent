@@ -2,7 +2,7 @@
 use crate::SimTickSpan;
 use crate::game_state::fast_forward::FastForwardMultiplier;
 use crate::game_state::render_snapshot::{
-    MonsterRenderSample, RenderSnapshotHistory, SpatialProjectileRenderSample, WorldRenderSnapshot,
+    MonsterRenderSample, RenderSnapshotHistory, WorldRenderSnapshot,
 };
 use crate::time::INTERPOLATION_UNITS_PER_TICK;
 use crate::{PresentationDelta, SimRenderTime};
@@ -177,14 +177,6 @@ impl RenderFrame<'_> {
         interpolate: bool,
     ) -> Option<MonsterRenderSample<'_>> {
         self.history.sample_monster(id, self.time, interpolate)
-    }
-
-    pub(crate) fn sample_projectile(
-        &self,
-        id: crate::AttackId,
-        interpolate: bool,
-    ) -> Option<SpatialProjectileRenderSample<'_>> {
-        self.history.sample_projectile(id, self.time, interpolate)
     }
 
     pub(crate) fn sample_tower(&self, id: crate::TowerId, interpolate: bool) -> Option<f32> {

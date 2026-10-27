@@ -13,6 +13,8 @@ const MAX_OPACITY: f32 = 0.75;
 struct Segment {
     start_xy: (f32, f32),
     end_xy: (f32, f32),
+    geometry: crate::atlas::LineSpriteGeometry,
+    length_px: f32,
     scale: f32,
     delay: Duration,
 }
@@ -60,21 +62,14 @@ impl Beam {
             let frame = frames[frame_index(progress, frames.len())];
             let alpha_only =
                 Color::from_f01(WHITE[0], WHITE[1], WHITE[2], MAX_OPACITY - progress * 0.25);
-            let (start_xy, end_xy) = (segment.start_xy, segment.end_xy);
-            let segment_length_px = ((end_xy.0 - start_xy.0) * tile_size.width.as_f32())
-                .hypot((end_xy.1 - start_xy.1) * tile_size.height.as_f32());
             let thickness =
                 (tile_size.height.as_f32() * 0.7 * segment.scale * BEAM_WIDTH_MULTIPLIER)
-                    .min(segment_length_px * frame.height().as_f32() / frame.width().as_f32());
-            if let Some(sprite) = crate::atlas::line_sprite_from_rect(
-                frame,
-                px(start_xy.0 * tile_size.width.as_f32()),
-                px(start_xy.1 * tile_size.height.as_f32()),
-                px(end_xy.0 * tile_size.width.as_f32()),
-                px(end_xy.1 * tile_size.height.as_f32()),
-                thickness,
-                Some(alpha_only),
-            ) {
+                    .min(segment.length_px * frame.height().as_f32() / frame.width().as_f32());
+            if let Some(sprite) =
+                segment
+                    .geometry
+                    .sprite_with_thickness(frame, thickness, Some(alpha_only))
+            {
                 sprites.push(sprite);
             }
         }
@@ -116,15 +111,27 @@ fn make_segments(
         let end_distance_px = (start_distance_px + max_segment_length_px).min(total_length_px);
         let start_progress = start_distance_px / total_length_px;
         let end_progress = end_distance_px / total_length_px;
+        let segment_start_xy = (
+            start_xy.0 + delta.0 * start_progress,
+            start_xy.1 + delta.1 * start_progress,
+        );
+        let segment_end_xy = (
+            start_xy.0 + delta.0 * end_progress,
+            start_xy.1 + delta.1 * end_progress,
+        );
+        let geometry = crate::atlas::LineSpriteGeometry::new(
+            px(segment_start_xy.0 * tile_size.width.as_f32()),
+            px(segment_start_xy.1 * tile_size.height.as_f32()),
+            px(segment_end_xy.0 * tile_size.width.as_f32()),
+            px(segment_end_xy.1 * tile_size.height.as_f32()),
+            1.0,
+        )
+        .expect("beam segment geometry is non-degenerate");
         segments.push(Segment {
-            start_xy: (
-                start_xy.0 + delta.0 * start_progress,
-                start_xy.1 + delta.1 * start_progress,
-            ),
-            end_xy: (
-                start_xy.0 + delta.0 * end_progress,
-                start_xy.1 + delta.1 * end_progress,
-            ),
+            start_xy: segment_start_xy,
+            end_xy: segment_end_xy,
+            geometry,
+            length_px: end_distance_px - start_distance_px,
             scale,
             delay: Duration::from_millis(
                 MIN_SEGMENT_DELAY_MS + rng.gen_range(0_i64..=MAX_ADDITIONAL_SEGMENT_DELAY_MS),

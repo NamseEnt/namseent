@@ -19,7 +19,6 @@ pub enum CoreEvent {
     TowerAttack {
         tower_id: u64,
         target_id: u64,
-        attack_kind: u8,
         #[serde(default)]
         tower_kind: u8,
         #[serde(default)]
@@ -28,8 +27,6 @@ pub enum CoreEvent {
         end_xy: [i64; 2],
         #[serde(default)]
         attack_range_raw: i64,
-        attack_ids: Vec<u64>,
-        projectile_attack_ids: Vec<u64>,
     },
     TowerAttackHit {
         tower_id: u64,
@@ -39,18 +36,6 @@ pub enum CoreEvent {
         position: [i64; 2],
         #[serde(default)]
         chain_delay_ms: u64,
-    },
-    ProjectileMoved {
-        attack_id: u64,
-        start_xy: [i64; 2],
-        end_xy: [i64; 2],
-    },
-    TimedAttackExecuted {
-        position: [i64; 2],
-    },
-    ProjectileHit {
-        attack_id: u64,
-        position: [i64; 2],
     },
     MonsterSpawned {
         monster_id: u64,

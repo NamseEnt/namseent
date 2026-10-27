@@ -43,7 +43,6 @@ pub struct LegacyProjectionCodec {
     pub(crate) deck: Deck,
     pub(crate) items: Vec<crate::game_state::item::ItemWithId>,
     pub(crate) monster_spawn_state: MonsterSpawnState,
-    pub(crate) in_flight_attacks: Vec<crate::game_state::attack::InFlightAttack>,
     pub(crate) user_status_effects: Vec<td_core::UserStatusEffect>,
     pub(crate) next_entity_id: crate::game_state::EntityIdAllocator,
     pub(crate) metrics: td_core::GameMetrics,
@@ -109,11 +108,6 @@ impl LegacyProjectionCodec {
                 .map(|(index, item)| item.to_core_state().with_id(index as u64 + 1))
                 .collect(),
             monster_spawn: self.monster_spawn_state.to_core_state(),
-            in_flight_attacks: self
-                .in_flight_attacks
-                .iter()
-                .map(|attack| attack.to_core_state())
-                .collect(),
             user_status_effects: self.user_status_effects.clone(),
             next_entity_id: self.next_entity_id,
             metrics: self.metrics.clone(),
@@ -134,7 +128,6 @@ impl LegacyProjectionCodec {
             .map(|monster| monster.id)
             .chain(parts.monsters.iter().map(|monster| monster.id))
             .chain(parts.towers.iter().filter_map(|tower| tower.id))
-            .chain(parts.in_flight_attacks.iter().map(|attack| attack.id))
             .max()
             .unwrap_or(0);
         if parts.next_entity_id.next_id() <= max_entity_id {
@@ -215,30 +208,6 @@ impl LegacyProjectionCodec {
                 return None;
             }
         }
-        let in_flight_attacks = snapshot
-            .in_flight_attacks
-            .into_iter()
-            .map(|attack| {
-                let presentation = presentation_source.and_then(|source| {
-                    source
-                        .in_flight_attacks
-                        .iter()
-                        .find(|candidate| candidate.id == crate::AttackId::from_raw(attack.id))
-                        .and_then(|candidate| match &candidate.kind {
-                            crate::game_state::attack::InFlightAttackKind::Spatial(spatial) => {
-                                Some((spatial.projectile_kind, spatial.trail, spatial.hit_effect))
-                            }
-                            _ => None,
-                        })
-                });
-                let presentation = presentation.or(Some((
-                    crate::game_state::projectile::ProjectileKind::Trash01,
-                    crate::game_state::projectile::ProjectileTrail::None,
-                    crate::game_state::attack::ProjectileHitEffect::TrashBounce,
-                )));
-                crate::game_state::attack::InFlightAttack::from_core_state(attack, presentation)
-            })
-            .collect::<Option<Vec<_>>>()?;
         let flow = GameFlow::from_core_state(
             snapshot.flow,
             presentation_source.map(|source| &source.flow),
@@ -254,7 +223,6 @@ impl LegacyProjectionCodec {
             deck,
             items,
             monster_spawn_state,
-            in_flight_attacks,
             snapshot.user_status_effects,
             snapshot.next_entity_id,
             snapshot.metrics,
@@ -393,43 +361,6 @@ impl LegacyProjectionCodec {
             && self.restore_tower_snapshots(snapshots.towers, self.host_sim_tick())
     }
 
-    pub(crate) fn normalize_decoded_attack_snapshots(&mut self) -> bool {
-        for attack in &mut self.in_flight_attacks {
-            let presentation = match &attack.kind {
-                crate::game_state::attack::InFlightAttackKind::Spatial(spatial) => {
-                    Some((spatial.projectile_kind, spatial.trail, spatial.hit_effect))
-                }
-                _ => None,
-            };
-            let raw = attack.to_core_state();
-            let Some(normalized) =
-                crate::game_state::attack::InFlightAttack::from_core_state(raw, presentation)
-            else {
-                return false;
-            };
-            *attack = normalized;
-        }
-        true
-    }
-
-    pub(crate) fn attacks_for_legacy_serialization(
-        &self,
-    ) -> Vec<crate::game_state::attack::InFlightAttack> {
-        let mut attacks = self.in_flight_attacks.clone();
-        for attack in &mut attacks {
-            let presentation = match &attack.kind {
-                crate::game_state::attack::InFlightAttackKind::Spatial(spatial) => {
-                    Some((spatial.projectile_kind, spatial.trail, spatial.hit_effect))
-                }
-                _ => None,
-            };
-            let raw = attack.to_core_state();
-            *attack = crate::game_state::attack::InFlightAttack::from_core_state(raw, presentation)
-                .expect("valid in-flight attack state");
-        }
-        attacks
-    }
-
     fn refresh_tower_upgrade_damage_cache(&mut self) {
         let upgrade_revision = self.upgrade_state.revision;
         let raw_upgrades = self.upgrade_state.to_core_state();
@@ -488,7 +419,6 @@ impl LegacyProjectionCodec {
         deck: Deck,
         items: Vec<crate::game_state::item::ItemWithId>,
         monster_spawn_state: MonsterSpawnState,
-        in_flight_attacks: Vec<crate::game_state::attack::InFlightAttack>,
         user_status_effects: Vec<td_core::UserStatusEffect>,
         next_entity_id: crate::game_state::EntityIdAllocator,
         metrics: td_core::GameMetrics,
@@ -530,7 +460,6 @@ impl LegacyProjectionCodec {
             deck,
             items,
             monster_spawn_state,
-            in_flight_attacks,
             user_status_effects,
             next_entity_id,
             metrics,

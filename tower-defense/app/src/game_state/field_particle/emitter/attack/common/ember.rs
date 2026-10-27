@@ -25,7 +25,7 @@ pub(in crate::game_state::field_particle::emitter::attack) fn spawn_cone(
 ) {
     let mut rng = rand::thread_rng();
     let max_spawn_distance = (attack_range_radius - SPAWN_RANGE_MARGIN_TILES).max(0.0);
-    let mut radial_bins = (0..EMBER_COUNT).collect::<Vec<_>>();
+    let mut radial_bins: [usize; EMBER_COUNT] = std::array::from_fn(|index| index);
     radial_bins.shuffle(&mut rng);
 
     for (index, radial_bin) in radial_bins.into_iter().enumerate() {

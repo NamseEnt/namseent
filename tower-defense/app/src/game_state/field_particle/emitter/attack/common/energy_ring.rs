@@ -32,7 +32,7 @@ pub(in crate::game_state::field_particle::emitter::attack) fn spawn_with_color(
     scale: f32,
     color: [f32; 3],
 ) {
-    super::ring_path::spawn_with_color(
+    super::ring_path::spawn(
         start_xy,
         end_xy,
         created_at,
@@ -56,7 +56,7 @@ pub(in crate::game_state::field_particle::emitter::attack) fn spawn_with_color_a
     scale: f32,
     color: [f32; 3],
 ) {
-    super::ring_path::spawn_with_color_and_ease_in_fade(
+    super::ring_path::spawn(
         start_xy,
         end_xy,
         created_at,

@@ -6,14 +6,16 @@ const DURATION: Duration = Duration::from_millis(350);
 
 #[derive(Clone)]
 pub struct DirectionalFlash {
-    anchor_xy: (f32, f32),
-    angle_rad: f32,
     scale: f32,
     color: [f32; 3],
     variant: usize,
     created_at: Instant,
     delay: Duration,
     progress: f32,
+    eased_progress: f32,
+    anchor_x_px: f32,
+    anchor_y_px: f32,
+    rotation: (f32, f32),
     started: bool,
 }
 
@@ -26,15 +28,18 @@ impl DirectionalFlash {
         created_at: Instant,
     ) -> Self {
         let mut rng = rand::thread_rng();
+        let (rotation_sin, rotation_cos) = angle_rad.sin_cos();
         Self {
-            anchor_xy,
-            angle_rad,
             scale,
             color,
             variant: rng.gen_range(0..4),
             created_at,
             delay: Duration::ZERO,
             progress: 0.0,
+            eased_progress: 0.0,
+            anchor_x_px: anchor_xy.0 * crate::game_state::TILE_PX_SIZE.width.as_f32(),
+            anchor_y_px: anchor_xy.1 * crate::game_state::TILE_PX_SIZE.height.as_f32(),
+            rotation: (rotation_cos, rotation_sin),
             started: false,
         }
     }
@@ -52,6 +57,11 @@ impl DirectionalFlash {
         } else {
             0.0
         };
+        self.eased_progress = if self.started && self.progress < 1.0 {
+            ATTACK_FRAME_EASE_OUT.sample(self.progress)
+        } else {
+            0.0
+        };
     }
 
     pub fn render(&self) -> particle::ParticleSprites {
@@ -61,37 +71,29 @@ impl DirectionalFlash {
         }
 
         let frames = frames_for_variant(self.variant);
-        let frame_index = ((ATTACK_FRAME_EASE_OUT.sample(self.progress) * frames.len() as f32)
-            as usize)
-            .min(frames.len() - 1);
+        let frame_index =
+            ((self.eased_progress * frames.len() as f32) as usize).min(frames.len() - 1);
         let frame = frames[frame_index];
         let scale =
             crate::game_state::TILE_PX_SIZE.width.as_f32() * self.scale / frame.width().as_f32();
         let image_half_length_px = frame.width().as_f32() * scale / 2.0;
-        let center_x = px(
-            self.anchor_xy.0 * crate::game_state::TILE_PX_SIZE.width.as_f32()
-                + self.angle_rad.cos() * image_half_length_px,
-        );
-        let center_y = px(
-            self.anchor_xy.1 * crate::game_state::TILE_PX_SIZE.height.as_f32()
-                + self.angle_rad.sin() * image_half_length_px,
-        );
+        let center_x = px(self.anchor_x_px + self.rotation.0 * image_half_length_px);
+        let center_y = px(self.anchor_y_px + self.rotation.1 * image_half_length_px);
         let color = Color::from_f01(
             self.color[0].clamp(0.0, 1.0),
             self.color[1].clamp(0.0, 1.0),
             self.color[2].clamp(0.0, 1.0),
             1.0 - self.progress,
         );
-        sprites.push(
-            crate::game_state::field_particle::atlas::centered_rotated_sprite(
-                frame,
-                center_x,
-                center_y,
-                scale,
-                self.angle_rad,
-                Some(color),
-            ),
-        );
+        sprites.push(crate::atlas::centered_rotated_sprite_with_sin_cos(
+            frame,
+            center_x,
+            center_y,
+            scale,
+            self.rotation.0,
+            self.rotation.1,
+            Some(color),
+        ));
         sprites
     }
 

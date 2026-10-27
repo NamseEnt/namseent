@@ -33,6 +33,8 @@ pub(super) struct RingAnimation {
     fade_mode: FadeMode,
     muzzle_animation: bool,
     progress: f32,
+    eased_progress: f32,
+    fade_progress: f32,
     started: bool,
 }
 
@@ -66,6 +68,8 @@ impl RingAnimation {
             fade_mode: FadeMode::Linear,
             muzzle_animation: false,
             progress: 0.0,
+            eased_progress: 0.0,
+            fade_progress: 0.0,
             started: false,
         }
     }
@@ -129,6 +133,17 @@ impl RingAnimation {
         } else {
             0.0
         };
+        if self.started && self.progress < 1.0 {
+            self.eased_progress = ATTACK_FRAME_EASE_OUT.sample(self.progress);
+            self.fade_progress = match self.fade_mode {
+                FadeMode::Linear => self.progress,
+                FadeMode::EaseIn => ATTACK_FRAME_EASE_IN.sample(self.progress),
+                FadeMode::EaseOut => self.eased_progress,
+            };
+        } else {
+            self.eased_progress = 0.0;
+            self.fade_progress = 0.0;
+        }
     }
 
     pub(super) fn render(&self) -> particle::ParticleSprites {
@@ -137,29 +152,29 @@ impl RingAnimation {
             return sprites;
         }
 
-        let eased_progress = ATTACK_FRAME_EASE_OUT.sample(self.progress);
         let frames = (self.frames_for_variant)(self.variant);
-        let frame_index = ((eased_progress * frames.len() as f32) as usize).min(frames.len() - 1);
+        let frame_index =
+            ((self.eased_progress * frames.len() as f32) as usize).min(frames.len() - 1);
         let src_rect = frames[frame_index];
         let sprite_width = src_rect.width().as_f32();
         let sprite_height = src_rect.height().as_f32();
         let center_x_px = self.center_x_px
-            + self.movement_direction.0 * self.movement_distance_px * eased_progress;
+            + self.movement_direction.0 * self.movement_distance_px * self.eased_progress;
         let center_y_px = self.center_y_px
-            + self.movement_direction.1 * self.movement_distance_px * eased_progress;
+            + self.movement_direction.1 * self.movement_distance_px * self.eased_progress;
         let scale_progress = if self.linear_scale_growth {
             self.progress
         } else {
-            eased_progress
+            self.eased_progress
         };
         let scale = self.scale
             * (1.0 + self.scale_growth * scale_progress)
             * if self.muzzle_animation {
-                1.0 + eased_progress * 0.5
+                1.0 + self.eased_progress * 0.5
             } else {
                 1.0
             };
-        let alpha = self.alpha_at(eased_progress) * 255.0;
+        let alpha = self.alpha_at() * 255.0;
         let scos = self.rotation.0 * scale;
         let ssin = self.rotation.1 * scale;
         let center_x = px(center_x_px);
@@ -187,16 +202,11 @@ impl RingAnimation {
         now - self.created_at >= self.delay + self.duration
     }
 
-    fn alpha_at(&self, eased_progress: f32) -> f32 {
+    fn alpha_at(&self) -> f32 {
         if self.muzzle_animation {
-            eased_progress
+            self.eased_progress
         } else {
-            let fade_progress = match self.fade_mode {
-                FadeMode::Linear => self.progress,
-                FadeMode::EaseIn => ATTACK_FRAME_EASE_IN.sample(self.progress),
-                FadeMode::EaseOut => eased_progress,
-            };
-            (1.0 - fade_progress) * self.opacity
+            (1.0 - self.fade_progress) * self.opacity
         }
     }
 }
@@ -244,10 +254,9 @@ mod tests {
         .with_ease_out_fade();
         ring.tick(created_at + Duration::from_millis(50), Duration::ZERO);
 
-        let eased_progress = ATTACK_FRAME_EASE_OUT.sample(ring.progress);
-        let alpha = ring.alpha_at(eased_progress);
+        let alpha = ring.alpha_at();
         assert!(alpha <= 0.5);
-        assert_eq!(alpha, (1.0 - eased_progress) * 0.5);
+        assert_eq!(alpha, (1.0 - ring.eased_progress) * 0.5);
     }
 
     #[test]
@@ -265,8 +274,7 @@ mod tests {
         .with_ease_in_fade();
         ring.tick(created_at + Duration::from_millis(50), Duration::ZERO);
 
-        let eased_progress = ATTACK_FRAME_EASE_OUT.sample(ring.progress);
-        let alpha = ring.alpha_at(eased_progress);
+        let alpha = ring.alpha_at();
         assert_eq!(alpha, 1.0 - ATTACK_FRAME_EASE_IN.sample(ring.progress));
         assert!(alpha > 1.0 - ring.progress);
     }

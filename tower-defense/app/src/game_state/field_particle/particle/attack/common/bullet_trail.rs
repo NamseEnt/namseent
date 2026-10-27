@@ -16,6 +16,7 @@ pub struct BulletTrail {
     scale: f32,
     opacity: f32,
     progress: f32,
+    eased_progress: f32,
     started: bool,
 }
 
@@ -42,6 +43,7 @@ impl BulletTrail {
             scale,
             opacity: opacity.clamp(0.0, 1.0),
             progress: 0.0,
+            eased_progress: 0.0,
             started: false,
         }
     }
@@ -55,6 +57,11 @@ impl BulletTrail {
         } else {
             0.0
         };
+        self.eased_progress = if self.started && self.progress < 1.0 {
+            ATTACK_FRAME_EASE_OUT.sample(self.progress)
+        } else {
+            0.0
+        };
     }
 
     pub fn render(&self) -> namui::particle::ParticleSprites {
@@ -64,9 +71,8 @@ impl BulletTrail {
         }
 
         let frames = frames_for_variant(self.variant);
-        let frame_index = ((ATTACK_FRAME_EASE_OUT.sample(self.progress) * frames.len() as f32)
-            as usize)
-            .min(frames.len() - 1);
+        let frame_index =
+            ((self.eased_progress * frames.len() as f32) as usize).min(frames.len() - 1);
         let frame_rect = frames[frame_index];
         let x = frame_rect.x();
         let width = frame_rect.width();

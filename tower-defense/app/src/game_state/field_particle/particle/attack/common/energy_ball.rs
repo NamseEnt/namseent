@@ -11,6 +11,8 @@ pub struct EnergyBall {
     created_at: Instant,
     color: [f32; 3],
     progress: f32,
+    eased_progress: f32,
+    rotation: (f32, f32),
 }
 
 impl EnergyBall {
@@ -20,18 +22,29 @@ impl EnergyBall {
         color: [f32; 3],
         created_at: Instant,
     ) -> Self {
+        let delta_x = (end_xy.0 - start_xy.0) * crate::game_state::TILE_PX_SIZE.width.as_f32();
+        let delta_y = (end_xy.1 - start_xy.1) * crate::game_state::TILE_PX_SIZE.height.as_f32();
+        let angle = delta_y.atan2(delta_x);
+        let (rotation_sin, rotation_cos) = angle.sin_cos();
         Self {
             start_xy,
             end_xy,
             created_at,
             color,
             progress: 0.0,
+            eased_progress: 0.0,
+            rotation: (rotation_cos, rotation_sin),
         }
     }
 
     pub fn tick(&mut self, now: Instant, _dt: Duration) {
         self.progress =
             ((now - self.created_at).as_secs_f32() / DURATION.as_secs_f32()).clamp(0.0, 1.0);
+        self.eased_progress = if self.progress < 1.0 {
+            ATTACK_FRAME_EASE_OUT.sample(self.progress)
+        } else {
+            0.0
+        };
     }
 
     pub fn render(&self) -> particle::ParticleSprites {
@@ -41,15 +54,11 @@ impl EnergyBall {
         }
 
         let frames = &crate::atlas::generated::ATTACK_COMMON_ENERGY_BALL_ENERGY_BALL;
-        let frame_index = ((ATTACK_FRAME_EASE_OUT.sample(self.progress) * frames.len() as f32)
-            as usize)
-            .min(frames.len() - 1);
+        let frame_index =
+            ((self.eased_progress * frames.len() as f32) as usize).min(frames.len() - 1);
         let frame = frames[frame_index];
         let tile_width = crate::game_state::TILE_PX_SIZE.width.as_f32();
         let tile_height = crate::game_state::TILE_PX_SIZE.height.as_f32();
-        let direction_x = (self.end_xy.0 - self.start_xy.0) * tile_width;
-        let direction_y = (self.end_xy.1 - self.start_xy.1) * tile_height;
-        let angle = direction_y.atan2(direction_x);
         let center_x =
             px((self.start_xy.0 + (self.end_xy.0 - self.start_xy.0) * self.progress) * tile_width);
         let center_y =
@@ -61,16 +70,15 @@ impl EnergyBall {
             self.color[2].clamp(0.0, 1.0),
             1.0,
         );
-        sprites.push(
-            crate::game_state::field_particle::atlas::centered_rotated_sprite(
-                frame,
-                center_x,
-                center_y,
-                scale,
-                angle,
-                Some(color),
-            ),
-        );
+        sprites.push(crate::atlas::centered_rotated_sprite_with_sin_cos(
+            frame,
+            center_x,
+            center_y,
+            scale,
+            self.rotation.0,
+            self.rotation.1,
+            Some(color),
+        ));
         sprites
     }
 

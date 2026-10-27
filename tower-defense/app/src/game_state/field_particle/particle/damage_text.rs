@@ -76,6 +76,8 @@ pub struct DamageTextParticle {
     pub opacity: u8,
     pub rotation: Angle,
     pub rotation_speed: f32,
+    rotation_cos: f32,
+    rotation_sin: f32,
     scale_multiplier: f32,
     pub scale: f32,
 }
@@ -112,6 +114,8 @@ impl DamageTextParticle {
             opacity: 255,
             rotation: 0.0.deg(),
             rotation_speed,
+            rotation_cos: 1.0,
+            rotation_sin: 0.0,
             scale_multiplier: Self::scale_multiplier(damage_value),
             scale: 0.0,
         }
@@ -132,6 +136,9 @@ impl DamageTextParticle {
 
         // Rotation: continuous spin
         self.rotation = (self.rotation_speed * elapsed_secs).deg();
+        let rotation_rad = self.rotation.as_radians();
+        self.rotation_cos = rotation_rad.cos();
+        self.rotation_sin = rotation_rad.sin();
 
         // Scale: ease-in and ease-out
         self.scale = self.calculate_scale(progress) * self.scale_multiplier;
@@ -202,9 +209,8 @@ impl DamageTextParticle {
         let position_px = tile_size * self.position;
         let base_scale = self.scale;
         let color = self.display_color.with_alpha(self.opacity);
-        let angle_rad = self.rotation.as_radians();
-        let cos_a = angle_rad.cos();
-        let sin_a = angle_rad.sin();
+        let cos_a = self.rotation_cos;
+        let sin_a = self.rotation_sin;
 
         let char_count = self.display_value.len() as f32;
         let char_w = 64.0 * base_scale * 0.5;
@@ -216,12 +222,13 @@ impl DamageTextParticle {
             let local_x = start_offset + i as f32 * char_w;
             let cx = position_px.x + px(cos_a * local_x);
             let cy = position_px.y + px(sin_a * local_x);
-            sprites.push(atlas::centered_rotated_sprite(
+            sprites.push(crate::atlas::centered_rotated_sprite_with_sin_cos(
                 src_rect,
                 cx,
                 cy,
                 base_scale,
-                angle_rad,
+                cos_a,
+                sin_a,
                 Some(color),
             ));
             if sprites.remaining_capacity() == 0 {

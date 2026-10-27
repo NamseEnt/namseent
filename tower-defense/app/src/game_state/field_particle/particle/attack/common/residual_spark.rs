@@ -17,6 +17,7 @@ pub struct ResidualSpark {
     created_at: Instant,
     delay: Duration,
     progress: f32,
+    fade_progress: f32,
     started: bool,
 }
 
@@ -39,6 +40,7 @@ impl ResidualSpark {
             created_at,
             delay: Duration::from_millis(rng.gen_range(0..=MAX_DELAY.as_millis())),
             progress: 0.0,
+            fade_progress: 0.0,
             started: false,
         }
     }
@@ -65,6 +67,11 @@ impl ResidualSpark {
         } else {
             0.0
         };
+        self.fade_progress = if self.started && self.progress < 1.0 {
+            ATTACK_FRAME_EASE_IN.sample(self.progress)
+        } else {
+            0.0
+        };
     }
 
     pub fn render(&self) -> particle::ParticleSprites {
@@ -78,7 +85,7 @@ impl ResidualSpark {
         let base_scale = self.base_scale * crate::game_state::TILE_PX_SIZE.width.as_f32()
             / frame.height().as_f32();
         let scale = base_scale * self.length_scale;
-        let alpha = 1.0 - ATTACK_FRAME_EASE_IN.sample(self.progress);
+        let alpha = 1.0 - self.fade_progress;
         let color = Color::from_f01(
             self.color[0].clamp(0.0, 1.0),
             self.color[1].clamp(0.0, 1.0),

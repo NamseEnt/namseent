@@ -25,12 +25,13 @@ impl Projectile {
         let delta_y_px = delta_y * tile_height;
         let length_px = delta_x_px.hypot(delta_y_px);
         let angle = delta_y_px.atan2(delta_x_px);
+        let (rotation_sin, rotation_cos) = angle.sin_cos();
 
         Self {
             start_x_px: start_xy.0 * tile_width,
             start_y_px: start_xy.1 * tile_height,
-            rotation_cos: angle.cos(),
-            rotation_sin: angle.sin(),
+            rotation_cos,
+            rotation_sin,
             length_px,
             created_at,
             duration: Duration::from_secs_f32(0.1),
