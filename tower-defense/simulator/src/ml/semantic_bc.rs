@@ -1482,6 +1482,7 @@ pub fn benchmark_bc_backend<B: burn::tensor::backend::AutodiffBackend>(
 mod tests {
     use super::*;
     use crate::config::GameConfig;
+    use crate::config::GameConfigTestExt;
     use crate::ml::phase4_dataset::{
         DatasetProvenance, Phase4Split, SourcePolicy, collect_canonical_episode,
     };

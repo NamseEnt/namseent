@@ -523,6 +523,7 @@ fn sorted_u64(card_ids: &[usize]) -> Vec<u64> {
 mod tests {
     use super::*;
     use crate::config::GameConfig;
+    use crate::config::GameConfigTestExt;
     use std::sync::Arc;
 
     fn environment(seed: u64) -> GameEnvironment {

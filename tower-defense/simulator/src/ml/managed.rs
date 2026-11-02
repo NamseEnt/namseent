@@ -216,7 +216,7 @@ fn prune(ppo_dir: &Path, metadata: &PpoRunMetadata, best: usize) -> Result<()> {
 fn load_config(path: Option<&Path>) -> Result<Arc<GameConfig>> {
     Ok(Arc::new(match path {
         Some(path) => crate::config::load_jsonc(path)?,
-        None => GameConfig::default_config(),
+        None => crate::config::load_default_config()?,
     }))
 }
 

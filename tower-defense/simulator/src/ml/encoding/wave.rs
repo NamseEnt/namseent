@@ -87,6 +87,7 @@ fn queued_wave_feature_row(group: &QueuedMonsterGroupObservation) -> WaveFeature
 mod tests {
     use super::*;
     use crate::config::GameConfig;
+    use crate::config::GameConfigTestExt;
     use crate::environment::GameEnvironment;
     use std::sync::Arc;
 

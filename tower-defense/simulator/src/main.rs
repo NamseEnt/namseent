@@ -6,7 +6,7 @@ use rayon::prelude::*;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use td_simulator::config::{self, GameConfig};
+use td_simulator::config;
 use td_simulator::hp_balance::{self, BalanceOptions};
 use td_simulator::ml::MlContract;
 use td_simulator::ml::cli::{self, Command as MlCommand};
@@ -103,7 +103,11 @@ fn run_play(options: PlayOptions) -> Result<()> {
         PlayPolicyArg::Scripted => PlayPolicy::Scripted,
         PlayPolicyArg::Teacher => PlayPolicy::Teacher,
     };
-    let summary = play_episode(Arc::new(GameConfig::default_config()), options.seed, policy)?;
+    let summary = play_episode(
+        Arc::new(config::load_default_config()?),
+        options.seed,
+        policy,
+    )?;
     println!();
     println!("seed:        {}", summary.seed);
     println!(
@@ -154,7 +158,7 @@ struct TeacherSelectFreshStatesOptions {
 #[cfg(feature = "diagnostics")]
 fn run_teacher_select_fresh_states(options: TeacherSelectFreshStatesOptions) -> Result<()> {
     let selections = td_simulator::teacher_reroll_diag::select_fresh_states(
-        Arc::new(GameConfig::default_config()),
+        Arc::new(config::load_default_config()?),
         &[
             (4, "Shop"),
             (5, "CardSelection"),
@@ -206,7 +210,7 @@ fn run_teacher_frozen_candidate_validation(
         .map(str::to_string)
         .collect::<Vec<_>>();
     let result = td_simulator::teacher_reroll_diag::run_frozen_candidate_validation(
-        Arc::new(GameConfig::default_config()),
+        Arc::new(config::load_default_config()?),
         options.game_seed,
         options.decision_index,
         &options.state_hash,
@@ -240,7 +244,7 @@ struct TeacherExhaustivePreregOptions {
 #[cfg(feature = "diagnostics")]
 fn run_teacher_exhaustive_prereg(options: TeacherExhaustivePreregOptions) -> Result<()> {
     let result = td_simulator::teacher_reroll_diag::run_exhaustive_prereg(
-        Arc::new(GameConfig::default_config()),
+        Arc::new(config::load_default_config()?),
         &options.selection_artifact,
         options.game_seed,
         &(1000..1008).collect::<Vec<u64>>(),
@@ -281,7 +285,7 @@ fn run_teacher_candidate_order(options: TeacherCandidateOrderOptions) -> Result<
         })
         .collect::<Result<Vec<_>>>()?;
     let orders = td_simulator::teacher_reroll_diag::candidate_orders(
-        Arc::new(GameConfig::default_config()),
+        Arc::new(config::load_default_config()?),
         &options.frozen_artifact,
         &states,
         16,
@@ -315,7 +319,7 @@ struct TeacherExhaustiveTerminalOptions {
 #[cfg(feature = "diagnostics")]
 fn run_teacher_exhaustive_terminal(options: TeacherExhaustiveTerminalOptions) -> Result<()> {
     let result = td_simulator::teacher_reroll_diag::run_exhaustive_terminal(
-        Arc::new(GameConfig::default_config()),
+        Arc::new(config::load_default_config()?),
         &options.frozen_artifact,
         (options.game_seed, options.decision_index),
         &(1000..1008).collect::<Vec<u64>>(),
@@ -365,7 +369,7 @@ fn run_teacher_multifidelity_topk(options: TeacherMultifidelityTopkOptions) -> R
         })
         .collect::<Result<Vec<_>>>()?;
     let results = td_simulator::teacher_reroll_diag::run_multifidelity_topk(
-        Arc::new(GameConfig::default_config()),
+        Arc::new(config::load_default_config()?),
         &options.frozen_artifact,
         &states,
         &(1000..1008).collect::<Vec<u64>>(),
@@ -404,7 +408,7 @@ struct TeacherFrozenHorizonSweepOptions {
 fn run_teacher_frozen_horizon_sweep(options: TeacherFrozenHorizonSweepOptions) -> Result<()> {
     let horizons = parse_u64_list(&options.horizons)?;
     let results = td_simulator::teacher_reroll_diag::run_frozen_horizon_sweep(
-        Arc::new(GameConfig::default_config()),
+        Arc::new(config::load_default_config()?),
         &options.frozen_artifact,
         &(options.validation_seed_start..options.validation_seed_start + options.validation_count)
             .collect::<Vec<_>>(),
@@ -449,7 +453,7 @@ struct TeacherSelectionValidationOptions {
 #[cfg(feature = "diagnostics")]
 fn run_teacher_selection_validation(options: TeacherSelectionValidationOptions) -> Result<()> {
     let results = td_simulator::teacher_reroll_diag::run_selection_validation(
-        Arc::new(GameConfig::default_config()),
+        Arc::new(config::load_default_config()?),
         &options.artifact,
         &options.expected_artifact,
         &options.action_kind,
@@ -493,7 +497,7 @@ struct TeacherStateSensitivityOptions {
 fn run_teacher_state_sensitivity(options: TeacherStateSensitivityOptions) -> Result<()> {
     let counts = parse_usize_list(&options.scenario_counts)?;
     let results = td_simulator::teacher_reroll_diag::run_state_scenario_sensitivity(
-        Arc::new(GameConfig::default_config()),
+        Arc::new(config::load_default_config()?),
         &options.artifact,
         &options.action_kind,
         options.scenario_seed_start,
@@ -534,7 +538,7 @@ fn run_teacher_override_diag(options: TeacherOverrideDiagOptions) -> Result<()> 
     let config = Arc::new(match options.config {
         Some(ref path) => config::load_jsonc(path)
             .with_context(|| format!("failed to load config {}", path.display()))?,
-        None => GameConfig::default_config(),
+        None => config::load_default_config()?,
     });
     let scenario_seeds = (options.scenario_seed_start
         ..options.scenario_seed_start + options.scenario_count)
@@ -695,7 +699,7 @@ struct PlacementDiagOptions {
 #[cfg(feature = "diagnostics")]
 fn run_placement_diag(options: PlacementDiagOptions) -> Result<()> {
     let report = td_simulator::placement_diag::run_placement_diag(
-        Arc::new(GameConfig::default_config()),
+        Arc::new(config::load_default_config()?),
         options.seed,
         options.prefix_decisions,
         &options.scenario_seeds,
@@ -727,7 +731,7 @@ struct TrajectoryFingerprintOptions {
 #[cfg(feature = "diagnostics")]
 fn run_trajectory_fingerprint(options: TrajectoryFingerprintOptions) -> Result<()> {
     use rayon::prelude::*;
-    let config = Arc::new(GameConfig::default_config());
+    let config = Arc::new(config::load_default_config()?);
     let seeds = (options.seed_start..=options.seed_end).collect::<Vec<_>>();
     let fingerprints = seeds
         .par_iter()
@@ -769,7 +773,7 @@ struct RolloutBenchOptions {
 fn run_rollout_bench(options: RolloutBenchOptions) -> Result<()> {
     if options.throughput {
         let report = td_simulator::placement_diag::rollout_throughput(
-            Arc::new(GameConfig::default_config()),
+            Arc::new(config::load_default_config()?),
             &options.game_seeds,
             &options.prefix_decisions,
             &options.scenario_seeds,
@@ -782,7 +786,7 @@ fn run_rollout_bench(options: RolloutBenchOptions) -> Result<()> {
         return Ok(());
     }
     let report = td_simulator::placement_diag::rollout_bench(
-        Arc::new(GameConfig::default_config()),
+        Arc::new(config::load_default_config()?),
         &options.game_seeds,
         &options.prefix_decisions,
         &options.scenario_seeds,
@@ -825,7 +829,7 @@ fn run_teacher_selection_heldout(options: TeacherSelectionHeldoutOptions) -> Res
     let config = Arc::new(match options.config {
         Some(ref path) => config::load_jsonc(path)
             .with_context(|| format!("failed to load config {}", path.display()))?,
-        None => GameConfig::default_config(),
+        None => config::load_default_config()?,
     });
     let pools = TeacherSelectionPools::production();
     let config_digest = config::config_digest(config.as_ref());
@@ -974,7 +978,7 @@ fn run_teacher_selection_terminal_gate(options: TeacherSelectionTerminalGateOpti
     };
     use td_simulator::teacher_terminal_gate::{MAX_EPISODE_DECISIONS, run_terminal_gate_seed};
 
-    let config = Arc::new(GameConfig::default_config());
+    let config = Arc::new(config::load_default_config()?);
     let pools = TeacherSelectionPools::production();
     let provenance = serde_json::json!({
         "gate": "phase3_terminal_heldout",
@@ -1069,7 +1073,7 @@ struct TeacherTerminalExtensionOptions {
 
 #[cfg(feature = "diagnostics")]
 fn run_teacher_terminal_extension(options: TeacherTerminalExtensionOptions) -> Result<()> {
-    let config = Arc::new(GameConfig::default_config());
+    let config = Arc::new(config::load_default_config()?);
     let input: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&options.input)?)?;
     let records = input["results"]
         .as_array()
@@ -1112,7 +1116,7 @@ fn run_teacher(options: TeacherOptions) -> Result<()> {
     let config = Arc::new(match options.config {
         Some(ref path) => config::load_jsonc(path)
             .with_context(|| format!("failed to load config {}", path.display()))?,
-        None => GameConfig::default_config(),
+        None => config::load_default_config()?,
     });
     let mut environment =
         td_simulator::environment::GameEnvironment::new(Arc::clone(&config), options.seed);
@@ -1204,7 +1208,7 @@ fn run_teacher_eval(options: TeacherEvalOptions) -> Result<()> {
     let config = Arc::new(match options.config {
         Some(ref path) => config::load_jsonc(path)
             .with_context(|| format!("failed to load config {}", path.display()))?,
-        None => GameConfig::default_config(),
+        None => config::load_default_config()?,
     });
 
     let grid = StabilityGridConfig {
@@ -1301,7 +1305,7 @@ fn run_simulate(options: SimulateOptions) -> Result<()> {
     let config = Arc::new(match options.config {
         Some(ref path) => config::load_jsonc(path)
             .with_context(|| format!("failed to load config {}", path.display()))?,
-        None => GameConfig::default_config(),
+        None => config::load_default_config()?,
     });
     let seed_end = options
         .seed_start

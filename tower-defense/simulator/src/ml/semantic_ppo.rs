@@ -5358,6 +5358,7 @@ mod tests {
     }
 
     use super::*;
+    use crate::config::GameConfigTestExt;
     use crate::ml::phase4_dataset::{SourcePolicy, collect_canonical_episode};
     use crate::ml::phase4_eval::run_policy_episode;
     use crate::ml::semantic_bc::{

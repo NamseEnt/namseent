@@ -448,7 +448,7 @@ pub mod tests_support {
     /// - Atom / 렌더 컨텍스트에 의존하지 않음.
     /// - 필요한 최소 필드만 초기화.
     pub fn make_test_state() -> GameState {
-        let config = std::sync::Arc::new(crate::config::GameConfig::default_config());
+        let config = std::sync::Arc::new(crate::config::default_config());
         GameState {
             presentation_projection:
                 crate::game_state::presentation_projection::LegacyProjectionCodec::new(

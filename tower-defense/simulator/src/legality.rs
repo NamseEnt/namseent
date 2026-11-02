@@ -125,6 +125,7 @@ pub fn full_map_legality_mask(environment: &GameEnvironment) -> (Vec<bool>, Lega
 mod tests {
     use super::*;
     use crate::config::GameConfig;
+    use crate::config::GameConfigTestExt;
     use crate::environment::AgentAction;
     use crate::joint_action::position_xy;
     use std::sync::Arc;

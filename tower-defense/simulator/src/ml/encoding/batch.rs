@@ -327,6 +327,7 @@ pub fn candidate_entity_rows(observation: &Observation, action: &AgentAction) ->
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config::GameConfigTestExt;
     use crate::ml::encoding::entity::EntityRow;
 
     #[test]

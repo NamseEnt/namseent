@@ -245,6 +245,7 @@ fn seed_digest(seeds: &[u64]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config::GameConfigTestExt;
 
     #[test]
     fn report_aggregates_without_recording_steps() {

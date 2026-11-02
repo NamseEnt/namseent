@@ -193,6 +193,7 @@ pub fn feature_scale_survey<'a>(
 mod tests {
     use super::*;
     use crate::config::GameConfig;
+    use crate::config::GameConfigTestExt;
     use crate::ml::phase4_dataset::load_episodes;
     use crate::ml::semantic_bc::{LabelSource, prepare_samples};
     use std::path::Path;

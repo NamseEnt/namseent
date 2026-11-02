@@ -608,6 +608,7 @@ impl DenseBuildTowerScoreTable {
 mod tests {
     use super::*;
     use crate::config::GameConfig;
+    use crate::config::GameConfigTestExt;
     use crate::environment::{AgentAction, GameEnvironment};
     use crate::policy_runner::{rank_build_tower_actions_by_heuristic, scripted_expert_action};
 

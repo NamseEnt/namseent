@@ -885,6 +885,7 @@ pub(crate) fn cell_log_probs_from_context<B: Backend>(
 mod tests {
     use super::*;
     use crate::config::GameConfig;
+    use crate::config::GameConfigTestExt;
     use crate::environment::GameEnvironment;
     use crate::ml::model::{InferenceBackend, default_policy_device};
     use crate::ml::semantic_bc::{

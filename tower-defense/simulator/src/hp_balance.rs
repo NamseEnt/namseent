@@ -252,7 +252,7 @@ pub fn run(cli: BalanceOptions) -> anyhow::Result<()> {
     let mut base_config = if let Some(path) = &cli.config {
         GameConfig::from_jsonc(path).map_err(anyhow::Error::msg)?
     } else {
-        GameConfig::default_config()
+        crate::config::load_default_config()?
     };
     let source_config_digest = MlContract::from_config(&base_config).config_digest;
     let seed_end = cli

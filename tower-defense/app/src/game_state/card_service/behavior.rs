@@ -112,7 +112,6 @@ pub(crate) fn validate_selection(
 #[cfg(test)]
 mod tests {
     use super::{CardServiceBehavior, validate_selection};
-    use crate::config::GameConfig;
     use crate::game_state::card_service::CardServiceDiscriminants;
     use crate::game_state::modal::deck::{
         CardSelectionFilter, CardSelectionState, CardSelectionStep,
@@ -121,7 +120,7 @@ mod tests {
     #[test]
     fn selection_validation_rejects_invalid_shape_cards_and_duplicates() {
         let game_state = crate::game_state::create_game_state_with_config(
-            std::sync::Arc::new(GameConfig::default_config()),
+            std::sync::Arc::new(crate::config::default_config()),
             7,
         );
         let deck = game_state.presentation_deck_snapshot();

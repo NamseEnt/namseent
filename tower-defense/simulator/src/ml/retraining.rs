@@ -1229,6 +1229,7 @@ pub fn run_spec(path: &Path) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config::GameConfigTestExt;
     use burn::{
         module::{Module, ModuleVisitor, Param, ParamId},
         tensor::Tensor,

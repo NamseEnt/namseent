@@ -479,6 +479,7 @@ impl GameCore {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config::GameConfigTestExt;
 
     fn mutate_raw_state(core: &mut GameCore, mutate: impl FnOnce(&mut td_core::CoreSnapshotParts)) {
         let mut parts = core.session.snapshot_parts();

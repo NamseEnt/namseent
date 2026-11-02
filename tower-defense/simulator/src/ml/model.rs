@@ -884,6 +884,7 @@ pub fn load_inference_model(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config::GameConfigTestExt;
     use crate::environment::{AgentAction, GameEnvironment};
     use crate::ml::encoding::{EntityRow, EntitySet};
     use crate::ml::features::{candidate_features, observation_features};

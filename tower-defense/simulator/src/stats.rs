@@ -658,6 +658,7 @@ pub fn upgrade_rarity_prefix(name: &str) -> Option<&'static str> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config::GameConfigTestExt;
     use crate::events::SimEvent;
     use crate::recording::SimRecorder;
     use std::fs;

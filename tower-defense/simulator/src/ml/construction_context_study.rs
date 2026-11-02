@@ -5,6 +5,7 @@ use std::sync::Arc;
 
 mod tests {
     use super::*;
+    use crate::config::GameConfigTestExt;
     use crate::ml::{
         model::{InferenceBackend, default_policy_device},
         policy_v2::PolicyNet,
