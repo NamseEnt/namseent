@@ -400,7 +400,7 @@
         "entries": [
           {
             "kind": "Mob01",
-            "count": 20,
+            "count": 25,
           },
         ],
       },
@@ -409,7 +409,7 @@
         "entries": [
           {
             "kind": "Mob02",
-            "count": 5,
+            "count": 25,
           },
         ],
       },
@@ -418,7 +418,7 @@
         "entries": [
           {
             "kind": "Mob03",
-            "count": 5,
+            "count": 25,
           },
         ],
       },
@@ -427,7 +427,7 @@
         "entries": [
           {
             "kind": "Mob04",
-            "count": 5,
+            "count": 25,
           },
         ],
       },
@@ -436,7 +436,7 @@
         "entries": [
           {
             "kind": "Mob05",
-            "count": 5,
+            "count": 25,
           },
         ],
       },
@@ -445,7 +445,7 @@
         "entries": [
           {
             "kind": "Mob06",
-            "count": 7,
+            "count": 25,
           },
         ],
       },
@@ -454,7 +454,7 @@
         "entries": [
           {
             "kind": "Mob07",
-            "count": 7,
+            "count": 25,
           },
         ],
       },
@@ -463,7 +463,7 @@
         "entries": [
           {
             "kind": "Mob08",
-            "count": 7,
+            "count": 25,
           },
         ],
       },
@@ -472,7 +472,7 @@
         "entries": [
           {
             "kind": "Mob09",
-            "count": 7,
+            "count": 25,
           },
         ],
       },
@@ -481,7 +481,7 @@
         "entries": [
           {
             "kind": "Mob10",
-            "count": 7,
+            "count": 25,
           },
           {
             "kind": "Boss01",
@@ -494,7 +494,7 @@
         "entries": [
           {
             "kind": "Mob11",
-            "count": 9,
+            "count": 30,
           },
         ],
       },
@@ -503,7 +503,7 @@
         "entries": [
           {
             "kind": "Mob12",
-            "count": 9,
+            "count": 30,
           },
         ],
       },
@@ -512,7 +512,7 @@
         "entries": [
           {
             "kind": "Mob13",
-            "count": 9,
+            "count": 30,
           },
         ],
       },
@@ -521,7 +521,7 @@
         "entries": [
           {
             "kind": "Mob14",
-            "count": 9,
+            "count": 30,
           },
         ],
       },
@@ -530,7 +530,7 @@
         "entries": [
           {
             "kind": "Mob15",
-            "count": 8,
+            "count": 30,
           },
         ],
       },
@@ -539,7 +539,7 @@
         "entries": [
           {
             "kind": "Mob16",
-            "count": 10,
+            "count": 30,
           },
         ],
       },
@@ -548,7 +548,7 @@
         "entries": [
           {
             "kind": "Mob17",
-            "count": 10,
+            "count": 30,
           },
         ],
       },
@@ -557,7 +557,7 @@
         "entries": [
           {
             "kind": "Mob18",
-            "count": 10,
+            "count": 30,
           },
         ],
       },
@@ -566,7 +566,7 @@
         "entries": [
           {
             "kind": "Mob19",
-            "count": 10,
+            "count": 30,
           },
         ],
       },
@@ -575,7 +575,7 @@
         "entries": [
           {
             "kind": "Mob20",
-            "count": 10,
+            "count": 30,
           },
           {
             "kind": "Boss02",
@@ -588,7 +588,7 @@
         "entries": [
           {
             "kind": "Mob21",
-            "count": 11,
+            "count": 35,
           },
         ],
       },
@@ -597,7 +597,7 @@
         "entries": [
           {
             "kind": "Mob22",
-            "count": 11,
+            "count": 35,
           },
         ],
       },
@@ -606,7 +606,7 @@
         "entries": [
           {
             "kind": "Mob23",
-            "count": 11,
+            "count": 35,
           },
         ],
       },
@@ -615,7 +615,7 @@
         "entries": [
           {
             "kind": "Mob24",
-            "count": 11,
+            "count": 35,
           },
         ],
       },
@@ -624,7 +624,7 @@
         "entries": [
           {
             "kind": "Mob25",
-            "count": 10,
+            "count": 35,
           },
         ],
       },
@@ -633,7 +633,7 @@
         "entries": [
           {
             "kind": "Mob26",
-            "count": 11,
+            "count": 35,
           },
         ],
       },
@@ -642,7 +642,7 @@
         "entries": [
           {
             "kind": "Mob27",
-            "count": 11,
+            "count": 35,
           },
         ],
       },
@@ -651,7 +651,7 @@
         "entries": [
           {
             "kind": "Mob28",
-            "count": 11,
+            "count": 35,
           },
         ],
       },
@@ -660,7 +660,7 @@
         "entries": [
           {
             "kind": "Mob29",
-            "count": 11,
+            "count": 35,
           },
         ],
       },
@@ -669,7 +669,7 @@
         "entries": [
           {
             "kind": "Mob30",
-            "count": 10,
+            "count": 35,
           },
           {
             "kind": "Boss03",
@@ -682,7 +682,7 @@
         "entries": [
           {
             "kind": "Mob31",
-            "count": 12,
+            "count": 40,
           },
         ],
       },
@@ -691,7 +691,7 @@
         "entries": [
           {
             "kind": "Mob32",
-            "count": 12,
+            "count": 40,
           },
         ],
       },
@@ -700,7 +700,7 @@
         "entries": [
           {
             "kind": "Mob33",
-            "count": 12,
+            "count": 40,
           },
         ],
       },
@@ -709,7 +709,7 @@
         "entries": [
           {
             "kind": "Mob34",
-            "count": 12,
+            "count": 40,
           },
         ],
       },
@@ -718,7 +718,7 @@
         "entries": [
           {
             "kind": "Mob35",
-            "count": 11,
+            "count": 40,
           },
         ],
       },
@@ -727,7 +727,7 @@
         "entries": [
           {
             "kind": "Mob36",
-            "count": 13,
+            "count": 40,
           },
         ],
       },
@@ -736,7 +736,7 @@
         "entries": [
           {
             "kind": "Mob37",
-            "count": 13,
+            "count": 40,
           },
         ],
       },
@@ -745,7 +745,7 @@
         "entries": [
           {
             "kind": "Mob38",
-            "count": 13,
+            "count": 40,
           },
         ],
       },
@@ -754,7 +754,7 @@
         "entries": [
           {
             "kind": "Mob39",
-            "count": 13,
+            "count": 40,
           },
         ],
       },
@@ -763,7 +763,7 @@
         "entries": [
           {
             "kind": "Mob40",
-            "count": 12,
+            "count": 40,
           },
           {
             "kind": "Boss04",
@@ -776,7 +776,7 @@
         "entries": [
           {
             "kind": "Mob41",
-            "count": 14,
+            "count": 50,
           },
         ],
       },
@@ -785,7 +785,7 @@
         "entries": [
           {
             "kind": "Mob42",
-            "count": 14,
+            "count": 50,
           },
         ],
       },
@@ -794,7 +794,7 @@
         "entries": [
           {
             "kind": "Mob43",
-            "count": 14,
+            "count": 50,
           },
         ],
       },
@@ -803,7 +803,7 @@
         "entries": [
           {
             "kind": "Mob44",
-            "count": 14,
+            "count": 50,
           },
         ],
       },
@@ -812,7 +812,7 @@
         "entries": [
           {
             "kind": "Mob45",
-            "count": 13,
+            "count": 50,
           },
         ],
       },
@@ -821,7 +821,7 @@
         "entries": [
           {
             "kind": "Mob46",
-            "count": 14,
+            "count": 50,
           },
         ],
       },
@@ -830,7 +830,7 @@
         "entries": [
           {
             "kind": "Mob47",
-            "count": 14,
+            "count": 50,
           },
         ],
       },
@@ -839,7 +839,7 @@
         "entries": [
           {
             "kind": "Mob48",
-            "count": 14,
+            "count": 50,
           },
         ],
       },
@@ -848,7 +848,7 @@
         "entries": [
           {
             "kind": "Mob49",
-            "count": 14,
+            "count": 50,
           },
         ],
       },
@@ -857,7 +857,7 @@
         "entries": [
           {
             "kind": "Mob50",
-            "count": 14,
+            "count": 50,
           },
           {
             "kind": "Boss05",
