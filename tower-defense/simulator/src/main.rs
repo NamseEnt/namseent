@@ -6,27 +6,17 @@ use rayon::prelude::*;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use td_simulator::benchmark;
 use td_simulator::config::{self, GameConfig};
-use td_simulator::environment::{AgentAction, LegalAction, Observation};
 use td_simulator::hp_balance::{self, BalanceOptions};
 use td_simulator::ml::MlContract;
 use td_simulator::ml::cli::{self, Command as MlCommand};
-use td_simulator::ml::features::observation_features;
-use td_simulator::ml::model::{
-    DeepSetsActorCritic, InferenceBackend, PolicyDevice, default_policy_device,
-};
-use td_simulator::ml::neural_checkpoint::NeuralCheckpoint;
-use td_simulator::ml::rollout::logits_for;
-use td_simulator::ml::seed::SeedRange;
-use td_simulator::ml::validation::{
-    BaselinePolicy, evaluate_baseline, evaluate_checkpoint, paired_baseline_report,
-};
 use td_simulator::policy_runner::{BatchResult, PolicyRunnerConfig};
 use td_simulator::recording::{SimRecorder, SimulationProvenance};
 use td_simulator::simulation::{self, SimulationSummary};
 use td_simulator::stats::Database;
+#[cfg(feature = "diagnostics")]
 use td_simulator::teacher::{RolloutTeacherConfig, run_semantic_teacher_episode};
+#[cfg(feature = "diagnostics")]
 use td_simulator::teacher_eval::{
     LARGE_REGRET_THRESHOLD, StabilityGridConfig, run_paired_full_game_evaluation,
     run_stability_grid,
@@ -47,11 +37,13 @@ enum Command {
     #[command(about = "Play one full game with an AI policy and print every decision")]
     Play(PlayOptions),
     Simulate(SimulateOptions),
-    Baseline(BaselineOptions),
-    Benchmark(BenchmarkOptions),
+    #[cfg(feature = "diagnostics")]
     Teacher(TeacherOptions),
+    #[cfg(feature = "diagnostics")]
     TeacherSelectionHeldout(TeacherSelectionHeldoutOptions),
+    #[cfg(feature = "diagnostics")]
     TeacherSelectionTerminalGate(TeacherSelectionTerminalGateOptions),
+    #[cfg(feature = "diagnostics")]
     TeacherTerminalExtension(TeacherTerminalExtensionOptions),
     #[cfg(feature = "diagnostics")]
     PlacementDiag(PlacementDiagOptions),
@@ -59,16 +51,27 @@ enum Command {
     TrajectoryFingerprint(TrajectoryFingerprintOptions),
     #[cfg(feature = "diagnostics")]
     RolloutBench(RolloutBenchOptions),
+    #[cfg(feature = "diagnostics")]
     TeacherEval(TeacherEvalOptions),
+    #[cfg(feature = "diagnostics")]
     TeacherOverrideDiag(TeacherOverrideDiagOptions),
+    #[cfg(feature = "diagnostics")]
     TeacherStateSensitivity(TeacherStateSensitivityOptions),
+    #[cfg(feature = "diagnostics")]
     TeacherSelectionValidation(TeacherSelectionValidationOptions),
+    #[cfg(feature = "diagnostics")]
     TeacherFrozenHorizonSweep(TeacherFrozenHorizonSweepOptions),
+    #[cfg(feature = "diagnostics")]
     TeacherMultifidelityTopk(TeacherMultifidelityTopkOptions),
+    #[cfg(feature = "diagnostics")]
     TeacherExhaustiveTerminal(TeacherExhaustiveTerminalOptions),
+    #[cfg(feature = "diagnostics")]
     TeacherCandidateOrder(TeacherCandidateOrderOptions),
+    #[cfg(feature = "diagnostics")]
     TeacherSelectFreshStates(TeacherSelectFreshStatesOptions),
+    #[cfg(feature = "diagnostics")]
     TeacherExhaustivePrereg(TeacherExhaustivePreregOptions),
+    #[cfg(feature = "diagnostics")]
     TeacherFrozenCandidateValidation(TeacherFrozenCandidateValidationOptions),
     Balance(BalanceOptions),
     #[command(about = "Interactive SQLite statistics explorer for td-simulator")]
@@ -120,67 +123,7 @@ fn run_play(options: PlayOptions) -> Result<()> {
     Ok(())
 }
 
-#[derive(Clone, Copy, Debug, ValueEnum)]
-enum BaselinePolicyArg {
-    RandomLegal,
-    Checkpoint,
-}
-
-#[derive(Args)]
-struct BaselineOptions {
-    #[arg(long, value_enum, default_value_t = BaselinePolicyArg::Checkpoint)]
-    policy: BaselinePolicyArg,
-    #[arg(long, default_value_t = 0)]
-    seed_start: u64,
-    #[arg(long, default_value_t = 3)]
-    seed_end: u64,
-    #[arg(long, default_value_t = 10_000)]
-    max_decisions: usize,
-    #[arg(long, default_value = "ml_policy_checkpoint.json")]
-    checkpoint: PathBuf,
-    #[arg(long)]
-    config: Option<PathBuf>,
-    #[arg(long)]
-    output: Option<PathBuf>,
-    #[arg(long)]
-    pair_with: Option<BaselinePolicyArg>,
-}
-
-#[derive(Clone, Copy, Debug, ValueEnum)]
-enum BenchmarkPolicyArg {
-    RandomLegal,
-    Scripted,
-    Checkpoint,
-}
-
-#[derive(Clone, Copy, Debug, ValueEnum)]
-enum BenchmarkActionModeArg {
-    Legacy,
-    Semantic,
-}
-
-#[derive(Args)]
-struct BenchmarkOptions {
-    #[arg(long, value_enum, default_value_t = BenchmarkPolicyArg::RandomLegal)]
-    policy: BenchmarkPolicyArg,
-    #[arg(long, value_enum, default_value_t = BenchmarkActionModeArg::Legacy)]
-    action_mode: BenchmarkActionModeArg,
-    #[arg(long, default_value_t = 0)]
-    seed_start: u64,
-    #[arg(long, default_value_t = 3)]
-    seed_end: u64,
-    #[arg(long, default_value_t = 10_000)]
-    max_decisions: usize,
-    #[arg(long, default_value_t = 0)]
-    threads: usize,
-    #[arg(long, default_value = "ml_policy_checkpoint.json")]
-    checkpoint: PathBuf,
-    #[arg(long)]
-    config: Option<PathBuf>,
-    #[arg(long)]
-    output: Option<PathBuf>,
-}
-
+#[cfg(feature = "diagnostics")]
 #[derive(Args)]
 struct TeacherOptions {
     #[arg(long, default_value_t = 0)]
@@ -201,12 +144,14 @@ struct TeacherOptions {
     output: Option<PathBuf>,
 }
 
+#[cfg(feature = "diagnostics")]
 #[derive(Args)]
 struct TeacherSelectFreshStatesOptions {
     #[arg(long)]
     output: PathBuf,
 }
 
+#[cfg(feature = "diagnostics")]
 fn run_teacher_select_fresh_states(options: TeacherSelectFreshStatesOptions) -> Result<()> {
     let selections = td_simulator::teacher_reroll_diag::select_fresh_states(
         Arc::new(GameConfig::default_config()),
@@ -228,6 +173,7 @@ fn run_teacher_select_fresh_states(options: TeacherSelectFreshStatesOptions) -> 
     Ok(())
 }
 
+#[cfg(feature = "diagnostics")]
 #[derive(Args)]
 struct TeacherFrozenCandidateValidationOptions {
     #[arg(long)]
@@ -250,6 +196,7 @@ struct TeacherFrozenCandidateValidationOptions {
     output: PathBuf,
 }
 
+#[cfg(feature = "diagnostics")]
 fn run_teacher_frozen_candidate_validation(
     options: TeacherFrozenCandidateValidationOptions,
 ) -> Result<()> {
@@ -277,6 +224,7 @@ fn run_teacher_frozen_candidate_validation(
     Ok(())
 }
 
+#[cfg(feature = "diagnostics")]
 #[derive(Args)]
 struct TeacherExhaustivePreregOptions {
     #[arg(long)]
@@ -289,6 +237,7 @@ struct TeacherExhaustivePreregOptions {
     output: PathBuf,
 }
 
+#[cfg(feature = "diagnostics")]
 fn run_teacher_exhaustive_prereg(options: TeacherExhaustivePreregOptions) -> Result<()> {
     let result = td_simulator::teacher_reroll_diag::run_exhaustive_prereg(
         Arc::new(GameConfig::default_config()),
@@ -310,6 +259,7 @@ fn run_teacher_exhaustive_prereg(options: TeacherExhaustivePreregOptions) -> Res
     Ok(())
 }
 
+#[cfg(feature = "diagnostics")]
 #[derive(Args)]
 struct TeacherCandidateOrderOptions {
     #[arg(long)]
@@ -320,6 +270,7 @@ struct TeacherCandidateOrderOptions {
     output: PathBuf,
 }
 
+#[cfg(feature = "diagnostics")]
 fn run_teacher_candidate_order(options: TeacherCandidateOrderOptions) -> Result<()> {
     let states = options
         .states
@@ -340,6 +291,7 @@ fn run_teacher_candidate_order(options: TeacherCandidateOrderOptions) -> Result<
     Ok(())
 }
 
+#[cfg(feature = "diagnostics")]
 #[derive(Args)]
 struct TeacherExhaustiveTerminalOptions {
     #[arg(long)]
@@ -360,6 +312,7 @@ struct TeacherExhaustiveTerminalOptions {
     output: PathBuf,
 }
 
+#[cfg(feature = "diagnostics")]
 fn run_teacher_exhaustive_terminal(options: TeacherExhaustiveTerminalOptions) -> Result<()> {
     let result = td_simulator::teacher_reroll_diag::run_exhaustive_terminal(
         Arc::new(GameConfig::default_config()),
@@ -381,6 +334,7 @@ fn run_teacher_exhaustive_terminal(options: TeacherExhaustiveTerminalOptions) ->
     Ok(())
 }
 
+#[cfg(feature = "diagnostics")]
 #[derive(Args)]
 struct TeacherMultifidelityTopkOptions {
     #[arg(long)]
@@ -400,6 +354,7 @@ struct TeacherMultifidelityTopkOptions {
     output: PathBuf,
 }
 
+#[cfg(feature = "diagnostics")]
 fn run_teacher_multifidelity_topk(options: TeacherMultifidelityTopkOptions) -> Result<()> {
     let states = options
         .states
@@ -430,6 +385,7 @@ fn run_teacher_multifidelity_topk(options: TeacherMultifidelityTopkOptions) -> R
     Ok(())
 }
 
+#[cfg(feature = "diagnostics")]
 #[derive(Args)]
 struct TeacherFrozenHorizonSweepOptions {
     #[arg(long)]
@@ -444,6 +400,7 @@ struct TeacherFrozenHorizonSweepOptions {
     output: PathBuf,
 }
 
+#[cfg(feature = "diagnostics")]
 fn run_teacher_frozen_horizon_sweep(options: TeacherFrozenHorizonSweepOptions) -> Result<()> {
     let horizons = parse_u64_list(&options.horizons)?;
     let results = td_simulator::teacher_reroll_diag::run_frozen_horizon_sweep(
@@ -462,6 +419,7 @@ fn run_teacher_frozen_horizon_sweep(options: TeacherFrozenHorizonSweepOptions) -
     Ok(())
 }
 
+#[cfg(feature = "diagnostics")]
 #[derive(Args)]
 struct TeacherSelectionValidationOptions {
     #[arg(long)]
@@ -488,6 +446,7 @@ struct TeacherSelectionValidationOptions {
     output: PathBuf,
 }
 
+#[cfg(feature = "diagnostics")]
 fn run_teacher_selection_validation(options: TeacherSelectionValidationOptions) -> Result<()> {
     let results = td_simulator::teacher_reroll_diag::run_selection_validation(
         Arc::new(GameConfig::default_config()),
@@ -511,6 +470,7 @@ fn run_teacher_selection_validation(options: TeacherSelectionValidationOptions) 
     Ok(())
 }
 
+#[cfg(feature = "diagnostics")]
 #[derive(Args)]
 struct TeacherStateSensitivityOptions {
     #[arg(long)]
@@ -529,6 +489,7 @@ struct TeacherStateSensitivityOptions {
     output: PathBuf,
 }
 
+#[cfg(feature = "diagnostics")]
 fn run_teacher_state_sensitivity(options: TeacherStateSensitivityOptions) -> Result<()> {
     let counts = parse_usize_list(&options.scenario_counts)?;
     let results = td_simulator::teacher_reroll_diag::run_state_scenario_sensitivity(
@@ -549,6 +510,7 @@ fn run_teacher_state_sensitivity(options: TeacherStateSensitivityOptions) -> Res
     Ok(())
 }
 
+#[cfg(feature = "diagnostics")]
 #[derive(Args)]
 struct TeacherOverrideDiagOptions {
     #[arg(long)]
@@ -567,6 +529,7 @@ struct TeacherOverrideDiagOptions {
     output: PathBuf,
 }
 
+#[cfg(feature = "diagnostics")]
 fn run_teacher_override_diag(options: TeacherOverrideDiagOptions) -> Result<()> {
     let config = Arc::new(match options.config {
         Some(ref path) => config::load_jsonc(path)
@@ -592,6 +555,7 @@ fn run_teacher_override_diag(options: TeacherOverrideDiagOptions) -> Result<()> 
     Ok(())
 }
 
+#[cfg(feature = "diagnostics")]
 #[derive(Args)]
 struct TeacherEvalOptions {
     #[arg(long, default_value_t = 0)]
@@ -642,9 +606,9 @@ struct SimulateOptions {
     threads: usize,
     #[arg(long)]
     config: Option<PathBuf>,
-    /// PPO iteration / BC run directory, or a legacy neural checkpoint file.
-    #[arg(long, default_value = "ml_policy_checkpoint.json")]
-    checkpoint: PathBuf,
+    /// Explicit checkpoint override; defaults to the managed active policy.
+    #[arg(long)]
+    checkpoint: Option<PathBuf>,
     #[arg(long)]
     allow_checkpoint_config_change: bool,
     #[arg(long, default_value_t = 10_000)]
@@ -665,13 +629,15 @@ fn main() -> Result<()> {
     match Cli::parse().command {
         Command::Play(options) => run_play(options),
         Command::Simulate(options) => run_simulate(options),
-        Command::Baseline(options) => run_baseline(options),
-        Command::Benchmark(options) => run_benchmark(options),
+        #[cfg(feature = "diagnostics")]
         Command::Teacher(options) => run_teacher(options),
+        #[cfg(feature = "diagnostics")]
         Command::TeacherSelectionHeldout(options) => run_teacher_selection_heldout(options),
+        #[cfg(feature = "diagnostics")]
         Command::TeacherSelectionTerminalGate(options) => {
             run_teacher_selection_terminal_gate(options)
         }
+        #[cfg(feature = "diagnostics")]
         Command::TeacherTerminalExtension(options) => run_teacher_terminal_extension(options),
         #[cfg(feature = "diagnostics")]
         Command::PlacementDiag(options) => run_placement_diag(options),
@@ -679,16 +645,27 @@ fn main() -> Result<()> {
         Command::TrajectoryFingerprint(options) => run_trajectory_fingerprint(options),
         #[cfg(feature = "diagnostics")]
         Command::RolloutBench(options) => run_rollout_bench(options),
+        #[cfg(feature = "diagnostics")]
         Command::TeacherEval(options) => run_teacher_eval(options),
+        #[cfg(feature = "diagnostics")]
         Command::TeacherOverrideDiag(options) => run_teacher_override_diag(options),
+        #[cfg(feature = "diagnostics")]
         Command::TeacherStateSensitivity(options) => run_teacher_state_sensitivity(options),
+        #[cfg(feature = "diagnostics")]
         Command::TeacherSelectionValidation(options) => run_teacher_selection_validation(options),
+        #[cfg(feature = "diagnostics")]
         Command::TeacherFrozenHorizonSweep(options) => run_teacher_frozen_horizon_sweep(options),
+        #[cfg(feature = "diagnostics")]
         Command::TeacherMultifidelityTopk(options) => run_teacher_multifidelity_topk(options),
+        #[cfg(feature = "diagnostics")]
         Command::TeacherExhaustiveTerminal(options) => run_teacher_exhaustive_terminal(options),
+        #[cfg(feature = "diagnostics")]
         Command::TeacherCandidateOrder(options) => run_teacher_candidate_order(options),
+        #[cfg(feature = "diagnostics")]
         Command::TeacherSelectFreshStates(options) => run_teacher_select_fresh_states(options),
+        #[cfg(feature = "diagnostics")]
         Command::TeacherExhaustivePrereg(options) => run_teacher_exhaustive_prereg(options),
+        #[cfg(feature = "diagnostics")]
         Command::TeacherFrozenCandidateValidation(options) => {
             run_teacher_frozen_candidate_validation(options)
         }
@@ -824,6 +801,7 @@ fn run_rollout_bench(options: RolloutBenchOptions) -> Result<()> {
     Ok(())
 }
 
+#[cfg(feature = "diagnostics")]
 #[derive(Args)]
 struct TeacherSelectionHeldoutOptions {
     #[arg(long)]
@@ -838,6 +816,7 @@ struct TeacherSelectionHeldoutOptions {
     output: PathBuf,
 }
 
+#[cfg(feature = "diagnostics")]
 fn run_teacher_selection_heldout(options: TeacherSelectionHeldoutOptions) -> Result<()> {
     use td_simulator::environment::GameEnvironment;
     use td_simulator::teacher_eval::run_canonical_scripted_semantic_episode;
@@ -957,6 +936,7 @@ fn run_teacher_selection_heldout(options: TeacherSelectionHeldoutOptions) -> Res
     Ok(())
 }
 
+#[cfg(feature = "diagnostics")]
 #[derive(Args)]
 struct TeacherSelectionTerminalGateOptions {
     #[arg(long)]
@@ -971,6 +951,7 @@ struct TeacherSelectionTerminalGateOptions {
     output: PathBuf,
 }
 
+#[cfg(feature = "diagnostics")]
 fn write_json_atomically(path: &std::path::Path, value: &serde_json::Value) -> Result<()> {
     if let Some(parent) = path.parent()
         && !parent.as_os_str().is_empty()
@@ -986,6 +967,7 @@ fn write_json_atomically(path: &std::path::Path, value: &serde_json::Value) -> R
     Ok(())
 }
 
+#[cfg(feature = "diagnostics")]
 fn run_teacher_selection_terminal_gate(options: TeacherSelectionTerminalGateOptions) -> Result<()> {
     use td_simulator::teacher_selection::{
         BUILD_TOWER_PROPOSAL_LIMIT, PLACE_TOWER_PROPOSAL_LIMIT, TeacherSelectionPools,
@@ -1076,6 +1058,7 @@ fn run_teacher_selection_terminal_gate(options: TeacherSelectionTerminalGateOpti
     Ok(())
 }
 
+#[cfg(feature = "diagnostics")]
 #[derive(Args)]
 struct TeacherTerminalExtensionOptions {
     #[arg(long)]
@@ -1084,6 +1067,7 @@ struct TeacherTerminalExtensionOptions {
     output: PathBuf,
 }
 
+#[cfg(feature = "diagnostics")]
 fn run_teacher_terminal_extension(options: TeacherTerminalExtensionOptions) -> Result<()> {
     let config = Arc::new(GameConfig::default_config());
     let input: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&options.input)?)?;
@@ -1117,6 +1101,7 @@ fn run_teacher_terminal_extension(options: TeacherTerminalExtensionOptions) -> R
     Ok(())
 }
 
+#[cfg(feature = "diagnostics")]
 fn run_teacher(options: TeacherOptions) -> Result<()> {
     if options.scenario_count == 0 {
         anyhow::bail!("--scenario-count must be positive");
@@ -1168,6 +1153,7 @@ fn run_teacher(options: TeacherOptions) -> Result<()> {
     Ok(())
 }
 
+#[cfg(feature = "diagnostics")]
 fn parse_usize_list(raw: &str) -> Result<Vec<usize>> {
     raw.split(',')
         .map(str::trim)
@@ -1179,6 +1165,7 @@ fn parse_usize_list(raw: &str) -> Result<Vec<usize>> {
         .collect()
 }
 
+#[cfg(feature = "diagnostics")]
 fn parse_u64_list(raw: &str) -> Result<Vec<u64>> {
     raw.split(',')
         .map(str::trim)
@@ -1190,6 +1177,7 @@ fn parse_u64_list(raw: &str) -> Result<Vec<u64>> {
         .collect()
 }
 
+#[cfg(feature = "diagnostics")]
 fn parse_optional_usize_list(raw: &str) -> Result<Vec<Option<usize>>> {
     raw.split(',')
         .map(str::trim)
@@ -1206,6 +1194,7 @@ fn parse_optional_usize_list(raw: &str) -> Result<Vec<Option<usize>>> {
         .collect()
 }
 
+#[cfg(feature = "diagnostics")]
 fn run_teacher_eval(options: TeacherEvalOptions) -> Result<()> {
     let scenario_counts = parse_usize_list(&options.scenario_counts)?;
     let horizon_sim_ticks = parse_u64_list(&options.horizon_sim_ticks)?;
@@ -1300,196 +1289,6 @@ fn run_teacher_eval(options: TeacherEvalOptions) -> Result<()> {
     Ok(())
 }
 
-fn run_benchmark(options: BenchmarkOptions) -> Result<()> {
-    let config = Arc::new(match options.config {
-        Some(ref path) => config::load_jsonc(path)
-            .with_context(|| format!("failed to load config {}", path.display()))?,
-        None => GameConfig::default_config(),
-    });
-    let seeds = (options.seed_start..=options.seed_end).collect::<Vec<_>>();
-    let pool = {
-        let builder = ThreadPoolBuilder::new().thread_name(|index| format!("benchmark-{index}"));
-        let builder = if options.threads == 0 {
-            builder
-        } else {
-            builder.num_threads(options.threads)
-        };
-        builder.build()?
-    };
-    let threads = pool.install(rayon::current_num_threads);
-    let semantic_actions = matches!(options.action_mode, BenchmarkActionModeArg::Semantic);
-    let report = match options.policy {
-        BenchmarkPolicyArg::RandomLegal if semantic_actions => pool.install(|| {
-            benchmark::run_semantic_policy(
-                config,
-                &seeds,
-                "random_legal",
-                options.max_decisions,
-                threads,
-                benchmark::random_legal_policy,
-            )
-        })?,
-        BenchmarkPolicyArg::RandomLegal => pool.install(|| {
-            benchmark::run_policy(
-                config,
-                &seeds,
-                "random_legal",
-                options.max_decisions,
-                threads,
-                benchmark::random_legal_policy,
-            )
-        })?,
-        BenchmarkPolicyArg::Scripted if semantic_actions => pool.install(|| {
-            benchmark::run_semantic_policy(
-                config,
-                &seeds,
-                "scripted_expert",
-                options.max_decisions,
-                threads,
-                |_| benchmark::scripted_policy,
-            )
-        })?,
-        BenchmarkPolicyArg::Scripted => pool.install(|| {
-            benchmark::run_policy(
-                config,
-                &seeds,
-                "scripted_expert",
-                options.max_decisions,
-                threads,
-                |_| benchmark::scripted_policy,
-            )
-        })?,
-        BenchmarkPolicyArg::Checkpoint => {
-            let contract = MlContract::from_config(config.as_ref());
-            let (_checkpoint, model) =
-                NeuralCheckpoint::load_with_inference_model_with_config_change(
-                    &options.checkpoint,
-                    &contract,
-                    false,
-                )?;
-            let model = Arc::new(model);
-            let device = Arc::new(default_policy_device());
-            if semantic_actions {
-                pool.install(|| {
-                    benchmark::run_semantic_policy(
-                        config,
-                        &seeds,
-                        format!("checkpoint:{}", options.checkpoint.display()),
-                        options.max_decisions,
-                        threads,
-                        move |_| {
-                            let model = Arc::clone(&model);
-                            let device = Arc::clone(&device);
-                            move |observation: &Observation, legal_actions: &[LegalAction]| {
-                                choose_model_action(
-                                    model.as_ref(),
-                                    device.as_ref(),
-                                    observation,
-                                    legal_actions,
-                                )
-                            }
-                        },
-                    )
-                })?
-            } else {
-                pool.install(|| {
-                    benchmark::run_policy(
-                        config,
-                        &seeds,
-                        format!("checkpoint:{}", options.checkpoint.display()),
-                        options.max_decisions,
-                        threads,
-                        move |_| {
-                            let model = Arc::clone(&model);
-                            let device = Arc::clone(&device);
-                            move |observation: &Observation, legal_actions: &[LegalAction]| {
-                                choose_model_action(
-                                    model.as_ref(),
-                                    device.as_ref(),
-                                    observation,
-                                    legal_actions,
-                                )
-                            }
-                        },
-                    )
-                })?
-            }
-        }
-    };
-    let json = serde_json::to_string_pretty(&report)?;
-    if let Some(path) = options.output {
-        if let Some(parent) = path.parent()
-            && !parent.as_os_str().is_empty()
-        {
-            std::fs::create_dir_all(parent)?;
-        }
-        std::fs::write(&path, format!("{json}\n"))?;
-        println!("Benchmark report saved to: {}", path.display());
-    } else {
-        println!("{json}");
-    }
-    Ok(())
-}
-
-fn run_baseline(options: BaselineOptions) -> Result<()> {
-    let config = Arc::new(match options.config {
-        Some(ref path) => config::load_jsonc(path)
-            .with_context(|| format!("failed to load config {}", path.display()))?,
-        None => GameConfig::default_config(),
-    });
-    let seed_range = SeedRange::try_new(options.seed_start, options.seed_end)?;
-    let pair_config = Arc::clone(&config);
-    let report = match options.policy {
-        BaselinePolicyArg::Checkpoint => {
-            let checkpoint_path = &options.checkpoint;
-            let contract = MlContract::from_config(config.as_ref());
-            let (_checkpoint, model) =
-                NeuralCheckpoint::load_with_inference_model_with_config_change(
-                    checkpoint_path,
-                    &contract,
-                    false,
-                )?;
-            evaluate_checkpoint(
-                Arc::new(model),
-                Arc::new(default_policy_device()),
-                config,
-                seed_range,
-                options.max_decisions,
-            )?
-        }
-        BaselinePolicyArg::RandomLegal => evaluate_baseline(
-            config,
-            seed_range,
-            match options.policy {
-                BaselinePolicyArg::RandomLegal => BaselinePolicy::RandomLegal,
-                BaselinePolicyArg::Checkpoint => unreachable!(),
-            },
-            options.max_decisions,
-        )?,
-    };
-    let json = if let Some(pair_policy) = options.pair_with {
-        let paired = match pair_policy {
-            BaselinePolicyArg::RandomLegal => evaluate_baseline(
-                pair_config,
-                seed_range,
-                BaselinePolicy::RandomLegal,
-                options.max_decisions,
-            )?,
-            BaselinePolicyArg::Checkpoint => anyhow::bail!("--pair-with checkpoint is unsupported"),
-        };
-        serde_json::to_string_pretty(&paired_baseline_report(&report, &paired)?)?
-    } else {
-        serde_json::to_string_pretty(&report)?
-    };
-    if let Some(path) = options.output {
-        std::fs::write(&path, format!("{json}\n"))?;
-        println!("Baseline report saved to: {}", path.display());
-    } else {
-        println!("{json}");
-    }
-    Ok(())
-}
-
 fn run_simulate(options: SimulateOptions) -> Result<()> {
     anyhow::ensure!(options.samples > 0, "--samples must be positive");
     anyhow::ensure!(
@@ -1523,43 +1322,28 @@ fn run_simulate(options: SimulateOptions) -> Result<()> {
         };
         builder.build()?
     };
-    enum SimulationPolicy {
-        Semantic(Box<td_simulator::ml::semantic_bc::SemanticPolicy>),
-        Legacy(Box<DeepSetsActorCritic<InferenceBackend>>, PolicyDevice),
-    }
     let contract = MlContract::from_config(config.as_ref());
-    let (policy, iteration, policy_kind) = if options.checkpoint.is_dir() {
-        let (policy, iteration) = simulation::load_semantic_policy(
-            &options.checkpoint,
-            &config,
-            options.allow_checkpoint_config_change,
-        )?;
-        (
-            SimulationPolicy::Semantic(Box::new(policy)),
-            iteration,
-            if iteration.is_some() {
-                "semantic_ppo"
-            } else {
-                "semantic_bc"
-            },
-        )
+    let checkpoint_path =
+        td_simulator::ml::managed::resolve_selected_checkpoint(options.checkpoint.as_deref())?;
+    let (policy, iteration) = simulation::load_semantic_policy(
+        &checkpoint_path,
+        &config,
+        options.allow_checkpoint_config_change,
+    )?;
+    let policy_kind = if iteration.is_some() {
+        "semantic_ppo"
     } else {
-        let (checkpoint, model) = NeuralCheckpoint::load_with_inference_model_with_config_change(
-            &options.checkpoint,
-            &contract,
-            options.allow_checkpoint_config_change,
-        )?;
-        (
-            SimulationPolicy::Legacy(Box::new(model), default_policy_device()),
-            Some(checkpoint.iteration),
-            "neural_checkpoint",
-        )
+        "semantic_bc"
     };
+    let (checkpoint_sha256, model_sha256, git_revision) = (None, None, None);
     let provenance = SimulationProvenance {
         runner_kind: "simulate".to_string(),
         policy_kind: policy_kind.to_string(),
-        checkpoint_path: Some(options.checkpoint.display().to_string()),
+        checkpoint_path: Some(checkpoint_path.display().to_string()),
         checkpoint_iteration: iteration,
+        checkpoint_sha256,
+        model_sha256,
+        git_revision,
         environment_version: Some(contract.environment_version),
         action_schema_version: Some(contract.action_schema_version),
         config_digest: Some(contract.config_digest),
@@ -1573,7 +1357,7 @@ fn run_simulate(options: SimulateOptions) -> Result<()> {
     let recorder = SimRecorder::new(&options.db)?;
     if !options.quiet {
         println!("Running {} simulations...", seeds.len());
-        println!("Policy: {policy_kind} ({})", options.checkpoint.display());
+        println!("Policy: {policy_kind} ({})", checkpoint_path.display());
     }
     let progress = (!options.quiet).then(|| {
         let progress = ProgressBar::new(seeds.len() as u64);
@@ -1598,21 +1382,13 @@ fn run_simulate(options: SimulateOptions) -> Result<()> {
         let recorded = pool.install(|| {
             chunk
                 .par_iter()
-                .map(|&seed| match &policy {
-                    SimulationPolicy::Semantic(policy) => simulation::run_semantic_statistics(
+                .map(|&seed| {
+                    simulation::run_semantic_statistics(
                         Arc::clone(&config),
                         seed,
                         &runner_config,
-                        policy,
-                    ),
-                    SimulationPolicy::Legacy(model, device) => simulation::run_legacy_statistics(
-                        Arc::clone(&config),
-                        seed,
-                        &runner_config,
-                        |observation: &Observation, legal: &[LegalAction]| {
-                            choose_model_action(model, device, observation, legal)
-                        },
-                    ),
+                        &policy,
+                    )
                 })
                 .collect::<Result<Vec<_>>>()
         })?;
@@ -1744,31 +1520,6 @@ fn print_step_trace(result: &BatchResult) -> Result<()> {
         }))?
     );
     Ok(())
-}
-
-fn choose_model_action(
-    model: &DeepSetsActorCritic<InferenceBackend>,
-    device: &PolicyDevice,
-    observation: &Observation,
-    legal_actions: &[LegalAction],
-) -> Result<AgentAction> {
-    let state = observation_features(observation);
-    let candidate_rows = legal_actions
-        .iter()
-        .map(|legal| {
-            td_simulator::ml::encoding::candidate_entity_rows(observation, &legal.action)
-                .pop()
-                .expect("candidate entity row must exist")
-        })
-        .collect::<Vec<_>>();
-    let logits = logits_for(model, device, observation, &state, &candidate_rows);
-    let action_index = logits
-        .iter()
-        .enumerate()
-        .max_by(|left, right| left.1.total_cmp(right.1).then_with(|| right.0.cmp(&left.0)))
-        .map(|(index, _)| index)
-        .context("checkpoint produced no action logits")?;
-    Ok(legal_actions[action_index].action.clone())
 }
 
 fn seed_schedule(seeds: &[u64]) -> String {

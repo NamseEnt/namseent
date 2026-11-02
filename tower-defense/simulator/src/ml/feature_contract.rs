@@ -205,9 +205,7 @@ mod tests {
             .unwrap()
             .encoded;
         let mut probe = decision.clone();
-        for value in &mut probe.global_features {
-            *value = 1000.0;
-        }
+        probe.global_features.fill(1000.0);
         let squashed = apply_contract(&probe, InputContract::Normalized);
         for (slot, value) in squashed.global_features.iter().enumerate() {
             let expected = if SQUASHED_GLOBAL_SLOTS.contains(&slot) {

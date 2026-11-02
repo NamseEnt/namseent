@@ -43,7 +43,7 @@ The R1 30-iteration technical diagnostic was retained as the opening of the full
 
 ## Full stress test and comparisons
 
-Both development seeds completed 275 iterations (phase 1: 75; phase 2: 200). The R1 technical diagnostic is the first 30 iterations of its full run. Original A1′ and the three minibatch interventions are existing controls from [the earlier backtracking report](19-target-kl-backtracking.md); none was retrained. Deltas are percentage points versus canonical. Last-50 development statistics average the ten scheduled evaluations at global iterations 226–275. Other last-50 measures average the final 50 training iterations.
+Both development seeds completed 275 iterations (phase 1: 75; phase 2: 200). The R1 technical diagnostic is the first 30 iterations of its full run. Original A1′ and the three minibatch interventions are controls from prior development experiments; none was retrained. Deltas are percentage points versus canonical. Last-50 development statistics average the ten scheduled evaluations at global iterations 226–275. Other last-50 measures average the final 50 training iterations.
 
 The complete epoch-level trace has 2,200 rows in [20-target-kl-epoch-transaction-trajectory.csv](20-target-kl-epoch-transaction-trajectory.csv). It records each scheduled actor epoch as committed, rejected, or not attempted after a rejection, and retains all per-iteration minibatch post-step KL and pre-clip actor gradient samples, action fractions, critic statistics, and validity counters.
 

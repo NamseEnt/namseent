@@ -776,7 +776,7 @@ fn card_service_residual_has_gradient_updates_and_roundtrips() {
     // This is a synthetic gradient probe, not a service-value label.
     let loss = -logits.slice([0..1, 0..1]).mean();
     let gradients = GradientsParams::from_grads(loss.clone().backward(), &actor);
-    let grad_norm = crate::ml::ppo::gradient_l2_norm(&actor, &gradients);
+    let grad_norm = crate::ml::support::gradient_l2_norm(&actor, &gradients);
     assert!(grad_norm.is_finite() && grad_norm > 0.0);
     let mut optimizer = AdamConfig::new().init();
     actor = optimizer.step(1e-3, actor, gradients);
@@ -821,7 +821,7 @@ fn card_service_residual_has_gradient_updates_and_roundtrips() {
         .powf_scalar(2.0)
         .mean();
     let critic_gradients = GradientsParams::from_grads(critic_loss.clone().backward(), &critic);
-    let critic_grad_norm = crate::ml::ppo::gradient_l2_norm(&critic, &critic_gradients);
+    let critic_grad_norm = crate::ml::support::gradient_l2_norm(&critic, &critic_gradients);
     assert!(critic_grad_norm.is_finite() && critic_grad_norm > 0.0);
     critic = critic_optimizer.step(1e-3, critic, critic_gradients);
     let critic_after = card_service_adapter_snapshot(&critic);

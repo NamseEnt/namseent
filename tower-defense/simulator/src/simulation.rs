@@ -4,10 +4,7 @@ use crate::config::GameConfig;
 use crate::environment::{AgentAction, DecisionPoint, GameEnvironment, LegalAction, Observation};
 use crate::events::SimEvent;
 use crate::ml::semantic_bc::SemanticPolicy;
-use crate::policy_runner::{
-    EpisodeResult, ForcedActionStats, PolicyRunnerConfig, PolicyStep, run_episode,
-    run_episode_with_step_callback,
-};
+use crate::policy_runner::{EpisodeResult, ForcedActionStats, PolicyRunnerConfig, PolicyStep};
 use crate::recording::{SimRecorder, SimulationProvenance};
 use anyhow::{Context, Result, ensure};
 use std::sync::Arc;
@@ -318,36 +315,6 @@ pub fn run_semantic_statistics(
     })
 }
 
-pub fn run_legacy_statistics<P>(
-    config: Arc<GameConfig>,
-    seed: u64,
-    runner: &PolicyRunnerConfig,
-    policy: P,
-) -> Result<RecordedEpisode>
-where
-    P: FnMut(&Observation, &[LegalAction]) -> Result<AgentAction> + Send,
-{
-    let mut statistics = Statistics::new();
-    let episode = if runner.record_steps {
-        let episode = run_episode(config, seed, runner, policy)?;
-        for step in episode.steps.as_ref().context("missing step trace")? {
-            statistics.observe(&step.observation, &step.action, &step.outcome.observation);
-        }
-        episode
-    } else {
-        run_episode_with_step_callback(
-            config,
-            seed,
-            runner,
-            policy,
-            |before, _, action, outcome| {
-                statistics.observe(before, action, &outcome.observation);
-            },
-        )?
-    };
-    statistics.finish(episode)
-}
-
 pub fn record_episode(
     recorder: &SimRecorder,
     sim_id: &str,
@@ -483,38 +450,6 @@ impl SimulationSummary {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn trace_and_streaming_record_the_same_completed_game() {
-        let config = Arc::new(GameConfig::default_config());
-        let run = |trace| {
-            run_legacy_statistics(
-                Arc::clone(&config),
-                73,
-                &PolicyRunnerConfig {
-                    record_steps: trace,
-                    ..Default::default()
-                },
-                crate::policy_runner::scripted_expert_action,
-            )
-            .unwrap()
-        };
-        let streamed = run(false);
-        let traced = run(true);
-        assert_eq!(
-            streamed.episode.final_observation,
-            traced.episode.final_observation
-        );
-        assert_eq!(streamed.episode.clear_rate, traced.episode.clear_rate);
-        assert_eq!(
-            serde_json::to_value(&streamed.events).unwrap(),
-            serde_json::to_value(&traced.events).unwrap()
-        );
-        assert_eq!(streamed.stages.len(), traced.stages.len());
-        assert!(streamed.episode.terminated && !streamed.episode.truncated);
-        assert!(streamed.episode.steps.is_none());
-        assert!(traced.episode.steps.is_some());
-    }
 
     #[test]
     fn reports_exclude_other_runs_and_incomplete_games() {

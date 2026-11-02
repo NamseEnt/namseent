@@ -16,6 +16,9 @@ pub struct SimulationProvenance {
     pub policy_kind: String,
     pub checkpoint_path: Option<String>,
     pub checkpoint_iteration: Option<usize>,
+    pub checkpoint_sha256: Option<String>,
+    pub model_sha256: Option<String>,
+    pub git_revision: Option<String>,
     pub environment_version: Option<u32>,
     pub action_schema_version: Option<u32>,
     pub config_digest: Option<String>,
@@ -30,6 +33,9 @@ impl SimulationProvenance {
             policy_kind: "legacy".to_string(),
             checkpoint_path: None,
             checkpoint_iteration: None,
+            checkpoint_sha256: None,
+            model_sha256: None,
+            git_revision: None,
             environment_version: None,
             action_schema_version: None,
             config_digest: None,
@@ -78,6 +84,9 @@ impl SimRecorder {
                 policy_kind TEXT NOT NULL DEFAULT 'legacy',
                 checkpoint_path TEXT,
                 checkpoint_iteration INTEGER,
+                checkpoint_sha256 TEXT,
+                model_sha256 TEXT,
+                git_revision TEXT,
                 environment_version INTEGER,
                 action_schema_version INTEGER,
                 config_digest TEXT,
@@ -155,6 +164,12 @@ impl SimRecorder {
             [],
         );
         let _ = conn.execute(
+            "ALTER TABLE simulations ADD COLUMN checkpoint_sha256 TEXT",
+            [],
+        );
+        let _ = conn.execute("ALTER TABLE simulations ADD COLUMN model_sha256 TEXT", []);
+        let _ = conn.execute("ALTER TABLE simulations ADD COLUMN git_revision TEXT", []);
+        let _ = conn.execute(
             "ALTER TABLE simulations ADD COLUMN environment_version INTEGER",
             [],
         );
@@ -221,7 +236,7 @@ impl SimRecorder {
     ) -> anyhow::Result<()> {
         let conn = self.conn.lock().unwrap();
         conn.execute(
-            "INSERT INTO simulations (id, shop_strategy, card_reroll_strategy, tower_placement_strategy, item_use_strategy, card_service_strategy, seed, runner_kind, policy_kind, checkpoint_path, checkpoint_iteration, environment_version, action_schema_version, config_digest, config_override, seed_schedule) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)",
+            "INSERT INTO simulations (id, shop_strategy, card_reroll_strategy, tower_placement_strategy, item_use_strategy, card_service_strategy, seed, runner_kind, policy_kind, checkpoint_path, checkpoint_iteration, checkpoint_sha256, model_sha256, git_revision, environment_version, action_schema_version, config_digest, config_override, seed_schedule) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19)",
             params![
                 sim_id,
                 shop_strategy,
@@ -234,6 +249,9 @@ impl SimRecorder {
                 provenance.policy_kind,
                 provenance.checkpoint_path,
                 provenance.checkpoint_iteration.map(|value| value as i64),
+                provenance.checkpoint_sha256,
+                provenance.model_sha256,
+                provenance.git_revision,
                 provenance.environment_version.map(|value| value as i64),
                 provenance.action_schema_version.map(|value| value as i64),
                 provenance.config_digest,

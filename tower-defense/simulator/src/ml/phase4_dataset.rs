@@ -6,11 +6,11 @@
 //! written to a temporary name and renamed, so an interrupted run leaves no
 //! partial episode and can simply be restarted.
 
-use super::neural_checkpoint::current_git_revision;
 use super::semantic_candidates::{
     POLICY_CANDIDATE_SET_VERSION, PolicyCandidate, PolicyCandidates,
     SEMANTIC_CANDIDATE_ENCODER_VERSION, policy_candidates,
 };
+use super::support::current_git_revision;
 use crate::config::{GAME_CONFIG_VERSION, GameConfig, config_digest};
 use crate::environment::{AgentAction, DecisionPoint, GameEnvironment, Observation};
 use crate::ml::contract::{

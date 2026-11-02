@@ -1,6 +1,6 @@
 # Effect inputs and checkpoint retraining study
 
-This records the 2026-10-11 study. It follows [24](24-construction-and-content-adaptation.md), which found unchanged treasure selection after effect removal. Progress is terminal game progress on a 0–100 scale, not victory probability. The current input contract and usage are documented in [26](26-construction-and-content-retraining-plan.md) and [27](27-retraining-quickstart.md).
+This records the 2026-10-11 study. Progress is terminal game progress on a 0–100 scale, not victory probability. The current input contract and supported workflow limits are documented in [26](26-construction-and-content-retraining-plan.md) and [27](27-retraining-quickstart.md).
 
 ## Implementation at the time of the study
 

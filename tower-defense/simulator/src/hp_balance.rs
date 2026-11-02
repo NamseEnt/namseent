@@ -1,10 +1,15 @@
 use crate::config::GameConfig;
-use crate::environment::{AgentAction, DecisionPoint, LegalAction, Observation, StepReason};
+use crate::environment::StepReason;
 use crate::ml::MlContract;
-use crate::policy_runner::{PolicyRunnerConfig, run_batch};
+use crate::ml::managed;
+use crate::ml::semantic_bc::SemanticPolicy;
+use crate::ml::support::{current_git_revision, sha256_hex};
+use crate::policy_runner::{BatchResult, PolicyRunnerConfig};
 use crate::recording::{SimRecorder, SimulationProvenance};
+use anyhow::Context;
 use clap::{Args, ValueEnum};
 use indicatif::{ProgressBar, ProgressStyle};
+use rayon::prelude::*;
 use std::collections::{BTreeMap, HashMap};
 use std::path::PathBuf;
 use std::sync::{
@@ -87,6 +92,18 @@ pub struct BalanceOptions {
     #[arg(short, long, default_value_t = 1000)]
     samples: usize,
 
+    /// Explicit inference checkpoint override; defaults to the managed active policy
+    #[arg(long)]
+    checkpoint: Option<PathBuf>,
+
+    /// First simulation seed (the batch uses a contiguous seed range)
+    #[arg(long, default_value_t = 0)]
+    seed_start: u64,
+
+    /// Optional 51-bin clear-rate target (comma-separated weights for 0..100% in 2% bins)
+    #[arg(long)]
+    target_clear_distribution: Option<String>,
+
     /// SQLite database path for recording results
     #[arg(short, long, default_value = "sim_results.db")]
     db: PathBuf,
@@ -103,8 +120,11 @@ pub struct BalanceOptions {
     #[arg(long)]
     config: Option<PathBuf>,
 
-    /// Output tuned game config JSONC file
-    #[arg(long, default_value = "gameconfig.jsonc")]
+    /// Output tuned game config JSONC file; the source config is never overwritten by default
+    #[arg(
+        long,
+        default_value = concat!(env!("CARGO_MANIFEST_DIR"), "/artifacts/balance/gameconfig.tuned.jsonc")
+    )]
     output: PathBuf,
 
     /// Stop after this many tuning iterations
@@ -176,6 +196,27 @@ pub struct BalanceOptions {
     rough_global_scale_gain: f32,
 }
 
+struct BalancePolicy {
+    policy: SemanticPolicy,
+    checkpoint_path: String,
+    checkpoint_iteration: usize,
+    checkpoint_sha256: String,
+    model_sha256: String,
+    git_revision: String,
+    policy_id: String,
+}
+
+struct BalanceTuning<'a> {
+    pool: &'a rayon::ThreadPool,
+    cli: &'a BalanceOptions,
+    recorder: &'a Arc<SimRecorder>,
+    stop_requested: &'a Arc<AtomicBool>,
+    policy: &'a BalancePolicy,
+    target_weights: &'a [f32],
+    target_win_rate: f32,
+    seed_end: u64,
+}
+
 struct BalanceStats {
     win_rate: f32,
     stage_means: Vec<f32>,
@@ -207,11 +248,17 @@ struct DistributionControl {
 }
 
 pub fn run(cli: BalanceOptions) -> anyhow::Result<()> {
+    anyhow::ensure!(cli.samples > 0, "--samples must be positive");
     let mut base_config = if let Some(path) = &cli.config {
         GameConfig::from_jsonc(path).map_err(anyhow::Error::msg)?
     } else {
         GameConfig::default_config()
     };
+    let source_config_digest = MlContract::from_config(&base_config).config_digest;
+    let seed_end = cli
+        .seed_start
+        .checked_add(u64::try_from(cli.samples)? - 1)
+        .context("balance seed range overflow")?;
     if let Some(initial_base_hp) = cli.initial_base_hp {
         normalize_normal_monster_hp(&mut base_config, initial_base_hp.max(1.0));
     }
@@ -220,6 +267,28 @@ pub fn run(cli: BalanceOptions) -> anyhow::Result<()> {
     } else {
         zero_boss_hp(&mut base_config);
     }
+
+    let checkpoint_path = managed::resolve_selected_checkpoint(cli.checkpoint.as_deref())?;
+    let (semantic_policy, iteration) =
+        crate::simulation::load_semantic_policy(&checkpoint_path, &base_config, true)?;
+    let model_sha256 = sha256_hex(&std::fs::read(checkpoint_path.join("actor.bin"))?);
+    let policy = BalancePolicy {
+        policy: semantic_policy,
+        checkpoint_path: checkpoint_path.display().to_string(),
+        checkpoint_iteration: iteration.unwrap_or_default(),
+        checkpoint_sha256: model_sha256.clone(),
+        policy_id: model_sha256.clone(),
+        model_sha256,
+        git_revision: current_git_revision()?,
+    };
+    let target_weights = match cli.target_clear_distribution.as_deref() {
+        Some(value) => parse_target_clear_distribution(value)?,
+        None => build_target_bin_weights(cli.cdf_profile),
+    };
+    // Built-in profiles retain their historical 5% full-clear objective. A
+    // custom 51-bin distribution is authoritative, including its 100% bin.
+    let target_win_rate =
+        resolve_target_win_rate(&target_weights, cli.target_clear_distribution.is_some());
 
     let stop_requested = Arc::new(AtomicBool::new(false));
     {
@@ -245,33 +314,86 @@ pub fn run(cli: BalanceOptions) -> anyhow::Result<()> {
 
     let recorder = Arc::new(SimRecorder::new(&cli.db)?);
 
-    let tuned_config = tune_hp_balance(&pool, base_config, &cli, recorder, stop_requested)?;
+    let tuning = BalanceTuning {
+        pool: &pool,
+        cli: &cli,
+        recorder: &recorder,
+        stop_requested: &stop_requested,
+        policy: &policy,
+        target_weights: &target_weights,
+        target_win_rate,
+        seed_end,
+    };
+    let (tuned_config, iteration_reports) = tune_hp_balance(base_config, &tuning)?;
 
+    if let Some(parent) = cli.output.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
     tuned_config
         .write_jsonc(&cli.output)
         .map_err(anyhow::Error::msg)?;
+    let report_path = cli.output.with_extension("balance-report.json");
+    let final_contract = MlContract::from_config(&tuned_config);
+    let report = serde_json::json!({
+        "schema_version": 1,
+        "policy_id": policy.policy_id,
+        "checkpoint_path": policy.checkpoint_path,
+        "checkpoint_sha256": policy.checkpoint_sha256,
+        "model_sha256": policy.model_sha256,
+        "git_revision": policy.git_revision,
+        "checkpoint_iteration": policy.checkpoint_iteration,
+        "target_clear_distribution": target_weights,
+        "target_full_clear_rate": target_win_rate,
+        "seed_schedule": format!("{}..={seed_end}", cli.seed_start),
+        "source_config_digest": source_config_digest,
+        "output_config_digest": final_contract.config_digest,
+        "iterations": iteration_reports,
+    });
+    std::fs::write(
+        &report_path,
+        format!("{}\n", serde_json::to_string_pretty(&report)?),
+    )?;
     println!("Saved tuned config to {}", cli.output.display());
+    println!("Saved balance report to {}", report_path.display());
 
     Ok(())
 }
 
 fn target_stage_survival(stage: usize, stages: usize) -> f32 {
+    target_stage_survival_for(stage, stages, TARGET_WIN_RATE)
+}
+
+fn target_stage_survival_for(stage: usize, stages: usize, target_win_rate: f32) -> f32 {
     if stages <= 1 {
-        return TARGET_WIN_RATE;
+        return target_win_rate;
     }
 
     let normalized = (stage as f32 - 1.0) / (stages as f32 - 1.0);
-    TARGET_WIN_RATE
-        + (1.0 - TARGET_WIN_RATE) * (1.0 - normalized.powf(TARGET_STAGE_SURVIVAL_EXPONENT))
+    target_win_rate
+        + (1.0 - target_win_rate) * (1.0 - normalized.powf(TARGET_STAGE_SURVIVAL_EXPONENT))
+}
+
+fn resolve_target_win_rate(target_weights: &[f32], custom_target: bool) -> f32 {
+    if custom_target {
+        target_weights[CLEAR_RATE_BIN_COUNT - 1]
+    } else {
+        TARGET_WIN_RATE
+    }
 }
 
 fn tune_hp_balance(
-    pool: &rayon::ThreadPool,
     mut config: GameConfig,
-    cli: &BalanceOptions,
-    recorder: Arc<SimRecorder>,
-    stop_requested: Arc<AtomicBool>,
-) -> anyhow::Result<GameConfig> {
+    tuning: &BalanceTuning<'_>,
+) -> anyhow::Result<(GameConfig, Vec<serde_json::Value>)> {
+    let BalanceTuning {
+        cli,
+        stop_requested,
+        policy,
+        target_weights,
+        target_win_rate,
+        seed_end,
+        ..
+    } = tuning;
     let stages = config.player.max_stages;
     let original_hp: HashMap<u8, f32> = config
         .monsters
@@ -288,9 +410,10 @@ fn tune_hp_balance(
     let mut rough_global_scale = 1.0_f32;
 
     println!(
-        "=== Running fixed-sample auto tuning: samples={} ===",
-        cli.samples
+        "=== Running policy-backed auto tuning: samples={} policy={} seeds={}..={} ===",
+        cli.samples, policy.policy_id, cli.seed_start, seed_end,
     );
+    let mut iteration_reports = Vec::new();
 
     for iteration in 1.. {
         if stop_requested.load(Ordering::SeqCst) {
@@ -304,13 +427,12 @@ fn tune_hp_balance(
             break;
         }
         let metrics = run_simulations(
-            pool,
+            tuning,
             Arc::new(config.clone()),
             cli.samples,
+            cli.seed_start,
             iteration,
-            &recorder,
             cli.quiet,
-            &stop_requested,
         )?;
         if metrics.is_none() {
             println!("Ctrl-C received during simulation batch, finalizing last complete config...");
@@ -318,6 +440,12 @@ fn tune_hp_balance(
         }
         let metrics = metrics.unwrap();
 
+        let hp_before = config
+            .monsters
+            .stats
+            .iter()
+            .map(|stat| (stat.kind, stat.base_hp_raw as f32 / 1_000.0))
+            .collect::<BTreeMap<_, _>>();
         let overall_mean = metrics.overall_damage_mean;
         let target_message = format!(
             "win {:.1}%, below15 {:.1}%, mean {:.1}, termination {:?}, stage1 {:?}, config_digest={}, policy={}",
@@ -346,11 +474,11 @@ fn tune_hp_balance(
         }
 
         let reference_damage_mean = compute_robust_reference_damage(&metrics.stage_means);
-        let win_error = metrics.win_rate - TARGET_WIN_RATE;
+        let win_error = metrics.win_rate - target_win_rate;
         let clear_rate_peak_ratio = compute_clear_rate_peak_ratio(&metrics.clear_rates);
         let damage_cv = compute_damage_cv(&metrics.stage_means);
         let distribution_control =
-            compute_distribution_control(&metrics.clear_rates, cli.cdf_profile);
+            compute_distribution_control(&metrics.clear_rates, target_weights);
         let damage_weight = if damage_cv > DAMAGE_CV_WEIGHT_BOOST_THRESHOLD {
             DAMAGE_ERROR_WEIGHT_MAX
         } else {
@@ -368,7 +496,7 @@ fn tune_hp_balance(
         }
 
         if cli.rough_initial_balance {
-            let win_delta = metrics.win_rate - TARGET_WIN_RATE;
+            let win_delta = metrics.win_rate - target_win_rate;
             let tilt_step =
                 win_delta * cli.rough_tilt_update_gain + distribution_control.pressure * 0.20;
             rough_tilt = (rough_tilt + tilt_step).clamp(ROUGH_TILT_MIN, ROUGH_TILT_MAX);
@@ -392,7 +520,7 @@ fn tune_hp_balance(
             }
         }
 
-        let win_deviation = (metrics.win_rate - TARGET_WIN_RATE).abs();
+        let win_deviation = (metrics.win_rate - target_win_rate).abs();
         let aggressive_learning_rate = (BASE_LEARNING_RATE
             + win_deviation * 1.2
             + (damage_cv - DAMAGE_CV_WEIGHT_BOOST_THRESHOLD).max(0.0) * 0.25)
@@ -405,7 +533,7 @@ fn tune_hp_balance(
             stages,
         );
         let target_stage_deaths =
-            (cli.samples as f32 * (1.0 - TARGET_WIN_RATE) / stages as f32).max(1.0);
+            (cli.samples as f32 * (1.0 - target_win_rate) / stages as f32).max(1.0);
 
         let mut max_change: f32 = 0.0;
         let mut stage_scale_min: f32 = f32::INFINITY;
@@ -436,13 +564,14 @@ fn tune_hp_balance(
                     stages,
                     arrival_weight,
                     damage_weight,
+                    *target_win_rate,
                     cli,
                 );
                 let stage_ratio = stage as f32 / stages as f32;
                 let bootstrap_signal =
                     if cli.rough_initial_balance && iteration <= cli.rough_bootstrap_iterations {
                         let ramp = (stage_ratio - 0.5) * 2.0;
-                        let win_excess = metrics.win_rate - TARGET_WIN_RATE;
+                        let win_excess = metrics.win_rate - target_win_rate;
                         (win_excess * cli.rough_bootstrap_gain * ramp)
                             .clamp(-ROUGH_BOOTSTRAP_SIGNAL_CLAMP, ROUGH_BOOTSTRAP_SIGNAL_CLAMP)
                     } else {
@@ -463,7 +592,7 @@ fn tune_hp_balance(
                     .clamp(SIGNAL_CLAMP_MIN, SIGNAL_CLAMP_MAX);
 
                 let mut target_scale = (signal * iteration_learning_rate).exp();
-                let global_win_scale = compute_global_win_scale(metrics.win_rate);
+                let global_win_scale = compute_global_win_scale(metrics.win_rate, *target_win_rate);
                 let secondary_win_scale = 1.0 + (global_win_scale - 1.0) * GLOBAL_WIN_SCALE_BLEND;
                 if cli.rough_initial_balance {
                     let curve_ramp = ((stage_ratio - 0.5) * 2.0 * rough_tilt).exp();
@@ -472,11 +601,12 @@ fn tune_hp_balance(
                 } else {
                     target_scale *= global_scale * secondary_win_scale;
                 }
-                let win_deficit = (TARGET_WIN_RATE - metrics.win_rate).max(0.0);
-                let win_surplus = (metrics.win_rate - TARGET_WIN_RATE).max(0.0);
-                let deficit_expand =
-                    ((win_deficit / TARGET_WIN_RATE).clamp(0.0, 2.0)) * WIN_DEFICIT_CLAMP_GAIN;
-                let surplus_expand = ((win_surplus / (1.0 - TARGET_WIN_RATE)).clamp(0.0, 2.0))
+                let win_deficit = (target_win_rate - metrics.win_rate).max(0.0);
+                let win_surplus = (metrics.win_rate - target_win_rate).max(0.0);
+                let deficit_expand = ((win_deficit / target_win_rate.max(0.01)).clamp(0.0, 2.0))
+                    * WIN_DEFICIT_CLAMP_GAIN;
+                let surplus_expand = ((win_surplus / (1.0 - target_win_rate).max(0.01))
+                    .clamp(0.0, 2.0))
                     * WIN_SURPLUS_CLAMP_GAIN;
                 let stage_scale_min_floor = if cli.rough_initial_balance {
                     ROUGH_STAGE_SCALE_MIN_FLOOR
@@ -504,9 +634,10 @@ fn tune_hp_balance(
                 let relative_clamp_max =
                     (stage_momentum[stage] * stage_clamp_max).min(stage_scale_max_ceiling);
                 let blend_alpha = (BLEND_ALPHA_BASE
-                    + ((metrics.win_rate - TARGET_WIN_RATE).abs() / (1.0 - TARGET_WIN_RATE))
-                        .powf(0.75)
-                        .clamp(0.0, 1.0)
+                    + ((metrics.win_rate - target_win_rate).abs()
+                        / (1.0 - target_win_rate).max(0.01))
+                    .powf(0.75)
+                    .clamp(0.0, 1.0)
                         * BLEND_ALPHA_WIN_DEFICIT_GAIN)
                     .min(BLEND_ALPHA_MAX);
                 let mut stage_scale =
@@ -585,6 +716,40 @@ fn tune_hp_balance(
             println!("=== Clear Rate Distribution ===");
             print_clear_rate_histogram(&metrics.clear_rates);
         }
+        let mut clear_rate_histogram = vec![0usize; CLEAR_RATE_BIN_COUNT];
+        for &rate in &metrics.clear_rates {
+            let index = ((rate.clamp(0.0, 100.0) as usize) / 2).min(CLEAR_RATE_BIN_COUNT - 1);
+            clear_rate_histogram[index] += 1;
+        }
+        let hp_deltas = config
+            .monsters
+            .stats
+            .iter()
+            .map(|stat| {
+                let before = hp_before.get(&stat.kind).copied().unwrap_or(0.0);
+                let after = stat.base_hp_raw as f32 / 1_000.0;
+                (
+                    stat.kind.to_string(),
+                    serde_json::json!({
+                        "before": before,
+                        "after": after,
+                        "delta": after - before,
+                    }),
+                )
+            })
+            .collect::<BTreeMap<_, _>>();
+        iteration_reports.push(serde_json::json!({
+            "iteration": iteration,
+            "policy_id": policy.policy_id,
+            "checkpoint_path": policy.checkpoint_path,
+            "checkpoint_sha256": policy.checkpoint_sha256,
+            "seed_schedule": format!("{}..={seed_end}", cli.seed_start),
+            "config_digest": metrics.config_digest,
+            "distribution_ks_error": distribution_control.ks_distance,
+            "clear_rate_histogram_2_percent_bins": clear_rate_histogram,
+            "max_hp_scale_change": max_change,
+            "hp_deltas": hp_deltas,
+        }));
 
         if max_change < 1e-4 {
             println!("Iteration {iteration} converged with max change {max_change:.6}");
@@ -592,7 +757,7 @@ fn tune_hp_balance(
         }
 
         let arrival_rmse = compute_arrival_rmse(&metrics.stage_arrivals, cli.samples, stages);
-        let win_stable = (metrics.win_rate - TARGET_WIN_RATE).abs() < 0.03;
+        let win_stable = (metrics.win_rate - target_win_rate).abs() < 0.03;
         let clear_peak_stable = distribution_control.ks_distance < KS_CONVERGENCE_THRESHOLD;
         let clear_topbin_stable =
             distribution_control.top_bin_share < TOP_BIN_CONVERGENCE_THRESHOLD;
@@ -630,7 +795,7 @@ fn tune_hp_balance(
     }
 
     apply_boss_hp_from_stage(&mut config);
-    Ok(config)
+    Ok((config, iteration_reports))
 }
 
 fn zero_boss_hp(config: &mut GameConfig) {
@@ -740,8 +905,8 @@ fn compute_clear_rate_peak_ratio(clear_rates: &[f32]) -> f32 {
     }
 }
 
-fn compute_global_win_scale(win_rate: f32) -> f32 {
-    let raw_win_scale = ((win_rate - TARGET_WIN_RATE) * GLOBAL_WIN_SCALE_GAIN).exp();
+fn compute_global_win_scale(win_rate: f32, target_win_rate: f32) -> f32 {
+    let raw_win_scale = ((win_rate - target_win_rate) * GLOBAL_WIN_SCALE_GAIN).exp();
     raw_win_scale.clamp(GLOBAL_WIN_SCALE_MIN, GLOBAL_WIN_SCALE_MAX)
 }
 
@@ -796,11 +961,12 @@ fn compute_stage_adjustment_signal(
     stages: usize,
     arrival_weight: f32,
     damage_weight: f32,
+    target_win_rate: f32,
     cli: &BalanceOptions,
 ) -> f32 {
     let observed_arrival = arrival_count as f32 / samples as f32;
-    let target_arrival =
-        target_stage_survival(stage, stages).clamp(MIN_TARGET_ARRIVAL, MAX_TARGET_ARRIVAL);
+    let target_arrival = target_stage_survival_for(stage, stages, target_win_rate)
+        .clamp(MIN_TARGET_ARRIVAL, MAX_TARGET_ARRIVAL);
     let raw_arrival_signal = if observed_arrival > 0.0 {
         (observed_arrival / target_arrival)
             .ln()
@@ -852,9 +1018,9 @@ fn compute_stage_adjustment_signal(
     let segment_gain = compute_stage_segment_gain(stage, stages, cli);
     let raw_distribution_signal =
         neighborhood_error * bin_polarity * cli.distribution_stage_signal_gain * segment_gain;
-    let distribution_signal = if win_rate > TARGET_WIN_RATE + 0.02 {
+    let distribution_signal = if win_rate > target_win_rate + 0.02 {
         raw_distribution_signal.max(0.0)
-    } else if win_rate < TARGET_WIN_RATE - 0.02 {
+    } else if win_rate < target_win_rate - 0.02 {
         raw_distribution_signal.min(0.0)
     } else {
         raw_distribution_signal
@@ -878,7 +1044,10 @@ fn compute_stage_adjustment_signal(
         .clamp(SIGNAL_CLAMP_MIN, SIGNAL_CLAMP_MAX)
 }
 
-fn compute_distribution_control(clear_rates: &[f32], profile: CdfProfile) -> DistributionControl {
+fn compute_distribution_control(
+    clear_rates: &[f32],
+    target_weights: &[f32],
+) -> DistributionControl {
     if clear_rates.is_empty() {
         return DistributionControl::default();
     }
@@ -890,7 +1059,7 @@ fn compute_distribution_control(clear_rates: &[f32], profile: CdfProfile) -> Dis
     }
 
     let total = clear_rates.len() as f32;
-    let target_weights = build_target_bin_weights(profile);
+    debug_assert_eq!(target_weights.len(), CLEAR_RATE_BIN_COUNT);
     let mut obs_cdf = 0.0_f32;
     let mut ks_distance = 0.0_f32;
     let mut low_mass = 0.0_f32;
@@ -1004,6 +1173,33 @@ fn compute_distribution_control(clear_rates: &[f32], profile: CdfProfile) -> Dis
     }
 }
 
+fn parse_target_clear_distribution(value: &str) -> anyhow::Result<Vec<f32>> {
+    let mut weights = value
+        .split(',')
+        .map(|part| {
+            let weight = part.trim().parse::<f32>()?;
+            anyhow::ensure!(
+                weight.is_finite() && weight >= 0.0,
+                "target weights must be finite and non-negative"
+            );
+            Ok(weight)
+        })
+        .collect::<anyhow::Result<Vec<_>>>()?;
+    anyhow::ensure!(
+        weights.len() == CLEAR_RATE_BIN_COUNT,
+        "--target-clear-distribution requires exactly {CLEAR_RATE_BIN_COUNT} comma-separated weights"
+    );
+    let sum = weights.iter().sum::<f32>();
+    anyhow::ensure!(
+        sum.is_finite() && sum > 0.0,
+        "target distribution must have positive finite mass"
+    );
+    for weight in &mut weights {
+        *weight /= sum;
+    }
+    Ok(weights)
+}
+
 fn build_target_bin_weights(profile: CdfProfile) -> Vec<f32> {
     let mut weights = vec![0.0_f32; CLEAR_RATE_BIN_COUNT];
     match profile {
@@ -1101,20 +1297,29 @@ fn compute_stage_deaths(
 }
 
 fn run_simulations(
-    pool: &rayon::ThreadPool,
+    tuning: &BalanceTuning<'_>,
     config: Arc<GameConfig>,
     samples: usize,
+    seed_start: u64,
     iteration: usize,
-    recorder: &Arc<SimRecorder>,
     quiet: bool,
-    stop_requested: &Arc<AtomicBool>,
 ) -> anyhow::Result<Option<BalanceStats>> {
+    let BalanceTuning {
+        pool,
+        recorder,
+        stop_requested,
+        policy,
+        ..
+    } = tuning;
     if stop_requested.load(Ordering::SeqCst) {
         return Ok(None);
     }
 
     let stage_count = config.player.max_stages;
-    let seeds = (0..samples as u64).collect::<Vec<_>>();
+    let seed_end = seed_start
+        .checked_add(u64::try_from(samples)? - 1)
+        .context("balance seed range overflow")?;
+    let seeds = (seed_start..=seed_end).collect::<Vec<_>>();
     let progress = if quiet {
         None
     } else {
@@ -1125,17 +1330,25 @@ fn run_simulations(
         progress.set_style(style);
         Some(progress)
     };
-    let batch = pool.install(|| {
-        run_batch::<_, _>(
-            Arc::clone(&config),
-            &seeds,
-            &PolicyRunnerConfig {
-                record_steps: samples <= 100,
-                ..PolicyRunnerConfig::default()
-            },
-            |_| balance_policy,
-        )
+    let runner = PolicyRunnerConfig {
+        record_steps: samples <= 100,
+        ..PolicyRunnerConfig::default()
+    };
+    let episodes = pool.install(|| {
+        seeds
+            .par_iter()
+            .map(|seed| {
+                crate::simulation::run_semantic_statistics(
+                    Arc::clone(&config),
+                    *seed,
+                    &runner,
+                    &policy.policy,
+                )
+                .map(|recorded| recorded.episode)
+            })
+            .collect::<anyhow::Result<Vec<_>>>()
     })?;
+    let batch = BatchResult { seeds, episodes };
     if let Some(progress) = progress {
         progress.set_position(samples as u64);
         progress.finish_and_clear();
@@ -1164,14 +1377,17 @@ fn run_simulations(
     let contract = MlContract::from_config(config.as_ref());
     let provenance = SimulationProvenance {
         runner_kind: "policy_runner".to_string(),
-        policy_kind: "auto_balance_heuristic".to_string(),
-        checkpoint_path: None,
-        checkpoint_iteration: None,
+        policy_kind: "semantic_policy".to_string(),
+        checkpoint_path: Some(policy.checkpoint_path.clone()),
+        checkpoint_iteration: Some(policy.checkpoint_iteration),
+        checkpoint_sha256: Some(policy.checkpoint_sha256.clone()),
+        model_sha256: Some(policy.model_sha256.clone()),
+        git_revision: Some(policy.git_revision.clone()),
         environment_version: Some(contract.environment_version),
         action_schema_version: Some(contract.action_schema_version),
         config_digest: Some(contract.config_digest.clone()),
         config_override: false,
-        seed_schedule: Some(format!("0..={}", samples.saturating_sub(1))),
+        seed_schedule: Some(format!("{seed_start}..={seed_end}")),
     };
 
     for episode in &batch.episodes {
@@ -1278,7 +1494,7 @@ fn run_simulations(
         terminal_item_use_mean: terminal_item_use_total as f32 / terminal_count.max(1) as f32,
         terminal_tower_damage_mean: terminal_tower_damage_total / terminal_count.max(1) as f32,
         config_digest: contract.config_digest,
-        policy_id: provenance.policy_kind,
+        policy_id: policy.policy_id.clone(),
     }))
 }
 
@@ -1291,100 +1507,6 @@ fn termination_reason_name(reason: &StepReason) -> &'static str {
         StepReason::NoProgressCycle => "NoProgressCycle",
         StepReason::CurriculumComplete => "CurriculumComplete",
     }
-}
-
-fn balance_policy(
-    observation: &Observation,
-    legal_actions: &[LegalAction],
-) -> anyhow::Result<AgentAction> {
-    match &observation.decision_point {
-        DecisionPoint::Shop => legal_actions
-            .iter()
-            .find(|legal| matches!(legal.action, AgentAction::PurchaseShopItem { .. }))
-            .or_else(|| {
-                find_action(legal_actions, |action| {
-                    matches!(action, AgentAction::StartSelectingTower)
-                })
-            }),
-        DecisionPoint::CardSelection => legal_actions
-            .iter()
-            .find(|legal| {
-                matches!(
-                    legal.action,
-                    AgentAction::SelectHandCard { hand_slot_index }
-                        if !observation
-                            .selected_hand_slot_indices
-                            .contains(&hand_slot_index)
-                )
-            })
-            .or_else(|| {
-                find_action(legal_actions, |action| {
-                    matches!(action, AgentAction::ConfirmCardSelection)
-                })
-            })
-            .or_else(|| legal_actions.first()),
-        DecisionPoint::TowerPlacement => {
-            let placement_action = find_action(legal_actions, |action| {
-                matches!(action, AgentAction::PlaceTower { .. })
-            });
-            placement_action.or_else(|| {
-                find_action(legal_actions, |action| {
-                    matches!(action, AgentAction::StartDefense)
-                })
-            })
-        }
-        DecisionPoint::CardServiceSelection => {
-            let selected = observation
-                .card_service
-                .as_ref()
-                .map(|service| service.selected_card_indices.as_slice())
-                .unwrap_or(&[]);
-            if observation
-                .card_service
-                .as_ref()
-                .is_some_and(|service| selected.len() >= service.required_count)
-            {
-                return find_action(legal_actions, |action| {
-                    matches!(action, AgentAction::ConfirmCardServiceSelection)
-                })
-                .map(|legal| legal.action.clone())
-                .ok_or_else(|| {
-                    anyhow::anyhow!("card service selection is complete without confirm")
-                });
-            }
-            legal_actions
-                .iter()
-                .find(|legal| {
-                    matches!(
-                        legal.action,
-                        AgentAction::SelectCardServiceCard { card_index }
-                            if !selected.contains(&card_index)
-                    )
-                })
-                .or_else(|| {
-                    find_action(legal_actions, |action| {
-                        matches!(action, AgentAction::ConfirmCardServiceSelection)
-                    })
-                })
-        }
-        DecisionPoint::TreasureSelection => legal_actions.first(),
-        DecisionPoint::Defense => find_action(legal_actions, |action| {
-            matches!(action, AgentAction::Continue)
-        }),
-        DecisionPoint::PreDefenseItem
-        | DecisionPoint::DamageResponseItem
-        | DecisionPoint::Terminal => legal_actions.first(),
-    }
-    .or_else(|| legal_actions.first())
-    .map(|legal| legal.action.clone())
-    .ok_or_else(|| anyhow::anyhow!("environment returned no legal actions"))
-}
-
-fn find_action(
-    legal_actions: &[LegalAction],
-    predicate: impl Fn(&AgentAction) -> bool,
-) -> Option<&LegalAction> {
-    legal_actions.iter().find(|legal| predicate(&legal.action))
 }
 
 fn print_clear_rate_histogram(clear_rates: &[f32]) {
@@ -1403,5 +1525,64 @@ fn print_clear_rate_histogram(clear_rates: &[f32]) {
         let bar = "█".repeat(bar_len);
         let padded_bar = format!("{:<width$}", bar, width = bar_width);
         println!("{label} | {padded_bar} {count}");
+    }
+}
+
+#[cfg(test)]
+mod target_distribution_tests {
+    use super::*;
+
+    #[test]
+    fn custom_target_requires_51_non_negative_finite_weights_and_normalizes() {
+        let source = std::iter::repeat_n("2", CLEAR_RATE_BIN_COUNT)
+            .collect::<Vec<_>>()
+            .join(",");
+        let weights = parse_target_clear_distribution(&source).expect("valid 51-bin target");
+        assert_eq!(weights.len(), CLEAR_RATE_BIN_COUNT);
+        assert!(
+            weights
+                .iter()
+                .all(|weight| (*weight - 1.0 / 51.0).abs() < 1e-6)
+        );
+        assert!((weights.iter().sum::<f32>() - 1.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn custom_target_rejects_bad_length_negative_non_finite_and_zero_mass() {
+        assert!(parse_target_clear_distribution("1,2").is_err());
+        let mut negative = vec!["1"; CLEAR_RATE_BIN_COUNT];
+        negative[0] = "-1";
+        assert!(parse_target_clear_distribution(&negative.join(",")).is_err());
+        let mut non_finite = vec!["1"; CLEAR_RATE_BIN_COUNT];
+        non_finite[0] = "NaN";
+        assert!(parse_target_clear_distribution(&non_finite.join(",")).is_err());
+        assert!(
+            parse_target_clear_distribution(&vec!["0"; CLEAR_RATE_BIN_COUNT].join(",")).is_err()
+        );
+    }
+
+    #[test]
+    fn distribution_control_uses_the_user_target_weights() {
+        let mut target = vec![0.0; CLEAR_RATE_BIN_COUNT];
+        target[0] = 1.0;
+        let result = compute_distribution_control(&[0.0], &target);
+        assert_eq!(result.ks_distance, 0.0);
+        assert_eq!(result.bin_errors[0], 0.0);
+    }
+
+    #[test]
+    fn custom_target_full_clear_mass_controls_the_win_objective() {
+        let mut target = vec![0.0; CLEAR_RATE_BIN_COUNT];
+        target[0] = 0.8;
+        target[CLEAR_RATE_BIN_COUNT - 1] = 0.2;
+        assert_eq!(resolve_target_win_rate(&target, true), 0.2);
+        assert_eq!(
+            resolve_target_win_rate(&build_target_bin_weights(CdfProfile::Uniform), false),
+            TARGET_WIN_RATE
+        );
+        assert_eq!(
+            target_stage_survival_for(50, 50, resolve_target_win_rate(&target, true)),
+            0.2
+        );
     }
 }
