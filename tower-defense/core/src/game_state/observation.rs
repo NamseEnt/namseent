@@ -940,15 +940,33 @@ fn shop_slot_observation(
     let (kind, kind_id, key, key_id, cost) = match &slot.slot {
         crate::ShopSlotState::Item { item, cost } => {
             let (key, key_id) = item_key(item.kind().raw());
-            ("item", 1, key, key_id, *cost)
+            (
+                "item",
+                crate::ShopContentCategory::Item.id(),
+                key,
+                key_id,
+                *cost,
+            )
         }
         crate::ShopSlotState::Upgrade { upgrade, cost } => {
             let (key, key_id) = upgrade_key(upgrade.kind().raw());
-            ("upgrade", 2, key, key_id, *cost)
+            (
+                "upgrade",
+                crate::ShopContentCategory::Upgrade.id(),
+                key,
+                key_id,
+                *cost,
+            )
         }
         crate::ShopSlotState::CardService { kind, cost } => {
             let (key, key_id) = card_service_key(*kind);
-            ("card_service", 3, key, key_id, *cost)
+            (
+                "card_service",
+                crate::ShopContentCategory::CardService.id(),
+                key,
+                key_id,
+                *cost,
+            )
         }
     };
     ShopSlotObservation {

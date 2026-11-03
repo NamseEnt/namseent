@@ -7,6 +7,29 @@
 /// Version of the raw catalog key and numeric-id contract.
 pub const CATALOG_SCHEMA_VERSION: u32 = 1;
 
+#[repr(u16)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+pub enum ShopContentCategory {
+    Item = 1,
+    Upgrade = 2,
+    CardService = 3,
+}
+
+impl ShopContentCategory {
+    pub const fn id(self) -> u16 {
+        self as u16
+    }
+
+    pub const fn from_id(id: u16) -> Option<Self> {
+        Some(match id {
+            1 => Self::Item,
+            2 => Self::Upgrade,
+            3 => Self::CardService,
+            _ => return None,
+        })
+    }
+}
+
 #[cfg(not(feature = "experimental-content"))]
 pub const ITEM_KIND_KEYS: [&str; 11] = [
     "Bread",
@@ -550,6 +573,11 @@ mod tests {
 
     #[test]
     fn raw_catalogs_are_exhaustive_and_one_based_ids_are_stable() {
+        assert_eq!(ShopContentCategory::Item.id(), 1);
+        assert_eq!(ShopContentCategory::Upgrade.id(), 2);
+        assert_eq!(ShopContentCategory::CardService.id(), 3);
+        assert_eq!(ShopContentCategory::from_id(3), Some(ShopContentCategory::CardService));
+        assert_eq!(ShopContentCategory::from_id(0), None);
         assert_eq!(item_kind_id(0), 1);
         assert_eq!(item_kind_id(10), 11);
         #[cfg(feature = "experimental-content")]

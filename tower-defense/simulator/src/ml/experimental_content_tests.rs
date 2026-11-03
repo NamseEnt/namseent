@@ -1,3 +1,4 @@
+use crate::config::GameConfigTestExt;
 use crate::environment::AgentAction;
 use crate::ml::{
     model::{ModelConfig, TrainBackend, default_policy_device},

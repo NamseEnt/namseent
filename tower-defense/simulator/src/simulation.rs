@@ -2,12 +2,16 @@
 
 use crate::config::GameConfig;
 use crate::environment::{AgentAction, DecisionPoint, GameEnvironment, LegalAction, Observation};
-use crate::events::SimEvent;
+use crate::events::{
+    ContentKind, SimEvent, card_service_kind_from_key_id, item_kind_from_key_id,
+    upgrade_kind_from_event_key,
+};
 use crate::ml::semantic_bc::SemanticPolicy;
 use crate::policy_runner::{EpisodeResult, ForcedActionStats, PolicyRunnerConfig, PolicyStep};
 use crate::recording::{SimRecorder, SimulationProvenance};
 use anyhow::{Context, Result, ensure};
 use std::sync::Arc;
+use td_core::ShopContentCategory;
 
 pub struct RecordedEpisode {
     pub episode: EpisodeResult,
@@ -42,7 +46,12 @@ impl Statistics {
         }
     }
 
-    fn observe(&mut self, before: &Observation, action: &AgentAction, after: &Observation) {
+    fn observe(
+        &mut self,
+        before: &Observation,
+        action: &AgentAction,
+        after: &Observation,
+    ) -> Result<()> {
         if self
             .stages
             .last()
@@ -66,13 +75,21 @@ impl Statistics {
         let row = self.stages.last_mut().expect("stage initialized");
         match action {
             AgentAction::PurchaseShopItem { slot_index } => {
-                if let Some(slot) = before.shop.iter().find(|slot| slot.index == *slot_index) {
-                    self.events.push(SimEvent::ShopPurchase {
-                        stage: before.stage,
-                        cost: slot.cost,
-                        item_kind: slot.key.clone(),
-                    });
-                }
+                let slot = before
+                    .shop
+                    .iter()
+                    .find(|slot| slot.index == *slot_index)
+                    .with_context(|| {
+                        format!("shop purchase references missing slot {slot_index}")
+                    })?;
+                let category = ShopContentCategory::from_id(slot.kind_id).with_context(|| {
+                    format!("unknown shop content category id {}", slot.kind_id)
+                })?;
+                self.events.push(SimEvent::ShopPurchase {
+                    stage: before.stage,
+                    cost: slot.cost,
+                    content_kind: ContentKind::from_shop_observation(category, slot.key_id)?,
+                });
             }
             AgentAction::Reroll { .. } => {
                 row.rerolls_used += 1;
@@ -82,24 +99,29 @@ impl Statistics {
                 });
             }
             AgentAction::UseInventoryItem { item_index } => {
-                if let Some(item) = before
+                let item = before
                     .inventory
                     .iter()
                     .find(|item| item.index == *item_index)
-                {
-                    self.events.push(SimEvent::ItemUsed {
-                        stage: before.stage,
-                        item_kind: item.key.clone(),
-                    });
-                }
+                    .with_context(|| {
+                        format!("item use references missing inventory slot {item_index}")
+                    })?;
+                self.events.push(SimEvent::ItemUsed {
+                    stage: before.stage,
+                    item_kind: item_kind_from_key_id(item.key_id)?,
+                });
             }
             AgentAction::SelectTreasure { option_index } => {
-                if let Some(kind) = before.treasure_options.get(*option_index) {
-                    self.events.push(SimEvent::TreasureSelected {
-                        stage: before.stage,
-                        upgrade_kind: kind.clone(),
-                    });
-                }
+                let kind = before
+                    .treasure_options
+                    .get(*option_index)
+                    .with_context(|| {
+                        format!("treasure selection references missing option {option_index}")
+                    })?;
+                self.events.push(SimEvent::TreasureSelected {
+                    stage: before.stage,
+                    upgrade_kind: upgrade_kind_from_event_key(kind)?,
+                });
             }
             AgentAction::ConfirmCardServiceSelection => {
                 if let Some(service) = &before.card_service {
@@ -110,7 +132,7 @@ impl Statistics {
                     if service.current_step + 1 == service.step_count {
                         self.events.push(SimEvent::CardServiceUsed {
                             stage: before.stage,
-                            service_kind: service.key.clone(),
+                            service_kind: card_service_kind_from_key_id(service.key_id)?,
                             cards_selected: self.service_cards_selected,
                         });
                         self.service_cards_selected = 0;
@@ -171,6 +193,7 @@ impl Statistics {
                 victory: row.victory,
             });
         }
+        Ok(())
     }
 
     fn finish(mut self, episode: EpisodeResult) -> Result<RecordedEpisode> {
@@ -237,7 +260,9 @@ pub fn run_semantic_statistics(
         let mut outcome = environment
             .semantic_step(choice.action.clone())
             .map_err(|error| anyhow::anyhow!("seed {seed}: {error:?}"))?;
-        statistics.observe(&before, &choice.action, &outcome.observation);
+        statistics
+            .observe(&before, &choice.action, &outcome.observation)
+            .with_context(|| format!("seed {seed}: failed to record simulation event"))?;
         episode_return += outcome.reward.total();
         while !outcome.terminated && !outcome.truncated {
             let Some(action) = environment.forced_action() else {
@@ -252,7 +277,9 @@ pub fn run_semantic_statistics(
             outcome = environment
                 .step(action.clone())
                 .map_err(|error| anyhow::anyhow!("seed {seed}: {error:?}"))?;
-            statistics.observe(&before, &action, &outcome.observation);
+            statistics
+                .observe(&before, &action, &outcome.observation)
+                .with_context(|| format!("seed {seed}: failed to record forced-action event"))?;
             episode_return += outcome.reward.total();
         }
         ensure!(
@@ -339,7 +366,7 @@ pub fn record_episode(
             upgrade_kind,
         } = event
         {
-            recorder.record_upgrade(sim_id, upgrade_kind, *stage, None)?;
+            recorder.record_upgrade(sim_id, upgrade_kind.key(), *stage, None)?;
         }
     }
     for row in &recorded.stages {
@@ -450,6 +477,84 @@ impl SimulationSummary {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config::GameConfigTestExt;
+    use crate::environment::{CardServiceObservation, InventoryObservation, ShopSlotObservation};
+
+    #[test]
+    fn statistics_build_content_events_from_typed_catalog_ids() {
+        let config = Arc::new(GameConfig::default_config());
+        let environment = GameEnvironment::new(config, 0);
+        let mut observation = environment.snapshot();
+        observation.shop = vec![ShopSlotObservation {
+            index: 0,
+            purchased: false,
+            kind: "item".into(),
+            kind_id: td_core::ShopContentCategory::Item.id(),
+            key: "wrong_item_name".into(),
+            key_id: td_core::ItemKind::Bread.id(),
+            cost: 10,
+        }];
+        observation.inventory = vec![InventoryObservation {
+            index: 0,
+            key: "wrong_item_name".into(),
+            key_id: td_core::ItemKind::Bread.id(),
+        }];
+        observation.treasure_options = vec!["black_white".into()];
+        observation.card_service = Some(CardServiceObservation {
+            key: "wrong_service_name".into(),
+            key_id: td_core::CardServiceKind::LongSword.id(),
+            polish_delta_raw: None,
+            suit_change_raw: None,
+            target_filter: None,
+            current_step: 0,
+            step_count: 1,
+            required_count: 1,
+            selected_card_indices: vec![0],
+            candidate_card_indices: vec![0],
+        });
+
+        let mut statistics = Statistics::new();
+        for action in [
+            AgentAction::PurchaseShopItem { slot_index: 0 },
+            AgentAction::UseInventoryItem { item_index: 0 },
+            AgentAction::SelectTreasure { option_index: 0 },
+            AgentAction::ConfirmCardServiceSelection,
+        ] {
+            statistics
+                .observe(&observation, &action, &observation)
+                .unwrap();
+        }
+
+        assert!(statistics.events.iter().any(|event| matches!(
+            event,
+            SimEvent::ShopPurchase {
+                content_kind: ContentKind::Item(td_core::ItemKind::Bread),
+                ..
+            }
+        )));
+        assert!(statistics.events.iter().any(|event| matches!(
+            event,
+            SimEvent::ItemUsed {
+                item_kind: td_core::ItemKind::Bread,
+                ..
+            }
+        )));
+        assert!(statistics.events.iter().any(|event| matches!(
+            event,
+            SimEvent::TreasureSelected {
+                upgrade_kind: td_core::UpgradeKind::BlackWhite,
+                ..
+            }
+        )));
+        assert!(statistics.events.iter().any(|event| matches!(
+            event,
+            SimEvent::CardServiceUsed {
+                service_kind: td_core::CardServiceKind::LongSword,
+                cards_selected: 1,
+                ..
+            }
+        )));
+    }
 
     #[test]
     fn reports_exclude_other_runs_and_incomplete_games() {
@@ -474,7 +579,7 @@ mod tests {
                     id,
                     &[SimEvent::TreasureSelected {
                         stage: 1,
-                        upgrade_kind: "black_white".into(),
+                        upgrade_kind: td_core::UpgradeKind::BlackWhite,
                     }],
                 )
                 .unwrap();

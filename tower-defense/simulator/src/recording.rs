@@ -360,7 +360,7 @@ impl SimRecorder {
         let (event_type, event_data) = match event {
             SimEvent::ItemUsed { stage, item_kind } => (
                 "item_used".to_string(),
-                to_string(&json!({"ItemUsed": {"stage": *stage, "item_kind": item_kind}}))?,
+                to_string(&json!({"ItemUsed": {"stage": *stage, "item_kind": item_kind.key()}}))?,
             ),
             SimEvent::CardServiceUsed {
                 stage,
@@ -369,7 +369,7 @@ impl SimRecorder {
             } => (
                 "card_service_used".to_string(),
                 to_string(
-                    &json!({"CardServiceUsed": {"stage": *stage, "service_kind": service_kind, "cards_selected": *cards_selected}}),
+                    &json!({"CardServiceUsed": {"stage": *stage, "service_kind": service_kind.key(), "cards_selected": *cards_selected}}),
                 )?,
             ),
             SimEvent::TreasureSelected {
@@ -378,7 +378,7 @@ impl SimRecorder {
             } => (
                 "treasure_selected".to_string(),
                 to_string(
-                    &json!({"TreasureSelected": {"stage": *stage, "upgrade_kind": upgrade_kind}}),
+                    &json!({"TreasureSelected": {"stage": *stage, "upgrade_kind": upgrade_kind.key()}}),
                 )?,
             ),
             _ => return Ok(()),
