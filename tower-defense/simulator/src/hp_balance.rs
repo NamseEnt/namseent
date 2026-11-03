@@ -7,7 +7,7 @@ use crate::ml::support::{current_git_revision, sha256_hex};
 use crate::policy_runner::{BatchResult, PolicyRunnerConfig};
 use crate::recording::{SimRecorder, SimulationProvenance};
 use anyhow::Context;
-use clap::{Args, ValueEnum};
+use clap::Args;
 use indicatif::{ProgressBar, ProgressStyle};
 use rayon::prelude::*;
 use std::collections::{BTreeMap, HashMap};
@@ -17,74 +17,24 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
 };
 
-const TARGET_WIN_RATE: f32 = 0.05;
-const MIN_ZERO_DAMAGE_SCALE: f32 = 0.05;
-const BASE_LEARNING_RATE: f32 = 0.40;
-const LEARNING_RATE_DECAY: f32 = 0.97;
-const LEARNING_RATE_MAX: f32 = 2.00;
+const TARGET_ACT_CLEAR_RATES: [f32; 5] = [0.823, 0.734, 0.611, 0.456, 0.297];
+const BASE_LEARNING_RATE: f32 = 1.00;
 const STABLE_ITERATIONS_REQUIRED: usize = 3;
-const STAGE_SCALE_CLAMP_MIN: f32 = 0.40;
-const STAGE_SCALE_CLAMP_MAX: f32 = 4.00;
 const STAGE_SCALE_CLAMP_MIN_FLOOR: f32 = 0.25;
 const STAGE_SCALE_CLAMP_MAX_CEILING: f32 = 8.00;
-const BLEND_ALPHA_BASE: f32 = 0.30;
-const BLEND_ALPHA_MAX: f32 = 0.65;
-const BLEND_ALPHA_WIN_DEFICIT_GAIN: f32 = 2.5;
-const WIN_DEFICIT_CLAMP_GAIN: f32 = 1.20;
-const WIN_SURPLUS_CLAMP_GAIN: f32 = 1.60;
-const TARGET_STAGE_SURVIVAL_EXPONENT: f32 = 1.0;
-const ARRIVAL_ERROR_WEIGHT_BASE: f32 = 0.65;
-const DAMAGE_ERROR_WEIGHT_BASE: f32 = 0.20;
-const DAMAGE_ERROR_WEIGHT_MAX: f32 = 0.45;
-const DAMAGE_CV_WEIGHT_BOOST_THRESHOLD: f32 = 0.35;
-const DAMAGE_CV_STABLE_THRESHOLD: f32 = 0.35;
-const CLEAR_PEAK_STABLE_THRESHOLD: f32 = 1.30;
-const GLOBAL_WIN_SCALE_GAIN: f32 = 5.0;
-const GLOBAL_WIN_SCALE_MIN: f32 = 0.60;
-const GLOBAL_WIN_SCALE_MAX: f32 = 1.30;
-const GLOBAL_WIN_SCALE_BLEND: f32 = 0.05;
+const STAGE_SCALE_RELATIVE_MIN: f32 = 0.25;
+const STAGE_SCALE_RELATIVE_MAX: f32 = 4.00;
+const STAGE_SCALE_LOG_STEP_MAX: f32 = 0.20;
+const BLEND_ALPHA: f32 = 0.65;
+const ACT_CLEAR_SIGNAL_WEIGHT: f32 = 1.0;
+const INTRA_ACT_SIGNAL_SMOOTHING: f32 = 0.25;
 const CLEAR_RATE_BIN_COUNT: usize = 51;
-const CDF_GLOBAL_GAIN: f32 = 0.30;
-const CDF_GLOBAL_SMOOTHING: f32 = 0.65;
-const GLOBAL_SCALE_MIN: f32 = 0.60;
-const GLOBAL_SCALE_MAX: f32 = 4.00;
-const KS_CONVERGENCE_THRESHOLD: f32 = 0.12;
-const TOP_BIN_CONVERGENCE_THRESHOLD: f32 = 0.12;
-const DEFAULT_DISTRIBUTION_STAGE_SIGNAL_GAIN: f32 = 2.50;
-const DEFAULT_DEATH_DISTRIBUTION_SIGNAL_WEIGHT: f32 = 1.50;
-const DEATH_DISTRIBUTION_SIGNAL_CLAMP: f32 = 0.60;
-const ROUGH_BOOTSTRAP_SIGNAL_CLAMP: f32 = 0.60;
-const ROUGH_TILT_MIN: f32 = -0.50;
-const ROUGH_TILT_MAX: f32 = 4.00;
-const ROUGH_GLOBAL_SCALE_MIN: f32 = 0.01;
-const ROUGH_GLOBAL_SCALE_MAX: f32 = 1_000_000.0;
-const ROUGH_STAGE_SCALE_MIN_FLOOR: f32 = 0.05;
-const ROUGH_STAGE_SCALE_MAX_CEILING: f32 = 64.0;
-const SPIKE_DETECT_WINDOW: usize = 2;
-const SPIKE_RATIO_THRESHOLD: f32 = 1.35;
-const SPIKE_TARGET_MULTIPLIER: f32 = 1.80;
-const SPIKE_SPREAD_RADIUS: usize = 3;
-const SPIKE_SIGNAL_GAIN: f32 = 0.45;
-const DOMINANT_BIN_PIN_THRESHOLD: f32 = 0.20;
-const DOMINANT_BIN_ESCAPE_GAIN: f32 = 0.45;
-const DOMINANT_BIN_ESCAPE_RADIUS: usize = 7;
-const EARLY_DOMINANT_BIN_LIMIT: usize = 9;
-const EARLY_DOMINANT_TILT_DAMP_GAIN: f32 = 0.85;
-const EARLY_DOMINANT_GLOBAL_DAMP_GAIN: f32 = 0.55;
-const NEIGHBOR_DAMAGE_BLEND: f32 = 0.65;
-const MIN_TARGET_ARRIVAL: f32 = 0.05;
-const MAX_TARGET_ARRIVAL: f32 = 0.95;
-const SIGNAL_CLAMP_MIN: f32 = -0.35;
-const SIGNAL_CLAMP_MAX: f32 = 0.35;
-const CONFIDENCE_SCALE: f32 = 2.0;
-const MIN_ARRIVAL_CONFIDENCE: f32 = 0.20;
-const LATER_STAGE_IMPORTANCE_FACTOR: f32 = 0.0;
-
-#[derive(Clone, Copy, Debug, ValueEnum)]
-enum CdfProfile {
-    Uniform,
-    Trapezoid,
-}
+const ACT_LOG_ERROR_CLAMP: f32 = 1.50;
+const STAGE_LOG_ERROR_CLAMP: f32 = 1.00;
+const STAGE_RESIDUAL_CLAMP: f32 = 0.50;
+const MIN_CONVERGENCE_ARRIVALS: usize = 20;
+const ACT_RATE_CONVERGENCE_TOLERANCE: f32 = 0.05;
+const STAGE_CLEAR_RMSE_CONVERGENCE_THRESHOLD: f32 = 0.08;
 
 #[derive(Args)]
 pub struct BalanceOptions {
@@ -99,10 +49,6 @@ pub struct BalanceOptions {
     /// First simulation seed (the batch uses a contiguous seed range)
     #[arg(long, default_value_t = 0)]
     seed_start: u64,
-
-    /// Optional 51-bin clear-rate target (comma-separated weights for 0..100% in 2% bins)
-    #[arg(long)]
-    target_clear_distribution: Option<String>,
 
     /// SQLite database path for recording results
     #[arg(short, long, default_value = "sim_results.db")]
@@ -135,65 +81,9 @@ pub struct BalanceOptions {
     #[arg(long)]
     quiet: bool,
 
-    /// Target CDF profile used for distribution flattening
-    #[arg(long, value_enum, default_value_t = CdfProfile::Trapezoid)]
-    cdf_profile: CdfProfile,
-
-    /// Stage-segment gain for early rounds (1..16)
-    #[arg(long, default_value_t = 0.85)]
-    early_segment_gain: f32,
-
-    /// Stage-segment gain for middle rounds (17..34)
-    #[arg(long, default_value_t = 1.00)]
-    mid_segment_gain: f32,
-
-    /// Stage-segment gain for late rounds (35..50)
-    #[arg(long, default_value_t = 1.35)]
-    late_segment_gain: f32,
-
-    /// Distribution stage signal gain
-    #[arg(long, default_value_t = DEFAULT_DISTRIBUTION_STAGE_SIGNAL_GAIN)]
-    distribution_stage_signal_gain: f32,
-
-    /// Death-distribution signal blending weight
-    #[arg(long, default_value_t = DEFAULT_DEATH_DISTRIBUTION_SIGNAL_WEIGHT)]
-    death_distribution_signal_weight: f32,
-
-    /// Global CDF pressure gain
-    #[arg(long, default_value_t = CDF_GLOBAL_GAIN)]
-    cdf_global_gain: f32,
-
     /// Normalize all normal-monster base HP to this value before tuning
     #[arg(long)]
     initial_base_hp: Option<f32>,
-
-    /// Enable rough bootstrap phase optimized for uniform-base initialization
-    #[arg(long, default_value_t = true)]
-    rough_initial_balance: bool,
-
-    /// Number of bootstrap iterations with strong stage-spread forcing
-    #[arg(long, default_value_t = 12)]
-    rough_bootstrap_iterations: usize,
-
-    /// Initial stage baseline curve gain for rough mode
-    #[arg(long, default_value_t = 1.6)]
-    rough_initial_curve_gain: f32,
-
-    /// Bootstrap forcing gain for rough mode
-    #[arg(long, default_value_t = 2.0)]
-    rough_bootstrap_gain: f32,
-
-    /// Initial stage difficulty tilt used in rough mode
-    #[arg(long, default_value_t = 1.2)]
-    rough_initial_tilt: f32,
-
-    /// Update gain for learned stage tilt in rough mode
-    #[arg(long, default_value_t = 0.9)]
-    rough_tilt_update_gain: f32,
-
-    /// Update gain for rough-mode global HP scale
-    #[arg(long, default_value_t = 2.2)]
-    rough_global_scale_gain: f32,
 }
 
 struct BalancePolicy {
@@ -212,15 +102,15 @@ struct BalanceTuning<'a> {
     recorder: &'a Arc<SimRecorder>,
     stop_requested: &'a Arc<AtomicBool>,
     policy: &'a BalancePolicy,
-    target_weights: &'a [f32],
-    target_win_rate: f32,
     seed_end: u64,
 }
 
 struct BalanceStats {
     win_rate: f32,
-    stage_means: Vec<f32>,
     stage_arrivals: Vec<usize>,
+    stage_clear_rates: Vec<f32>,
+    act_clear_rates: Vec<f32>,
+    act_survival_rates: Vec<f32>,
     clear_rates: Vec<f32>,
     overall_damage_mean: f32,
     below_15_frac: f32,
@@ -234,17 +124,6 @@ struct BalanceStats {
     terminal_tower_damage_mean: f32,
     config_digest: String,
     policy_id: String,
-}
-
-#[derive(Default)]
-struct DistributionControl {
-    ks_distance: f32,
-    top_bin_share: f32,
-    pressure: f32,
-    bin_errors: Vec<f32>,
-    dominant_bin_idx: usize,
-    dominant_bin_escape_direction: f32,
-    dominant_bin_escape_strength: f32,
 }
 
 pub fn run(cli: BalanceOptions) -> anyhow::Result<()> {
@@ -262,11 +141,7 @@ pub fn run(cli: BalanceOptions) -> anyhow::Result<()> {
     if let Some(initial_base_hp) = cli.initial_base_hp {
         normalize_normal_monster_hp(&mut base_config, initial_base_hp.max(1.0));
     }
-    if cli.rough_initial_balance {
-        apply_boss_hp_from_stage(&mut base_config);
-    } else {
-        zero_boss_hp(&mut base_config);
-    }
+    apply_boss_hp_from_stage(&mut base_config);
 
     let checkpoint_path = managed::resolve_selected_checkpoint(cli.checkpoint.as_deref())?;
     let (semantic_policy, iteration) =
@@ -281,15 +156,6 @@ pub fn run(cli: BalanceOptions) -> anyhow::Result<()> {
         model_sha256,
         git_revision: current_git_revision()?,
     };
-    let target_weights = match cli.target_clear_distribution.as_deref() {
-        Some(value) => parse_target_clear_distribution(value)?,
-        None => build_target_bin_weights(cli.cdf_profile),
-    };
-    // Built-in profiles retain their historical 5% full-clear objective. A
-    // custom 51-bin distribution is authoritative, including its 100% bin.
-    let target_win_rate =
-        resolve_target_win_rate(&target_weights, cli.target_clear_distribution.is_some());
-
     let stop_requested = Arc::new(AtomicBool::new(false));
     {
         let stop_requested = stop_requested.clone();
@@ -320,8 +186,6 @@ pub fn run(cli: BalanceOptions) -> anyhow::Result<()> {
         recorder: &recorder,
         stop_requested: &stop_requested,
         policy: &policy,
-        target_weights: &target_weights,
-        target_win_rate,
         seed_end,
     };
     let (tuned_config, iteration_reports) = tune_hp_balance(base_config, &tuning)?;
@@ -342,8 +206,10 @@ pub fn run(cli: BalanceOptions) -> anyhow::Result<()> {
         "model_sha256": policy.model_sha256,
         "git_revision": policy.git_revision,
         "checkpoint_iteration": policy.checkpoint_iteration,
-        "target_clear_distribution": target_weights,
-        "target_full_clear_rate": target_win_rate,
+        "target_full_clear_rate": target_act_clear_rates(tuned_config.player.max_stages)
+            .iter()
+            .product::<f32>(),
+        "target_act_clear_rates": target_act_clear_rates(tuned_config.player.max_stages),
         "seed_schedule": format!("{}..={seed_end}", cli.seed_start),
         "source_config_digest": source_config_digest,
         "output_config_digest": final_contract.config_digest,
@@ -359,26 +225,277 @@ pub fn run(cli: BalanceOptions) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn target_stage_survival(stage: usize, stages: usize) -> f32 {
-    target_stage_survival_for(stage, stages, TARGET_WIN_RATE)
+fn target_cumulative_survival_for(acts_completed: usize) -> f32 {
+    TARGET_ACT_CLEAR_RATES.iter().take(acts_completed).product()
 }
 
-fn target_stage_survival_for(stage: usize, stages: usize, target_win_rate: f32) -> f32 {
-    if stages <= 1 {
-        return target_win_rate;
-    }
-
-    let normalized = (stage as f32 - 1.0) / (stages as f32 - 1.0);
-    target_win_rate
-        + (1.0 - target_win_rate) * (1.0 - normalized.powf(TARGET_STAGE_SURVIVAL_EXPONENT))
+fn target_act_clear_rate_for(act_index: usize) -> f32 {
+    TARGET_ACT_CLEAR_RATES
+        .get(act_index)
+        .copied()
+        .unwrap_or_default()
 }
 
-fn resolve_target_win_rate(target_weights: &[f32], custom_target: bool) -> f32 {
-    if custom_target {
-        target_weights[CLEAR_RATE_BIN_COUNT - 1]
-    } else {
-        TARGET_WIN_RATE
+fn target_act_clear_rates(stages: usize) -> Vec<f32> {
+    let act_count = stages.div_ceil(td_core::STAGES_PER_ACT);
+    (0..act_count.min(TARGET_ACT_CLEAR_RATES.len()))
+        .map(target_act_clear_rate_for)
+        .collect()
+}
+
+fn compute_act_rates(
+    stage_arrivals: &[usize],
+    total_wins: usize,
+    samples: usize,
+    stages: usize,
+) -> (Vec<f32>, Vec<f32>) {
+    let act_count = stages.div_ceil(td_core::STAGES_PER_ACT);
+    let mut clear_rates = Vec::with_capacity(act_count);
+    let mut survival_rates = Vec::with_capacity(act_count);
+
+    for act_index in 0..act_count {
+        let entrants = if act_index == 0 {
+            samples
+        } else {
+            stage_arrivals
+                .get(act_index * td_core::STAGES_PER_ACT)
+                .copied()
+                .unwrap_or(0)
+        };
+        let clearers = if act_index + 1 == act_count {
+            total_wins
+        } else {
+            stage_arrivals
+                .get((act_index + 1) * td_core::STAGES_PER_ACT)
+                .copied()
+                .unwrap_or(0)
+        };
+        clear_rates.push(if entrants > 0 {
+            clearers as f32 / entrants as f32
+        } else {
+            0.0
+        });
+        survival_rates.push(clearers as f32 / samples.max(1) as f32);
     }
+
+    (clear_rates, survival_rates)
+}
+
+fn target_stage_clear_rate_for(stage: usize, stages: usize) -> f32 {
+    let act_index = (stage - 1) / td_core::STAGES_PER_ACT;
+    let act_start = act_index * td_core::STAGES_PER_ACT;
+    let act_end = ((act_index + 1) * td_core::STAGES_PER_ACT).min(stages);
+    let act_length = act_end.saturating_sub(act_start).max(1);
+    target_act_clear_rate_for(act_index).powf(1.0 / act_length as f32)
+}
+
+fn compute_stage_clear_rates(
+    stage_arrivals: &[usize],
+    total_wins: usize,
+    stages: usize,
+) -> Vec<f32> {
+    (0..stages)
+        .map(|index| {
+            let entrants = stage_arrivals.get(index).copied().unwrap_or(0);
+            let clearers = if index + 1 == stages {
+                total_wins
+            } else {
+                stage_arrivals.get(index + 1).copied().unwrap_or(0)
+            };
+            if entrants > 0 {
+                clearers as f32 / entrants as f32
+            } else {
+                0.0
+            }
+        })
+        .collect()
+}
+
+fn act_rates_within_target(
+    act_clear_rates: &[f32],
+    stage_arrivals: &[usize],
+    samples: usize,
+    stages: usize,
+) -> bool {
+    let act_count = stages.div_ceil(td_core::STAGES_PER_ACT);
+    let targets = target_act_clear_rates(stages);
+    (0..act_count).all(|act_index| {
+        let entrants = if act_index == 0 {
+            samples
+        } else {
+            stage_arrivals
+                .get(act_index * td_core::STAGES_PER_ACT)
+                .copied()
+                .unwrap_or(0)
+        };
+        let (Some(observed), Some(target)) =
+            (act_clear_rates.get(act_index), targets.get(act_index))
+        else {
+            return false;
+        };
+        entrants >= MIN_CONVERGENCE_ARRIVALS
+            && (*observed - *target).abs() <= ACT_RATE_CONVERGENCE_TOLERANCE
+    })
+}
+
+fn compute_act_stage_clear_rmses(
+    stage_arrivals: &[usize],
+    stage_clear_rates: &[f32],
+    stages: usize,
+) -> Vec<Option<f32>> {
+    let act_count = stages.div_ceil(td_core::STAGES_PER_ACT);
+    (0..act_count)
+        .map(|act_index| {
+            let act_start = act_index * td_core::STAGES_PER_ACT;
+            let act_end = ((act_index + 1) * td_core::STAGES_PER_ACT).min(stages);
+            let mut squared_error_sum = 0.0;
+            let mut stage_count = 0;
+            for stage_index in act_start..act_end {
+                let entrants = stage_arrivals.get(stage_index).copied().unwrap_or(0);
+                if entrants < MIN_CONVERGENCE_ARRIVALS {
+                    continue;
+                }
+                let observed = stage_clear_rates.get(stage_index).copied().unwrap_or(0.0);
+                let target = target_stage_clear_rate_for(stage_index + 1, stages);
+                squared_error_sum += (observed - target).powi(2);
+                stage_count += 1;
+            }
+
+            (stage_count > 0).then(|| (squared_error_sum / stage_count as f32).sqrt())
+        })
+        .collect()
+}
+
+fn act_stage_clear_rmses_within_target(act_stage_clear_rmses: &[Option<f32>]) -> bool {
+    !act_stage_clear_rmses.is_empty()
+        && act_stage_clear_rmses
+            .iter()
+            .all(|rmse| rmse.is_some_and(|rmse| rmse < STAGE_CLEAR_RMSE_CONVERGENCE_THRESHOLD))
+}
+
+fn sample_confidence(sample_count: usize) -> f32 {
+    (sample_count as f32 / (sample_count as f32 + MIN_CONVERGENCE_ARRIVALS as f32)).sqrt()
+}
+
+fn smoothed_clear_rate(observed_rate: f32, sample_count: usize) -> f32 {
+    (observed_rate * sample_count as f32 + 0.5) / (sample_count as f32 + 1.0)
+}
+
+fn compute_act_stage_adjustments(
+    stage_arrivals: &[usize],
+    stage_clear_rates: &[f32],
+    act_clear_rates: &[f32],
+    samples: usize,
+    stages: usize,
+) -> Vec<f32> {
+    let act_count = stages.div_ceil(td_core::STAGES_PER_ACT);
+    let mut adjustments = vec![0.0; stages];
+
+    for act_index in 0..act_count {
+        let act_start = act_index * td_core::STAGES_PER_ACT;
+        let act_end = ((act_index + 1) * td_core::STAGES_PER_ACT).min(stages);
+        let act_length = act_end.saturating_sub(act_start).max(1);
+        let act_entrants = if act_index == 0 {
+            samples
+        } else {
+            stage_arrivals.get(act_start).copied().unwrap_or(0)
+        };
+        if act_entrants == 0 {
+            continue;
+        }
+
+        let target_act_clear_rate = target_act_clear_rate_for(act_index);
+        let observed_act_clear_rate = act_clear_rates.get(act_index).copied().unwrap_or(0.0);
+        let act_log_error = (smoothed_clear_rate(observed_act_clear_rate, act_entrants)
+            / target_act_clear_rate)
+            .ln()
+            .clamp(-ACT_LOG_ERROR_CLAMP, ACT_LOG_ERROR_CLAMP);
+        let act_confidence = sample_confidence(act_entrants);
+        let shared_act_adjustment = act_log_error * act_confidence / act_length as f32;
+        let target_stage_clear_rate = target_act_clear_rate.powf(1.0 / act_length as f32);
+        let mut stage_residuals = Vec::with_capacity(act_length);
+        let mut observed_stage_count = 0;
+
+        for stage_index in act_start..act_end {
+            let stage_entrants = stage_arrivals.get(stage_index).copied().unwrap_or(0);
+            let stage_residual = if stage_entrants > 0 {
+                observed_stage_count += 1;
+                let observed_stage_clear_rate =
+                    stage_clear_rates.get(stage_index).copied().unwrap_or(0.0);
+                let stage_log_error =
+                    (smoothed_clear_rate(observed_stage_clear_rate, stage_entrants)
+                        / target_stage_clear_rate)
+                        .ln();
+                let stage_confidence = sample_confidence(stage_entrants);
+                (stage_log_error - act_log_error / act_length as f32)
+                    .clamp(-STAGE_LOG_ERROR_CLAMP, STAGE_LOG_ERROR_CLAMP)
+                    * stage_confidence
+            } else {
+                0.0
+            };
+            stage_residuals.push(stage_residual);
+        }
+
+        let smoothed_residuals = smooth_act_stage_residuals(&stage_residuals);
+        let residual_mean = if observed_stage_count > 0 {
+            smoothed_residuals
+                .iter()
+                .enumerate()
+                .filter(|(offset, _)| {
+                    stage_arrivals.get(act_start + offset).copied().unwrap_or(0) > 0
+                })
+                .map(|(_, residual)| residual)
+                .sum::<f32>()
+                / observed_stage_count as f32
+        } else {
+            0.0
+        };
+        for (offset, smoothed_residual) in smoothed_residuals.into_iter().enumerate() {
+            let has_stage_samples =
+                stage_arrivals.get(act_start + offset).copied().unwrap_or(0) > 0;
+            let centered_residual = if has_stage_samples {
+                (smoothed_residual - residual_mean)
+                    .clamp(-STAGE_RESIDUAL_CLAMP, STAGE_RESIDUAL_CLAMP)
+            } else {
+                0.0
+            };
+            adjustments[act_start + offset] =
+                shared_act_adjustment + centered_residual * ACT_CLEAR_SIGNAL_WEIGHT;
+        }
+    }
+
+    adjustments
+}
+
+fn smooth_act_stage_residuals(stage_residuals: &[f32]) -> Vec<f32> {
+    stage_residuals
+        .iter()
+        .enumerate()
+        .map(|(index, residual)| {
+            let mut weighted_sum = *residual;
+            let mut total_weight = 1.0;
+            if let Some(previous) = index.checked_sub(1).and_then(|i| stage_residuals.get(i)) {
+                weighted_sum += previous * INTRA_ACT_SIGNAL_SMOOTHING;
+                total_weight += INTRA_ACT_SIGNAL_SMOOTHING;
+            }
+            if let Some(next) = stage_residuals.get(index + 1) {
+                weighted_sum += next * INTRA_ACT_SIGNAL_SMOOTHING;
+                total_weight += INTRA_ACT_SIGNAL_SMOOTHING;
+            }
+            weighted_sum / total_weight
+        })
+        .collect()
+}
+
+fn update_stage_scale(current_scale: f32, signal: f32, learning_rate: f32) -> f32 {
+    let log_step =
+        (signal * learning_rate).clamp(-STAGE_SCALE_LOG_STEP_MAX, STAGE_SCALE_LOG_STEP_MAX);
+    let target_scale = (current_scale * log_step.exp()).clamp(
+        (current_scale * STAGE_SCALE_RELATIVE_MIN).max(STAGE_SCALE_CLAMP_MIN_FLOOR),
+        (current_scale * STAGE_SCALE_RELATIVE_MAX).min(STAGE_SCALE_CLAMP_MAX_CEILING),
+    );
+    (current_scale * (1.0 - BLEND_ALPHA) + target_scale * BLEND_ALPHA)
+        .clamp(STAGE_SCALE_CLAMP_MIN_FLOOR, STAGE_SCALE_CLAMP_MAX_CEILING)
 }
 
 fn tune_hp_balance(
@@ -389,8 +506,6 @@ fn tune_hp_balance(
         cli,
         stop_requested,
         policy,
-        target_weights,
-        target_win_rate,
         seed_end,
         ..
     } = tuning;
@@ -402,12 +517,8 @@ fn tune_hp_balance(
         .map(|stat| (stat.kind, stat.base_hp_raw as f32 / 1_000.0))
         .collect();
     let mut stage_primary = build_stage_primary_monster(&config);
-    let mut stage_momentum = build_initial_stage_scale_curve(stages, cli);
+    let mut stage_momentum = vec![1.0_f32; stages + 1];
     let mut stable_iterations = 0;
-    let mut learning_rate = BASE_LEARNING_RATE;
-    let mut global_scale = 1.0_f32;
-    let mut rough_tilt = cli.rough_initial_tilt;
-    let mut rough_global_scale = 1.0_f32;
 
     println!(
         "=== Running policy-backed auto tuning: samples={} policy={} seeds={}..={} ===",
@@ -458,6 +569,23 @@ fn tune_hp_balance(
             metrics.policy_id,
         );
         println!("Iteration {iteration}: {target_message}");
+        for (act_index, (&clear_rate, &survival_rate)) in metrics
+            .act_clear_rates
+            .iter()
+            .zip(&metrics.act_survival_rates)
+            .enumerate()
+        {
+            let act = act_index + 1;
+            let target_clear_rate = target_act_clear_rate_for(act_index);
+            let target_survival_rate = target_cumulative_survival_for(act);
+            println!(
+                "  Act {act}: clear {:.1}% (target {:.1}%), cumulative survival {:.1}% (target {:.1}%)",
+                clear_rate * 100.0,
+                target_clear_rate * 100.0,
+                survival_rate * 100.0,
+                target_survival_rate * 100.0,
+            );
+        }
         println!(
             "Iteration {iteration}: terminal metrics towers {:.2}, player_damage {:.2}, escaped_hp {:.2}, items {:.2}, tower_damage {:.2}",
             metrics.terminal_tower_mean,
@@ -473,67 +601,26 @@ fn tune_hp_balance(
             );
         }
 
-        let reference_damage_mean = compute_robust_reference_damage(&metrics.stage_means);
-        let win_error = metrics.win_rate - target_win_rate;
-        let clear_rate_peak_ratio = compute_clear_rate_peak_ratio(&metrics.clear_rates);
-        let damage_cv = compute_damage_cv(&metrics.stage_means);
-        let distribution_control =
-            compute_distribution_control(&metrics.clear_rates, target_weights);
-        let damage_weight = if damage_cv > DAMAGE_CV_WEIGHT_BOOST_THRESHOLD {
-            DAMAGE_ERROR_WEIGHT_MAX
-        } else {
-            DAMAGE_ERROR_WEIGHT_BASE
-        };
-        let arrival_weight = ARRIVAL_ERROR_WEIGHT_BASE;
-
-        if !cli.rough_initial_balance {
-            let global_scale_target = (global_scale
-                * (-distribution_control.pressure * cli.cdf_global_gain).exp())
-            .clamp(GLOBAL_SCALE_MIN, GLOBAL_SCALE_MAX);
-            global_scale = (global_scale * CDF_GLOBAL_SMOOTHING
-                + global_scale_target * (1.0 - CDF_GLOBAL_SMOOTHING))
-                .clamp(GLOBAL_SCALE_MIN, GLOBAL_SCALE_MAX);
-        }
-
-        if cli.rough_initial_balance {
-            let win_delta = metrics.win_rate - target_win_rate;
-            let tilt_step =
-                win_delta * cli.rough_tilt_update_gain + distribution_control.pressure * 0.20;
-            rough_tilt = (rough_tilt + tilt_step).clamp(ROUGH_TILT_MIN, ROUGH_TILT_MAX);
-
-            let rough_global_step = (win_delta * cli.rough_global_scale_gain).clamp(-2.0, 2.0);
-            rough_global_scale = (rough_global_scale * rough_global_step.exp())
-                .clamp(ROUGH_GLOBAL_SCALE_MIN, ROUGH_GLOBAL_SCALE_MAX);
-
-            if distribution_control.dominant_bin_idx <= EARLY_DOMINANT_BIN_LIMIT
-                && distribution_control.top_bin_share > DOMINANT_BIN_PIN_THRESHOLD
-            {
-                let pin_strength = (distribution_control.top_bin_share
-                    - DOMINANT_BIN_PIN_THRESHOLD)
-                    / (1.0 - DOMINANT_BIN_PIN_THRESHOLD);
-                let pin_strength = pin_strength.clamp(0.0, 1.0);
-                rough_tilt = (rough_tilt - pin_strength * EARLY_DOMINANT_TILT_DAMP_GAIN)
-                    .clamp(ROUGH_TILT_MIN, ROUGH_TILT_MAX);
-                rough_global_scale = (rough_global_scale
-                    * (-pin_strength * EARLY_DOMINANT_GLOBAL_DAMP_GAIN).exp())
-                .clamp(ROUGH_GLOBAL_SCALE_MIN, ROUGH_GLOBAL_SCALE_MAX);
-            }
-        }
-
-        let win_deviation = (metrics.win_rate - target_win_rate).abs();
-        let aggressive_learning_rate = (BASE_LEARNING_RATE
-            + win_deviation * 1.2
-            + (damage_cv - DAMAGE_CV_WEIGHT_BOOST_THRESHOLD).max(0.0) * 0.25)
-            .min(LEARNING_RATE_MAX);
-        let iteration_learning_rate = learning_rate.max(aggressive_learning_rate);
-        let stage_deaths = compute_stage_deaths(
+        let target_act_rates = target_act_clear_rates(stages);
+        let max_act_deviation = metrics
+            .act_clear_rates
+            .iter()
+            .zip(&target_act_rates)
+            .map(|(observed, target)| (observed - target).abs())
+            .fold(0.0_f32, f32::max);
+        let act_stage_clear_rmses = compute_act_stage_clear_rmses(
             &metrics.stage_arrivals,
-            metrics.win_rate,
+            &metrics.stage_clear_rates,
+            stages,
+        );
+        let iteration_learning_rate = BASE_LEARNING_RATE;
+        let stage_adjustments = compute_act_stage_adjustments(
+            &metrics.stage_arrivals,
+            &metrics.stage_clear_rates,
+            &metrics.act_clear_rates,
             cli.samples,
             stages,
         );
-        let target_stage_deaths =
-            (cli.samples as f32 * (1.0 - target_win_rate) / stages as f32).max(1.0);
 
         let mut max_change: f32 = 0.0;
         let mut stage_scale_min: f32 = f32::INFINITY;
@@ -542,108 +629,11 @@ fn tune_hp_balance(
         let mut smoothed_stage_scale = vec![1.0_f32; stages + 1];
         for (stage, primary_monster) in stage_primary.iter().enumerate().skip(1).take(stages) {
             if primary_monster.is_some() {
-                let arrival_count = metrics.stage_arrivals[stage - 1];
-                let observed = if arrival_count > 0 {
-                    metrics.stage_means[stage - 1].max(MIN_ZERO_DAMAGE_SCALE)
-                } else {
-                    MIN_ZERO_DAMAGE_SCALE
-                };
-                let target_damage = compute_smoothed_target_damage(
-                    stage,
-                    &metrics.stage_means,
-                    reference_damage_mean,
+                let stage_scale = update_stage_scale(
+                    stage_momentum[stage],
+                    stage_adjustments[stage - 1],
+                    iteration_learning_rate,
                 );
-                let signal = compute_stage_adjustment_signal(
-                    stage,
-                    arrival_count,
-                    observed,
-                    target_damage,
-                    &distribution_control,
-                    metrics.win_rate,
-                    cli.samples,
-                    stages,
-                    arrival_weight,
-                    damage_weight,
-                    *target_win_rate,
-                    cli,
-                );
-                let stage_ratio = stage as f32 / stages as f32;
-                let bootstrap_signal =
-                    if cli.rough_initial_balance && iteration <= cli.rough_bootstrap_iterations {
-                        let ramp = (stage_ratio - 0.5) * 2.0;
-                        let win_excess = metrics.win_rate - target_win_rate;
-                        (win_excess * cli.rough_bootstrap_gain * ramp)
-                            .clamp(-ROUGH_BOOTSTRAP_SIGNAL_CLAMP, ROUGH_BOOTSTRAP_SIGNAL_CLAMP)
-                    } else {
-                        0.0
-                    };
-                let signal = (signal + bootstrap_signal).clamp(SIGNAL_CLAMP_MIN, SIGNAL_CLAMP_MAX);
-
-                let observed_stage_deaths = stage_deaths[stage - 1];
-                let death_distribution_signal = -((observed_stage_deaths + 1.0)
-                    / (target_stage_deaths + 1.0))
-                    .ln()
-                    .clamp(
-                        -DEATH_DISTRIBUTION_SIGNAL_CLAMP,
-                        DEATH_DISTRIBUTION_SIGNAL_CLAMP,
-                    );
-                let signal = (signal
-                    + death_distribution_signal * cli.death_distribution_signal_weight)
-                    .clamp(SIGNAL_CLAMP_MIN, SIGNAL_CLAMP_MAX);
-
-                let mut target_scale = (signal * iteration_learning_rate).exp();
-                let global_win_scale = compute_global_win_scale(metrics.win_rate, *target_win_rate);
-                let secondary_win_scale = 1.0 + (global_win_scale - 1.0) * GLOBAL_WIN_SCALE_BLEND;
-                if cli.rough_initial_balance {
-                    let curve_ramp = ((stage_ratio - 0.5) * 2.0 * rough_tilt).exp();
-                    let curve_ramp = curve_ramp.clamp(0.20, 12.0);
-                    target_scale *= curve_ramp;
-                } else {
-                    target_scale *= global_scale * secondary_win_scale;
-                }
-                let win_deficit = (target_win_rate - metrics.win_rate).max(0.0);
-                let win_surplus = (metrics.win_rate - target_win_rate).max(0.0);
-                let deficit_expand = ((win_deficit / target_win_rate.max(0.01)).clamp(0.0, 2.0))
-                    * WIN_DEFICIT_CLAMP_GAIN;
-                let surplus_expand = ((win_surplus / (1.0 - target_win_rate).max(0.01))
-                    .clamp(0.0, 2.0))
-                    * WIN_SURPLUS_CLAMP_GAIN;
-                let stage_scale_min_floor = if cli.rough_initial_balance {
-                    ROUGH_STAGE_SCALE_MIN_FLOOR
-                } else {
-                    STAGE_SCALE_CLAMP_MIN_FLOOR
-                };
-                let stage_scale_max_ceiling = if cli.rough_initial_balance {
-                    ROUGH_STAGE_SCALE_MAX_CEILING
-                } else {
-                    STAGE_SCALE_CLAMP_MAX_CEILING
-                };
-                let stage_clamp_min =
-                    (STAGE_SCALE_CLAMP_MIN - deficit_expand).max(stage_scale_min_floor);
-                let stage_clamp_max = (STAGE_SCALE_CLAMP_MAX
-                    + surplus_expand
-                    + if cli.rough_initial_balance {
-                        4.0 + rough_tilt * stage_ratio * 5.0
-                    } else {
-                        0.0
-                    }
-                    + (clear_rate_peak_ratio - CLEAR_PEAK_STABLE_THRESHOLD).max(0.0) * 0.2)
-                    .min(stage_scale_max_ceiling);
-                let relative_clamp_min =
-                    (stage_momentum[stage] * stage_clamp_min).max(stage_scale_min_floor);
-                let relative_clamp_max =
-                    (stage_momentum[stage] * stage_clamp_max).min(stage_scale_max_ceiling);
-                let blend_alpha = (BLEND_ALPHA_BASE
-                    + ((metrics.win_rate - target_win_rate).abs()
-                        / (1.0 - target_win_rate).max(0.01))
-                    .powf(0.75)
-                    .clamp(0.0, 1.0)
-                        * BLEND_ALPHA_WIN_DEFICIT_GAIN)
-                    .min(BLEND_ALPHA_MAX);
-                let mut stage_scale =
-                    stage_momentum[stage] * (1.0 - blend_alpha) + target_scale * blend_alpha;
-                stage_scale = stage_scale.clamp(relative_clamp_min, relative_clamp_max);
-                stage_scale = stage_scale.clamp(stage_scale_min_floor, stage_scale_max_ceiling);
                 smoothed_stage_scale[stage] = stage_scale;
                 stage_scale_min = stage_scale_min.min(stage_scale);
                 stage_scale_max = stage_scale_max.max(stage_scale);
@@ -678,34 +668,20 @@ fn tune_hp_balance(
                     .get(&monster_kind)
                     .copied()
                     .unwrap_or(stat.base_hp_raw as f32 / 1_000.0);
-                let global_scale = if cli.rough_initial_balance {
-                    rough_global_scale
-                } else {
-                    1.0
-                };
-                let applied_scale = kind_scale * global_scale;
+                let applied_scale = kind_scale;
                 stat.base_hp_raw =
                     ((base_hp * applied_scale).max(base_hp * 0.25) * 1_000.0).round() as i64;
                 max_change = max_change.max((applied_scale - 1.0).abs());
             }
         }
 
-        if cli.rough_initial_balance {
-            apply_boss_hp_from_stage(&mut config);
-        }
+        apply_boss_hp_from_stage(&mut config);
 
         println!(
-            "  debug: win_err={:.4} learn_rate={:.4} clear_peak={:.3} damage_cv={:.3} ks={:.3} top_bin={:.3} dom_bin={} gscale={:.3} tilt={:.3} rough_gscale={:.3} max_change={:.6} stage_scale=[{:.4},{:.4}] stable={}/{}",
-            win_error,
+            "  debug: max_act_error={:.4} act_stage_clear_rmse={:?} learn_rate={:.2} max_scale_offset={:.6} stage_scale=[{:.4},{:.4}] stable={}/{}",
+            max_act_deviation,
+            act_stage_clear_rmses,
             iteration_learning_rate,
-            clear_rate_peak_ratio,
-            damage_cv,
-            distribution_control.ks_distance,
-            distribution_control.top_bin_share,
-            distribution_control.dominant_bin_idx + 1,
-            global_scale,
-            rough_tilt,
-            rough_global_scale,
             max_change,
             stage_scale_min,
             stage_scale_max,
@@ -738,6 +714,28 @@ fn tune_hp_balance(
                 )
             })
             .collect::<BTreeMap<_, _>>();
+        let act_progress = (0..metrics.act_clear_rates.len())
+            .map(|act_index| {
+                let act = act_index + 1;
+                serde_json::json!({
+                    "act": act,
+                    "target_clear_rate": target_act_clear_rate_for(act_index),
+                    "observed_clear_rate": metrics.act_clear_rates[act_index],
+                    "target_cumulative_survival": target_cumulative_survival_for(act),
+                    "observed_cumulative_survival": metrics.act_survival_rates[act_index],
+                })
+            })
+            .collect::<Vec<_>>();
+        let stage_progress = (0..stages)
+            .map(|stage_index| {
+                serde_json::json!({
+                    "stage": stage_index + 1,
+                    "entrants": metrics.stage_arrivals[stage_index],
+                    "target_clear_rate": target_stage_clear_rate_for(stage_index + 1, stages),
+                    "observed_clear_rate": metrics.stage_clear_rates[stage_index],
+                })
+            })
+            .collect::<Vec<_>>();
         iteration_reports.push(serde_json::json!({
             "iteration": iteration,
             "policy_id": policy.policy_id,
@@ -745,38 +743,29 @@ fn tune_hp_balance(
             "checkpoint_sha256": policy.checkpoint_sha256,
             "seed_schedule": format!("{}..={seed_end}", cli.seed_start),
             "config_digest": metrics.config_digest,
-            "distribution_ks_error": distribution_control.ks_distance,
             "clear_rate_histogram_2_percent_bins": clear_rate_histogram,
+            "act_progress": act_progress,
+            "stage_progress": stage_progress,
+            "act_stage_clear_rate_rmse": act_stage_clear_rmses,
             "max_hp_scale_change": max_change,
             "hp_deltas": hp_deltas,
         }));
 
-        if max_change < 1e-4 {
-            println!("Iteration {iteration} converged with max change {max_change:.6}");
-            break;
-        }
+        let act_rates_stable = act_rates_within_target(
+            &metrics.act_clear_rates,
+            &metrics.stage_arrivals,
+            cli.samples,
+            stages,
+        );
+        let stage_clear_stable = act_stage_clear_rmses_within_target(&act_stage_clear_rmses);
 
-        let arrival_rmse = compute_arrival_rmse(&metrics.stage_arrivals, cli.samples, stages);
-        let win_stable = (metrics.win_rate - target_win_rate).abs() < 0.03;
-        let clear_peak_stable = distribution_control.ks_distance < KS_CONVERGENCE_THRESHOLD;
-        let clear_topbin_stable =
-            distribution_control.top_bin_share < TOP_BIN_CONVERGENCE_THRESHOLD;
-        let arrival_stable = arrival_rmse < 0.05;
-        let damage_stable = damage_cv < DAMAGE_CV_STABLE_THRESHOLD;
-
-        if win_stable
-            && clear_peak_stable
-            && clear_topbin_stable
-            && arrival_stable
-            && damage_stable
-            && metrics.below_15_frac <= 0.40
-        {
+        if act_rates_stable && stage_clear_stable {
             stable_iterations += 1;
         } else {
             stable_iterations = 0;
         }
 
-        if stable_iterations >= 2 {
+        if stable_iterations >= STABLE_ITERATIONS_REQUIRED {
             println!(
                 "Iteration {iteration} reached stable metrics after {stable_iterations} iterations"
             );
@@ -788,22 +777,11 @@ fn tune_hp_balance(
             break;
         }
 
-        learning_rate = (iteration_learning_rate * LEARNING_RATE_DECAY)
-            .max(aggressive_learning_rate * 0.75)
-            .min(LEARNING_RATE_MAX);
         stage_primary = build_stage_primary_monster(&config);
     }
 
     apply_boss_hp_from_stage(&mut config);
     Ok((config, iteration_reports))
-}
-
-fn zero_boss_hp(config: &mut GameConfig) {
-    for stat in config.monsters.stats.iter_mut() {
-        if !is_normal_monster(stat.kind) {
-            stat.base_hp_raw = 0;
-        }
-    }
 }
 
 fn normalize_normal_monster_hp(config: &mut GameConfig, hp: f32) {
@@ -812,21 +790,6 @@ fn normalize_normal_monster_hp(config: &mut GameConfig, hp: f32) {
             stat.base_hp_raw = (hp * 1_000.0).round() as i64;
         }
     }
-}
-
-fn build_initial_stage_scale_curve(stages: usize, cli: &BalanceOptions) -> Vec<f32> {
-    let mut curve = vec![1.0_f32; stages + 1];
-    if !cli.rough_initial_balance || stages <= 1 {
-        return curve;
-    }
-
-    for (stage, curve_value) in curve.iter_mut().enumerate().skip(1) {
-        let r = stage as f32 / stages as f32;
-        let centered = (r - 0.5) * 2.0;
-        let scale = (centered * cli.rough_initial_curve_gain).exp();
-        *curve_value = scale.clamp(0.55, 1.95);
-    }
-    curve
 }
 
 fn build_stage_primary_monster(config: &GameConfig) -> Vec<Option<u8>> {
@@ -883,417 +846,6 @@ fn apply_boss_hp_from_stage(config: &mut GameConfig) {
 
 fn is_normal_monster(kind: u8) -> bool {
     kind < 50
-}
-
-fn compute_clear_rate_peak_ratio(clear_rates: &[f32]) -> f32 {
-    if clear_rates.is_empty() {
-        return 1.0;
-    }
-
-    let mut bins = [0usize; 51];
-    for &rate in clear_rates {
-        let idx = ((rate.clamp(0.0, 100.0) as usize) / 2).min(50);
-        bins[idx] += 1;
-    }
-
-    let avg = clear_rates.len() as f32 / bins.len() as f32;
-    let max_bin = *bins.iter().max().unwrap_or(&0) as f32;
-    if avg > 0.0 {
-        (max_bin / avg).max(1.0)
-    } else {
-        1.0
-    }
-}
-
-fn compute_global_win_scale(win_rate: f32, target_win_rate: f32) -> f32 {
-    let raw_win_scale = ((win_rate - target_win_rate) * GLOBAL_WIN_SCALE_GAIN).exp();
-    raw_win_scale.clamp(GLOBAL_WIN_SCALE_MIN, GLOBAL_WIN_SCALE_MAX)
-}
-
-fn compute_smoothed_target_damage(stage: usize, stage_means: &[f32], reference_damage: f32) -> f32 {
-    let idx = stage.saturating_sub(1);
-    let stages = stage_means.len();
-    let observed = stage_means[idx].max(MIN_ZERO_DAMAGE_SCALE);
-    let prev = if idx > 0 {
-        stage_means[idx - 1].max(MIN_ZERO_DAMAGE_SCALE)
-    } else {
-        observed
-    };
-    let next = if idx + 1 < stages {
-        stage_means[idx + 1].max(MIN_ZERO_DAMAGE_SCALE)
-    } else {
-        observed
-    };
-    let neighbor_avg = (prev + observed + next) / 3.0;
-    let target =
-        neighbor_avg * NEIGHBOR_DAMAGE_BLEND + reference_damage * (1.0 - NEIGHBOR_DAMAGE_BLEND);
-    target.max(MIN_ZERO_DAMAGE_SCALE)
-}
-
-fn compute_robust_reference_damage(stage_means: &[f32]) -> f32 {
-    let mut filtered: Vec<f32> = stage_means
-        .iter()
-        .copied()
-        .filter(|mean| *mean > MIN_ZERO_DAMAGE_SCALE)
-        .collect();
-    if filtered.is_empty() {
-        return 1.0;
-    }
-    filtered.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
-    let mid = filtered.len() / 2;
-    if filtered.len().is_multiple_of(2) {
-        (filtered[mid - 1] + filtered[mid]) * 0.5
-    } else {
-        filtered[mid]
-    }
-    .max(1.0)
-}
-
-#[allow(clippy::too_many_arguments)]
-fn compute_stage_adjustment_signal(
-    stage: usize,
-    arrival_count: usize,
-    observed_damage: f32,
-    target_damage: f32,
-    distribution_control: &DistributionControl,
-    win_rate: f32,
-    samples: usize,
-    stages: usize,
-    arrival_weight: f32,
-    damage_weight: f32,
-    target_win_rate: f32,
-    cli: &BalanceOptions,
-) -> f32 {
-    let observed_arrival = arrival_count as f32 / samples as f32;
-    let target_arrival = target_stage_survival_for(stage, stages, target_win_rate)
-        .clamp(MIN_TARGET_ARRIVAL, MAX_TARGET_ARRIVAL);
-    let raw_arrival_signal = if observed_arrival > 0.0 {
-        (observed_arrival / target_arrival)
-            .ln()
-            .clamp(SIGNAL_CLAMP_MIN, SIGNAL_CLAMP_MAX)
-    } else {
-        -1.8
-    };
-
-    let arrival_confidence = if arrival_count == 0 {
-        MIN_ARRIVAL_CONFIDENCE
-    } else {
-        ((arrival_count as f32 / samples as f32).sqrt() * CONFIDENCE_SCALE)
-            .clamp(MIN_ARRIVAL_CONFIDENCE, 1.0)
-    };
-
-    let stage_importance = 1.0 + (stage as f32 / stages as f32) * LATER_STAGE_IMPORTANCE_FACTOR;
-    let arrival_signal = raw_arrival_signal * arrival_confidence * stage_importance;
-
-    let damage_signal = if arrival_count > 0 && observed_damage > 0.0 {
-        (target_damage / observed_damage)
-            .ln()
-            .clamp(SIGNAL_CLAMP_MIN, SIGNAL_CLAMP_MAX)
-            * stage_importance
-    } else {
-        0.0
-    };
-
-    let stage_ratio = stage as f32 / stages as f32;
-    let bin_idx = ((stage_ratio * 100.0) / 2.0)
-        .round()
-        .clamp(0.0, (CLEAR_RATE_BIN_COUNT - 1) as f32) as usize;
-    let bin_error = distribution_control
-        .bin_errors
-        .get(bin_idx)
-        .copied()
-        .unwrap_or(0.0);
-    let left_error = if bin_idx > 0 {
-        distribution_control.bin_errors[bin_idx - 1]
-    } else {
-        bin_error
-    };
-    let right_error = if bin_idx + 1 < distribution_control.bin_errors.len() {
-        distribution_control.bin_errors[bin_idx + 1]
-    } else {
-        bin_error
-    };
-    let neighborhood_error = bin_error * 0.6 + left_error * 0.2 + right_error * 0.2;
-    let bin_polarity = stage_ratio * 2.0 - 1.0;
-    let segment_gain = compute_stage_segment_gain(stage, stages, cli);
-    let raw_distribution_signal =
-        neighborhood_error * bin_polarity * cli.distribution_stage_signal_gain * segment_gain;
-    let distribution_signal = if win_rate > target_win_rate + 0.02 {
-        raw_distribution_signal.max(0.0)
-    } else if win_rate < target_win_rate - 0.02 {
-        raw_distribution_signal.min(0.0)
-    } else {
-        raw_distribution_signal
-    };
-
-    let dominant_distance = bin_idx.abs_diff(distribution_control.dominant_bin_idx);
-    let dominant_proximity = if dominant_distance <= DOMINANT_BIN_ESCAPE_RADIUS {
-        (DOMINANT_BIN_ESCAPE_RADIUS + 1 - dominant_distance) as f32
-            / (DOMINANT_BIN_ESCAPE_RADIUS + 1) as f32
-    } else {
-        0.0
-    };
-    let anti_pinning_signal = distribution_control.dominant_bin_escape_direction
-        * distribution_control.dominant_bin_escape_strength
-        * dominant_proximity;
-
-    (arrival_weight * arrival_signal
-        + damage_weight * damage_signal
-        + distribution_signal
-        + anti_pinning_signal)
-        .clamp(SIGNAL_CLAMP_MIN, SIGNAL_CLAMP_MAX)
-}
-
-fn compute_distribution_control(
-    clear_rates: &[f32],
-    target_weights: &[f32],
-) -> DistributionControl {
-    if clear_rates.is_empty() {
-        return DistributionControl::default();
-    }
-
-    let mut histogram_bins = vec![0usize; CLEAR_RATE_BIN_COUNT];
-    for &rate in clear_rates {
-        let histogram_idx = ((rate.clamp(0.0, 100.0) as usize) / 2).min(CLEAR_RATE_BIN_COUNT - 1);
-        histogram_bins[histogram_idx] += 1;
-    }
-
-    let total = clear_rates.len() as f32;
-    debug_assert_eq!(target_weights.len(), CLEAR_RATE_BIN_COUNT);
-    let mut obs_cdf = 0.0_f32;
-    let mut ks_distance = 0.0_f32;
-    let mut low_mass = 0.0_f32;
-    let mut high_mass = 0.0_f32;
-    let mut top_bin_share = 0.0_f32;
-    let mut bin_errors = vec![0.0_f32; CLEAR_RATE_BIN_COUNT];
-    let mut shares = vec![0.0_f32; CLEAR_RATE_BIN_COUNT];
-
-    for (idx, &count) in histogram_bins.iter().enumerate() {
-        let share = count as f32 / total;
-        shares[idx] = share;
-        let target_share = target_weights[idx];
-        bin_errors[idx] = share - target_share;
-        obs_cdf += share;
-        let tgt_cdf = target_weights.iter().take(idx + 1).sum::<f32>();
-        let cdf_error = obs_cdf - tgt_cdf;
-        ks_distance = ks_distance.max(cdf_error.abs());
-        top_bin_share = top_bin_share.max(share);
-
-        if idx < CLEAR_RATE_BIN_COUNT / 3 {
-            low_mass += share;
-        }
-        if idx >= (CLEAR_RATE_BIN_COUNT * 2) / 3 {
-            high_mass += share;
-        }
-    }
-
-    let hard_bias = low_mass - high_mass;
-    let target_top_share = target_weights
-        .iter()
-        .copied()
-        .max_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
-        .unwrap_or(1.0 / CLEAR_RATE_BIN_COUNT as f32);
-    let spike_excess = (top_bin_share - target_top_share).max(0.0);
-    let peak_idx = histogram_bins
-        .iter()
-        .enumerate()
-        .max_by_key(|(_, count)| **count)
-        .map(|(idx, _)| idx)
-        .unwrap_or(0);
-    let spike_direction = if peak_idx < CLEAR_RATE_BIN_COUNT / 2 {
-        1.0
-    } else {
-        -1.0
-    };
-
-    let pressure = (hard_bias + spike_excess * spike_direction).clamp(-1.0, 1.0);
-    let dominant_bin_escape_direction = if peak_idx < CLEAR_RATE_BIN_COUNT / 2 {
-        -1.0
-    } else {
-        1.0
-    };
-    let dominant_pin_excess = (top_bin_share - DOMINANT_BIN_PIN_THRESHOLD).max(0.0);
-    let dominant_bin_escape_strength = (dominant_pin_excess / (1.0 - DOMINANT_BIN_PIN_THRESHOLD))
-        .clamp(0.0, 1.0)
-        * DOMINANT_BIN_ESCAPE_GAIN;
-
-    let mut spike_overloads = vec![0.0_f32; CLEAR_RATE_BIN_COUNT];
-    for (idx, spike_overload) in spike_overloads.iter_mut().enumerate() {
-        let start = idx.saturating_sub(SPIKE_DETECT_WINDOW);
-        let end = (idx + SPIKE_DETECT_WINDOW).min(CLEAR_RATE_BIN_COUNT - 1);
-        let mut local_sum = 0.0_f32;
-        let mut local_count = 0usize;
-        for &share in &shares[start..=end] {
-            local_sum += share;
-            local_count += 1;
-        }
-        let local_mean = if local_count > 0 {
-            local_sum / local_count as f32
-        } else {
-            0.0
-        };
-        let target_share = target_weights[idx];
-        if local_mean > 1e-6
-            && shares[idx] > local_mean * SPIKE_RATIO_THRESHOLD
-            && shares[idx] > target_share * SPIKE_TARGET_MULTIPLIER
-        {
-            let spike_ratio = (shares[idx] / local_mean - SPIKE_RATIO_THRESHOLD).max(0.0);
-            *spike_overload = spike_ratio.min(2.5);
-        }
-    }
-
-    for (idx, &spike) in spike_overloads.iter().enumerate() {
-        if spike <= 0.0 {
-            continue;
-        }
-        for d in 0..=SPIKE_SPREAD_RADIUS {
-            let decay = (SPIKE_SPREAD_RADIUS + 1 - d) as f32 / (SPIKE_SPREAD_RADIUS + 1) as f32;
-            let spread = spike * decay * SPIKE_SIGNAL_GAIN;
-            let left = idx.saturating_sub(d);
-            let right = (idx + d).min(CLEAR_RATE_BIN_COUNT - 1);
-            bin_errors[left] += spread;
-            if right != left {
-                bin_errors[right] += spread;
-            }
-        }
-    }
-
-    for err in &mut bin_errors {
-        *err = err.clamp(-0.80, 0.80);
-    }
-
-    DistributionControl {
-        ks_distance,
-        top_bin_share,
-        pressure,
-        bin_errors,
-        dominant_bin_idx: peak_idx,
-        dominant_bin_escape_direction,
-        dominant_bin_escape_strength,
-    }
-}
-
-fn parse_target_clear_distribution(value: &str) -> anyhow::Result<Vec<f32>> {
-    let mut weights = value
-        .split(',')
-        .map(|part| {
-            let weight = part.trim().parse::<f32>()?;
-            anyhow::ensure!(
-                weight.is_finite() && weight >= 0.0,
-                "target weights must be finite and non-negative"
-            );
-            Ok(weight)
-        })
-        .collect::<anyhow::Result<Vec<_>>>()?;
-    anyhow::ensure!(
-        weights.len() == CLEAR_RATE_BIN_COUNT,
-        "--target-clear-distribution requires exactly {CLEAR_RATE_BIN_COUNT} comma-separated weights"
-    );
-    let sum = weights.iter().sum::<f32>();
-    anyhow::ensure!(
-        sum.is_finite() && sum > 0.0,
-        "target distribution must have positive finite mass"
-    );
-    for weight in &mut weights {
-        *weight /= sum;
-    }
-    Ok(weights)
-}
-
-fn build_target_bin_weights(profile: CdfProfile) -> Vec<f32> {
-    let mut weights = vec![0.0_f32; CLEAR_RATE_BIN_COUNT];
-    match profile {
-        CdfProfile::Uniform => {
-            let w = 1.0 / CLEAR_RATE_BIN_COUNT as f32;
-            weights.fill(w);
-        }
-        CdfProfile::Trapezoid => {
-            for (idx, w) in weights.iter_mut().enumerate() {
-                let x = idx as f32 / (CLEAR_RATE_BIN_COUNT - 1) as f32;
-                *w = if x < 0.15 {
-                    0.4 + x / 0.15 * 0.6
-                } else if x <= 0.85 {
-                    1.0
-                } else {
-                    1.0 - (x - 0.85) / 0.15 * 0.6
-                };
-            }
-            let sum = weights.iter().sum::<f32>().max(1e-6);
-            for w in &mut weights {
-                *w /= sum;
-            }
-        }
-    }
-    weights
-}
-
-fn compute_stage_segment_gain(stage: usize, stages: usize, cli: &BalanceOptions) -> f32 {
-    if stages <= 1 {
-        return cli.mid_segment_gain;
-    }
-    let r = stage as f32 / stages as f32;
-    if r <= 0.34 {
-        cli.early_segment_gain
-    } else if r <= 0.68 {
-        cli.mid_segment_gain
-    } else {
-        cli.late_segment_gain
-    }
-}
-
-fn compute_damage_cv(stage_means: &[f32]) -> f32 {
-    let filtered: Vec<f32> = stage_means
-        .iter()
-        .copied()
-        .filter(|mean| *mean > MIN_ZERO_DAMAGE_SCALE)
-        .collect();
-    if filtered.len() < 2 {
-        return 0.0;
-    }
-
-    let mean = filtered.iter().sum::<f32>() / filtered.len() as f32;
-    if mean <= 0.0 {
-        return 0.0;
-    }
-    let variance = filtered
-        .iter()
-        .map(|v| {
-            let d = *v - mean;
-            d * d
-        })
-        .sum::<f32>()
-        / filtered.len() as f32;
-    variance.sqrt() / mean
-}
-
-fn compute_arrival_rmse(stage_arrivals: &[usize], samples: usize, stages: usize) -> f32 {
-    let mut sum_sq = 0.0;
-    for (idx, &count) in stage_arrivals.iter().enumerate().take(stages) {
-        let observed = count as f32 / samples as f32;
-        let target = target_stage_survival(idx + 1, stages);
-        let error = observed - target;
-        sum_sq += error * error;
-    }
-    (sum_sq / stages as f32).sqrt()
-}
-
-fn compute_stage_deaths(
-    stage_arrivals: &[usize],
-    win_rate: f32,
-    samples: usize,
-    stages: usize,
-) -> Vec<f32> {
-    let mut deaths = vec![0.0_f32; stages];
-    for (stage, death) in deaths.iter_mut().enumerate().take(stages) {
-        let current = stage_arrivals.get(stage).copied().unwrap_or(0) as f32;
-        let next = if stage + 1 < stages {
-            stage_arrivals.get(stage + 1).copied().unwrap_or(0) as f32
-        } else {
-            win_rate * samples as f32
-        };
-        *death = (current - next).max(0.0);
-    }
-    deaths
 }
 
 fn run_simulations(
@@ -1357,9 +909,7 @@ fn run_simulations(
         return Ok(None);
     }
 
-    let mut stage_sums = vec![0.0_f32; stage_count];
     let mut stage_arrivals = vec![0_usize; stage_count];
-    let mut stage_visits = vec![0_usize; stage_count];
     let mut clear_rates = Vec::with_capacity(batch.episodes.len());
     let mut total_damage = 0.0_f32;
     let mut total_visits = 0_usize;
@@ -1409,16 +959,18 @@ fn run_simulations(
             .iter()
             .map(|&(stage, damage)| {
                 if stage > 0 && stage <= stage_count {
-                    let index = stage - 1;
-                    stage_sums[index] += damage;
-                    stage_visits[index] += 1;
-                    stage_arrivals[index] += 1;
                     total_damage += damage;
                     total_visits += 1;
                 }
                 damage
             })
             .sum::<f32>();
+        for arrival in stage_arrivals
+            .iter_mut()
+            .take(episode.final_observation.stage.min(stage_count))
+        {
+            *arrival += 1;
+        }
         recorder.record_simulation_end(
             &sim_id,
             episode.victory,
@@ -1467,17 +1019,16 @@ fn run_simulations(
         }
     }
 
-    let mut stage_means = vec![0.0_f32; stage_count];
-    for stage in 0..stage_count {
-        if stage_visits[stage] > 0 {
-            stage_means[stage] = stage_sums[stage] / stage_visits[stage] as f32;
-        }
-    }
+    let (act_clear_rates, act_survival_rates) =
+        compute_act_rates(&stage_arrivals, total_wins, samples, stage_count);
+    let stage_clear_rates = compute_stage_clear_rates(&stage_arrivals, total_wins, stage_count);
 
     Ok(Some(BalanceStats {
         win_rate: total_wins as f32 / samples.max(1) as f32,
-        stage_means,
         stage_arrivals,
+        stage_clear_rates,
+        act_clear_rates,
+        act_survival_rates,
         clear_rates,
         overall_damage_mean: if total_visits > 0 {
             total_damage / total_visits as f32
@@ -1529,60 +1080,132 @@ fn print_clear_rate_histogram(clear_rates: &[f32]) {
 }
 
 #[cfg(test)]
-mod target_distribution_tests {
+mod act_clear_rate_tests {
     use super::*;
 
     #[test]
-    fn custom_target_requires_51_non_negative_finite_weights_and_normalizes() {
-        let source = std::iter::repeat_n("2", CLEAR_RATE_BIN_COUNT)
-            .collect::<Vec<_>>()
-            .join(",");
-        let weights = parse_target_clear_distribution(&source).expect("valid 51-bin target");
-        assert_eq!(weights.len(), CLEAR_RATE_BIN_COUNT);
-        assert!(
-            weights
-                .iter()
-                .all(|weight| (*weight - 1.0 / 51.0).abs() < 1e-6)
-        );
-        assert!((weights.iter().sum::<f32>() - 1.0).abs() < 1e-6);
+    fn act_targets_match_independent_clear_and_cumulative_survival_rates() {
+        let target_clear_rates = target_act_clear_rates(50);
+        let expected_clear_rates = [0.823, 0.734, 0.611, 0.456, 0.297];
+        let expected_survival_rates = [0.823, 0.604082, 0.3690961, 0.16830782, 0.05];
+
+        for (index, expected) in expected_clear_rates.iter().enumerate() {
+            assert!((target_clear_rates[index] - expected).abs() < 0.001);
+            let survival = target_cumulative_survival_for(index + 1);
+            assert!((survival - expected_survival_rates[index]).abs() < 0.001);
+        }
+        assert_eq!(target_cumulative_survival_for(0), 1.0);
     }
 
     #[test]
-    fn custom_target_rejects_bad_length_negative_non_finite_and_zero_mass() {
-        assert!(parse_target_clear_distribution("1,2").is_err());
-        let mut negative = vec!["1"; CLEAR_RATE_BIN_COUNT];
-        negative[0] = "-1";
-        assert!(parse_target_clear_distribution(&negative.join(",")).is_err());
-        let mut non_finite = vec!["1"; CLEAR_RATE_BIN_COUNT];
-        non_finite[0] = "NaN";
-        assert!(parse_target_clear_distribution(&non_finite.join(",")).is_err());
-        assert!(
-            parse_target_clear_distribution(&vec!["0"; CLEAR_RATE_BIN_COUNT].join(",")).is_err()
-        );
+    fn observed_act_rates_use_entries_and_clears_at_act_boundaries() {
+        let mut stage_arrivals = vec![100; 50];
+        stage_arrivals[10] = 82;
+        stage_arrivals[20] = 60;
+        stage_arrivals[30] = 37;
+        stage_arrivals[40] = 17;
+
+        let (clear_rates, survival_rates) = compute_act_rates(&stage_arrivals, 5, 100, 50);
+
+        assert!((clear_rates[0] - 0.82).abs() < 0.001);
+        assert!((clear_rates[1] - 60.0 / 82.0).abs() < 0.001);
+        assert!((clear_rates[4] - 5.0 / 17.0).abs() < 0.001);
+        assert_eq!(survival_rates, [0.82, 0.6, 0.37, 0.17, 0.05]);
     }
 
     #[test]
-    fn distribution_control_uses_the_user_target_weights() {
-        let mut target = vec![0.0; CLEAR_RATE_BIN_COUNT];
-        target[0] = 1.0;
-        let result = compute_distribution_control(&[0.0], &target);
-        assert_eq!(result.ks_distance, 0.0);
-        assert_eq!(result.bin_errors[0], 0.0);
+    fn stage_adjustments_follow_act_targets_and_stage_residuals() {
+        let stages = 50;
+        let target_act_rates = target_act_clear_rates(stages);
+        let target_stage_rates = (1..=stages)
+            .map(|stage| target_stage_clear_rate_for(stage, stages))
+            .collect::<Vec<_>>();
+        let stage_arrivals = vec![1_000; stages];
+
+        let mut observed_act_rates = target_act_rates.clone();
+        observed_act_rates[0] = 0.95;
+        let early_act_stage_rates =
+            observed_act_rates[0].powf(1.0 / td_core::STAGES_PER_ACT as f32);
+        let mut observed_stage_rates = target_stage_rates.clone();
+        observed_stage_rates[..td_core::STAGES_PER_ACT].fill(early_act_stage_rates);
+        let act_adjustments = compute_act_stage_adjustments(
+            &stage_arrivals,
+            &observed_stage_rates,
+            &observed_act_rates,
+            1_000,
+            stages,
+        );
+
+        assert!(act_adjustments[0] > 0.0);
+        assert!(act_adjustments[td_core::STAGES_PER_ACT] < act_adjustments[0]);
+
+        let mut underperforming_act_rates = target_act_rates.clone();
+        underperforming_act_rates[3] = 0.239;
+        underperforming_act_rates[4] = 0.0;
+        let underperforming_adjustments = compute_act_stage_adjustments(
+            &stage_arrivals,
+            &target_stage_rates,
+            &underperforming_act_rates,
+            1_000,
+            stages,
+        );
+        assert!(underperforming_adjustments[30] < 0.0);
+        assert!(underperforming_adjustments[40] < 0.0);
+
+        let mut stage_outlier_rates = target_stage_rates;
+        stage_outlier_rates[4] = 0.90;
+        let stage_adjustments = compute_act_stage_adjustments(
+            &stage_arrivals,
+            &stage_outlier_rates,
+            &target_act_rates,
+            1_000,
+            stages,
+        );
+        assert!(stage_adjustments[4] < stage_adjustments[3]);
+        assert!(stage_adjustments[3] < 0.0);
+        assert!(stage_adjustments[10].abs() < 1e-4);
     }
 
     #[test]
-    fn custom_target_full_clear_mass_controls_the_win_objective() {
-        let mut target = vec![0.0; CLEAR_RATE_BIN_COUNT];
-        target[0] = 0.8;
-        target[CLEAR_RATE_BIN_COUNT - 1] = 0.2;
-        assert_eq!(resolve_target_win_rate(&target, true), 0.2);
-        assert_eq!(
-            resolve_target_win_rate(&build_target_bin_weights(CdfProfile::Uniform), false),
-            TARGET_WIN_RATE
-        );
-        assert_eq!(
-            target_stage_survival_for(50, 50, resolve_target_win_rate(&target, true)),
-            0.2
-        );
+    fn convergence_requires_supported_act_and_stage_samples() {
+        let stages = 50;
+        let target_act_rates = target_act_clear_rates(stages);
+        let mut stage_arrivals = vec![100; stages];
+        let stage_clear_rates = (1..=stages)
+            .map(|stage| target_stage_clear_rate_for(stage, stages))
+            .collect::<Vec<_>>();
+
+        assert!(act_rates_within_target(
+            &target_act_rates,
+            &stage_arrivals,
+            100,
+            stages,
+        ));
+        let act_stage_clear_rmses =
+            compute_act_stage_clear_rmses(&stage_arrivals, &stage_clear_rates, stages);
+        assert!(act_stage_clear_rmses_within_target(&act_stage_clear_rmses));
+
+        stage_arrivals[40..].fill(MIN_CONVERGENCE_ARRIVALS - 1);
+        assert!(!act_rates_within_target(
+            &target_act_rates,
+            &stage_arrivals,
+            100,
+            stages,
+        ));
+        let unsupported_stage_rmses =
+            compute_act_stage_clear_rmses(&stage_arrivals, &stage_clear_rates, stages);
+        assert!(!act_stage_clear_rmses_within_target(
+            &unsupported_stage_rmses
+        ));
+    }
+
+    #[test]
+    fn stage_scale_updates_accumulate_relative_to_current_scale() {
+        let first = update_stage_scale(1.0, 0.1, BASE_LEARNING_RATE);
+        let second = update_stage_scale(first, 0.1, BASE_LEARNING_RATE);
+
+        assert!(first > 1.0);
+        assert!(second > first);
+        assert!(update_stage_scale(second, -0.1, BASE_LEARNING_RATE) < second);
     }
 }

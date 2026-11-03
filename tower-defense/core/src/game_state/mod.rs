@@ -1402,6 +1402,10 @@ impl CoreState {
 
     pub fn start_treasure_selection(&mut self) -> bool {
         if !matches!(self.flow, crate::GameFlowState::TreasureSelection { .. }) {
+            if crate::is_boss_stage(self.progress.stage.saturating_sub(1)) {
+                let max_hp_raw = self.max_hp_raw();
+                self.hp_raw = self.hp_raw.saturating_add(max_hp_raw / 2).min(max_hp_raw);
+            }
             self.flow = crate::GameFlowState::TreasureSelection {
                 options: crate::game_state::upgrade::generate_boss_reward_options(self),
                 pending_selection: None,
