@@ -93,10 +93,7 @@ pub(crate) fn start_spawn(state: &mut CoreState) {
         .iter()
         .find(|wave| wave.stage == state.progress.stage)
         .expect("missing stage wave for stage");
-    let spawn_interval_ticks = SimTickSpan::from_millis_ceil(
-        (10_000.0 / (26.0 * (state.progress.stage as f32 / 50.0) + 4.0)) as u64,
-    )
-    .ticks();
+    let spawn_interval_ticks = SimTickSpan::from_millis_ceil(300).ticks();
     let mut monster_queue = Vec::new();
 
     for entry in &wave.entries {
