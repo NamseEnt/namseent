@@ -10,31 +10,31 @@
   "monsters": {
     "stats": {
       "Boss01": {
-        "base_hp": 105.196,
+        "base_hp": 108.582,
         "velocity_mul": 1.0,
         "damage": 5.0,
         "reward": 25
       },
       "Boss02": {
-        "base_hp": 170.762,
+        "base_hp": 273.09,
         "velocity_mul": 1.0,
         "damage": 5.0,
         "reward": 50
       },
       "Boss03": {
-        "base_hp": 440.199,
+        "base_hp": 1219.557,
         "velocity_mul": 1.0,
         "damage": 5.0,
         "reward": 50
       },
       "Boss04": {
-        "base_hp": 1858.38,
+        "base_hp": 6042.921,
         "velocity_mul": 1.0,
         "damage": 7.0,
         "reward": 50
       },
       "Boss05": {
-        "base_hp": 6339.783,
+        "base_hp": 22655.046,
         "velocity_mul": 1.0,
         "damage": 7.0,
         "reward": 50
@@ -94,301 +94,301 @@
         "reward": 50
       },
       "Mob01": {
-        "base_hp": 31.974,
+        "base_hp": 33.107,
         "velocity_mul": 1.0,
         "damage": 1.0,
         "reward": 1
       },
       "Mob02": {
-        "base_hp": 24.781,
+        "base_hp": 6.985,
         "velocity_mul": 1.0,
         "damage": 2.0,
         "reward": 1
       },
       "Mob03": {
-        "base_hp": 51.775,
+        "base_hp": 11.281,
         "velocity_mul": 0.75,
         "damage": 1.0,
         "reward": 1
       },
       "Mob04": {
-        "base_hp": 44.991,
+        "base_hp": 14.425,
         "velocity_mul": 1.25,
         "damage": 1.0,
         "reward": 1
       },
       "Mob05": {
-        "base_hp": 52.054,
+        "base_hp": 21.306,
         "velocity_mul": 1.0,
         "damage": 1.0,
         "reward": 1
       },
       "Mob06": {
-        "base_hp": 62.023,
+        "base_hp": 25.979,
         "velocity_mul": 1.0,
         "damage": 1.0,
         "reward": 1
       },
       "Mob07": {
-        "base_hp": 65.071,
+        "base_hp": 22.061,
         "velocity_mul": 1.0,
         "damage": 2.0,
         "reward": 1
       },
       "Mob08": {
-        "base_hp": 105.61,
+        "base_hp": 34.513,
         "velocity_mul": 0.75,
         "damage": 1.0,
         "reward": 1
       },
       "Mob09": {
-        "base_hp": 69.602,
+        "base_hp": 36.575,
         "velocity_mul": 1.25,
         "damage": 1.0,
         "reward": 1
       },
       "Mob10": {
-        "base_hp": 70.131,
+        "base_hp": 36.194,
         "velocity_mul": 1.0,
         "damage": 1.0,
         "reward": 1
       },
       "Mob11": {
-        "base_hp": 282.37,
+        "base_hp": 427.458,
         "velocity_mul": 1.0,
         "damage": 1.0,
         "reward": 1
       },
       "Mob12": {
-        "base_hp": 92.629,
+        "base_hp": 41.227,
         "velocity_mul": 1.0,
         "damage": 2.0,
         "reward": 1
       },
       "Mob13": {
-        "base_hp": 139.127,
+        "base_hp": 53.996,
         "velocity_mul": 0.75,
         "damage": 1.0,
         "reward": 1
       },
       "Mob14": {
-        "base_hp": 91.441,
+        "base_hp": 48.906,
         "velocity_mul": 1.25,
         "damage": 1.0,
         "reward": 1
       },
       "Mob15": {
-        "base_hp": 94.083,
+        "base_hp": 53.991,
         "velocity_mul": 1.0,
         "damage": 1.0,
         "reward": 1
       },
       "Mob16": {
-        "base_hp": 89.31,
+        "base_hp": 58.597,
         "velocity_mul": 1.0,
         "damage": 1.0,
         "reward": 1
       },
       "Mob17": {
-        "base_hp": 76.912,
+        "base_hp": 54.29,
         "velocity_mul": 1.0,
         "damage": 2.0,
         "reward": 1
       },
       "Mob18": {
-        "base_hp": 112.772,
+        "base_hp": 84.736,
         "velocity_mul": 0.75,
         "damage": 1.0,
         "reward": 1
       },
       "Mob19": {
-        "base_hp": 108.239,
+        "base_hp": 81.418,
         "velocity_mul": 1.25,
         "damage": 1.0,
         "reward": 1
       },
       "Mob20": {
-        "base_hp": 113.841,
+        "base_hp": 91.03,
         "velocity_mul": 1.0,
         "damage": 1.0,
         "reward": 1
       },
       "Mob21": {
-        "base_hp": 2741.433,
+        "base_hp": 5211.134,
         "velocity_mul": 1.0,
         "damage": 1.0,
         "reward": 1
       },
       "Mob22": {
-        "base_hp": 126.383,
+        "base_hp": 76.131,
         "velocity_mul": 1.0,
         "damage": 2.0,
         "reward": 1
       },
       "Mob23": {
-        "base_hp": 199.686,
+        "base_hp": 135.18,
         "velocity_mul": 0.75,
         "damage": 1.0,
         "reward": 1
       },
       "Mob24": {
-        "base_hp": 184.286,
+        "base_hp": 125.023,
         "velocity_mul": 1.25,
         "damage": 1.0,
         "reward": 1
       },
       "Mob25": {
-        "base_hp": 204.779,
+        "base_hp": 164.858,
         "velocity_mul": 1.0,
         "damage": 1.0,
         "reward": 1
       },
       "Mob26": {
-        "base_hp": 239.095,
+        "base_hp": 218.427,
         "velocity_mul": 1.0,
         "damage": 1.0,
         "reward": 1
       },
       "Mob27": {
-        "base_hp": 194.276,
+        "base_hp": 198.527,
         "velocity_mul": 1.0,
         "damage": 2.0,
         "reward": 1
       },
       "Mob28": {
-        "base_hp": 401.361,
+        "base_hp": 588.827,
         "velocity_mul": 0.75,
         "damage": 1.0,
         "reward": 1
       },
       "Mob29": {
-        "base_hp": 256.741,
+        "base_hp": 294.714,
         "velocity_mul": 1.25,
         "damage": 1.0,
         "reward": 1
       },
       "Mob30": {
-        "base_hp": 293.466,
+        "base_hp": 406.519,
         "velocity_mul": 1.0,
         "damage": 1.0,
         "reward": 1
       },
       "Mob31": {
-        "base_hp": 44546.612,
+        "base_hp": 145923.872,
         "velocity_mul": 1.0,
         "damage": 1.0,
         "reward": 1
       },
       "Mob32": {
-        "base_hp": 368.694,
+        "base_hp": 411.774,
         "velocity_mul": 1.0,
         "damage": 2.0,
         "reward": 1
       },
       "Mob33": {
-        "base_hp": 554.148,
+        "base_hp": 786.652,
         "velocity_mul": 0.75,
         "damage": 1.0,
         "reward": 1
       },
       "Mob34": {
-        "base_hp": 480.227,
+        "base_hp": 529.057,
         "velocity_mul": 1.25,
         "damage": 1.0,
         "reward": 1
       },
       "Mob35": {
-        "base_hp": 681.569,
+        "base_hp": 843.172,
         "velocity_mul": 1.0,
         "damage": 1.0,
         "reward": 1
       },
       "Mob36": {
-        "base_hp": 699.603,
+        "base_hp": 1251.696,
         "velocity_mul": 1.0,
         "damage": 1.0,
         "reward": 1
       },
       "Mob37": {
-        "base_hp": 707.293,
+        "base_hp": 1063.508,
         "velocity_mul": 1.0,
         "damage": 2.0,
         "reward": 1
       },
       "Mob38": {
-        "base_hp": 1132.71,
+        "base_hp": 2404.576,
         "velocity_mul": 0.75,
         "damage": 1.0,
         "reward": 1
       },
       "Mob39": {
-        "base_hp": 870.817,
+        "base_hp": 1586.968,
         "velocity_mul": 1.25,
         "damage": 1.0,
         "reward": 1
       },
       "Mob40": {
-        "base_hp": 1238.92,
+        "base_hp": 2014.307,
         "velocity_mul": 1.0,
         "damage": 1.0,
         "reward": 1
       },
       "Mob41": {
-        "base_hp": 6075.05,
+        "base_hp": 9252.963,
         "velocity_mul": 1.0,
         "damage": 1.0,
         "reward": 1
       },
       "Mob42": {
-        "base_hp": 1356.195,
+        "base_hp": 2020.47,
         "velocity_mul": 1.0,
         "damage": 2.0,
         "reward": 1
       },
       "Mob43": {
-        "base_hp": 3123.146,
+        "base_hp": 3426.654,
         "velocity_mul": 0.75,
         "damage": 1.0,
         "reward": 1
       },
       "Mob44": {
-        "base_hp": 2299.695,
+        "base_hp": 2605.057,
         "velocity_mul": 1.25,
         "damage": 1.0,
         "reward": 1
       },
       "Mob45": {
-        "base_hp": 2497.367,
+        "base_hp": 4520.945,
         "velocity_mul": 1.0,
         "damage": 1.0,
         "reward": 1
       },
       "Mob46": {
-        "base_hp": 2897.393,
+        "base_hp": 5429.07,
         "velocity_mul": 1.0,
         "damage": 1.0,
         "reward": 1
       },
       "Mob47": {
-        "base_hp": 2455.034,
+        "base_hp": 4331.911,
         "velocity_mul": 1.0,
         "damage": 4.0,
         "reward": 1
       },
       "Mob48": {
-        "base_hp": 4649.526,
+        "base_hp": 6586.463,
         "velocity_mul": 0.75,
         "damage": 2.0,
         "reward": 1
       },
       "Mob49": {
-        "base_hp": 3069.49,
+        "base_hp": 4770.909,
         "velocity_mul": 1.25,
         "damage": 2.0,
         "reward": 1
       },
       "Mob50": {
-        "base_hp": 4226.522,
+        "base_hp": 7551.682,
         "velocity_mul": 1.0,
         "damage": 2.0,
         "reward": 1

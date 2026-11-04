@@ -32,6 +32,7 @@ const CLEAR_RATE_BIN_COUNT: usize = 51;
 const ACT_LOG_ERROR_CLAMP: f32 = 1.50;
 const STAGE_LOG_ERROR_CLAMP: f32 = 1.00;
 const STAGE_RESIDUAL_CLAMP: f32 = 0.50;
+const STAGE_CLEAR_RATE_LOG_SHAPE: f32 = 0.10;
 const MIN_CONVERGENCE_ARRIVALS: usize = 20;
 const ACT_RATE_CONVERGENCE_TOLERANCE: f32 = 0.05;
 const STAGE_CLEAR_RMSE_CONVERGENCE_THRESHOLD: f32 = 0.08;
@@ -286,7 +287,17 @@ fn target_stage_clear_rate_for(stage: usize, stages: usize) -> f32 {
     let act_start = act_index * td_core::STAGES_PER_ACT;
     let act_end = ((act_index + 1) * td_core::STAGES_PER_ACT).min(stages);
     let act_length = act_end.saturating_sub(act_start).max(1);
-    target_act_clear_rate_for(act_index).powf(1.0 / act_length as f32)
+    let act_target = target_act_clear_rate_for(act_index);
+    let base_stage_target = act_target.powf(1.0 / act_length as f32);
+    let stage_position = stage - 1 - act_start;
+    let centered_position = if act_length > 1 {
+        0.5 - stage_position as f32 / (act_length - 1) as f32
+    } else {
+        0.0
+    };
+    let shape = STAGE_CLEAR_RATE_LOG_SHAPE.min(-2.0 * base_stage_target.ln());
+
+    base_stage_target * (shape * centered_position).exp()
 }
 
 fn compute_stage_clear_rates(
@@ -412,7 +423,6 @@ fn compute_act_stage_adjustments(
             .clamp(-ACT_LOG_ERROR_CLAMP, ACT_LOG_ERROR_CLAMP);
         let act_confidence = sample_confidence(act_entrants);
         let shared_act_adjustment = act_log_error * act_confidence / act_length as f32;
-        let target_stage_clear_rate = target_act_clear_rate.powf(1.0 / act_length as f32);
         let mut stage_residuals = Vec::with_capacity(act_length);
         let mut observed_stage_count = 0;
 
@@ -424,8 +434,8 @@ fn compute_act_stage_adjustments(
                     stage_clear_rates.get(stage_index).copied().unwrap_or(0.0);
                 let stage_log_error =
                     (smoothed_clear_rate(observed_stage_clear_rate, stage_entrants)
-                        / target_stage_clear_rate)
-                        .ln();
+                        / target_stage_clear_rate_for(stage_index + 1, stages))
+                    .ln();
                 let stage_confidence = sample_confidence(stage_entrants);
                 (stage_log_error - act_log_error / act_length as f32)
                     .clamp(-STAGE_LOG_ERROR_CLAMP, STAGE_LOG_ERROR_CLAMP)
@@ -839,7 +849,7 @@ fn apply_boss_hp_from_stage(config: &mut GameConfig) {
                 .iter_mut()
                 .find(|stat| stat.kind == boss_kind)
         {
-            boss_stat.base_hp_raw = (normal_hp * 1.5 * 1_000.0).round() as i64;
+            boss_stat.base_hp_raw = (normal_hp * 3.0 * 1_000.0).round() as i64;
         }
     }
 }
@@ -1124,10 +1134,12 @@ mod act_clear_rate_tests {
 
         let mut observed_act_rates = target_act_rates.clone();
         observed_act_rates[0] = 0.95;
-        let early_act_stage_rates =
-            observed_act_rates[0].powf(1.0 / td_core::STAGES_PER_ACT as f32);
         let mut observed_stage_rates = target_stage_rates.clone();
-        observed_stage_rates[..td_core::STAGES_PER_ACT].fill(early_act_stage_rates);
+        let early_act_stage_scale = (observed_act_rates[0] / target_act_rates[0])
+            .powf(1.0 / td_core::STAGES_PER_ACT as f32);
+        for stage_rate in &mut observed_stage_rates[..td_core::STAGES_PER_ACT] {
+            *stage_rate *= early_act_stage_scale;
+        }
         let act_adjustments = compute_act_stage_adjustments(
             &stage_arrivals,
             &observed_stage_rates,
@@ -1162,8 +1174,55 @@ mod act_clear_rate_tests {
             stages,
         );
         assert!(stage_adjustments[4] < stage_adjustments[3]);
-        assert!(stage_adjustments[3] < 0.0);
-        assert!(stage_adjustments[10].abs() < 1e-4);
+        assert!(stage_adjustments[4] < 0.0);
+    }
+
+    #[test]
+    fn stage_targets_decrease_within_each_act_without_changing_act_target() {
+        let stages = 50_usize;
+
+        for act_index in 0..stages.div_ceil(td_core::STAGES_PER_ACT) {
+            let act_start = act_index * td_core::STAGES_PER_ACT;
+            let act_end = ((act_index + 1) * td_core::STAGES_PER_ACT).min(stages);
+            let targets = (act_start + 1..=act_end)
+                .map(|stage| target_stage_clear_rate_for(stage, stages))
+                .collect::<Vec<_>>();
+
+            assert!(targets.windows(2).all(|pair| pair[0] > pair[1]));
+            assert!(targets.iter().all(|target| *target <= 1.0));
+            let act_target = targets.iter().product::<f32>();
+            assert!((act_target - target_act_clear_rate_for(act_index)).abs() < 1e-5);
+        }
+    }
+
+    #[test]
+    fn stage_adjustments_make_early_stages_easier_and_late_stages_harder() {
+        let stages = 50;
+        let target_act_rates = target_act_clear_rates(stages);
+        let stage_arrivals = vec![1_000; stages];
+        let uniform_stage_rates = (1..=stages)
+            .map(|stage| {
+                let act_index = (stage - 1) / td_core::STAGES_PER_ACT;
+                let act_start = act_index * td_core::STAGES_PER_ACT;
+                let act_end = ((act_index + 1) * td_core::STAGES_PER_ACT).min(stages);
+                target_act_rates[act_index].powf(1.0 / (act_end - act_start) as f32)
+            })
+            .collect::<Vec<_>>();
+
+        let adjustments = compute_act_stage_adjustments(
+            &stage_arrivals,
+            &uniform_stage_rates,
+            &target_act_rates,
+            1_000,
+            stages,
+        );
+
+        for act_index in 0..stages.div_ceil(td_core::STAGES_PER_ACT) {
+            let act_start = act_index * td_core::STAGES_PER_ACT;
+            let act_end = ((act_index + 1) * td_core::STAGES_PER_ACT).min(stages);
+            assert!(adjustments[act_start] < 0.0);
+            assert!(adjustments[act_end - 1] > 0.0);
+        }
     }
 
     #[test]
