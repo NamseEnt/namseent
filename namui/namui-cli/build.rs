@@ -225,7 +225,11 @@ async fn download_emsdk() -> Result<()> {
     );
 
     // NOTE: This is a temporary solution to avoid the error.
-    tokio::fs::remove_file(dist.join("system/include/emscripten/version.h")).await?;
+    match tokio::fs::remove_file(dist.join("system/include/emscripten/version.h")).await {
+        std::result::Result::Ok(()) => {}
+        std::result::Result::Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        std::result::Result::Err(error) => return Err(error.into()),
+    }
     let no_version_emscripten_h =
         tokio::fs::read_to_string(dist.join("system/include/emscripten/emscripten.h"))
             .await?
