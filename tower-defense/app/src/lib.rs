@@ -50,9 +50,9 @@ extern crate namui_kv_store_memory;
 #[cfg(test)]
 mod kv_store_memory_provider_link {
     pub fn link() {
-        let get = namui_kv_store_memory::_kv_store_get as extern "C" fn(u32, *const u8, u32);
+        let get = namui_kv_store_memory::_kv_store_get as unsafe extern "C" fn(u32, *const u8, u32);
         let put = namui_kv_store_memory::_kv_store_put
-            as extern "C" fn(u32, *const u8, u32, *const u8, u32);
+            as unsafe extern "C" fn(u32, *const u8, u32, *const u8, u32);
         std::hint::black_box((get, put));
     }
 

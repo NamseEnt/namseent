@@ -15,7 +15,11 @@ enum Response {
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn _on_kv_store_get_response(
+/// # Safety
+///
+/// If `has_data` is not zero, `ptr` must point to `len` readable bytes for the duration of this
+/// call.
+pub unsafe extern "C" fn _on_kv_store_get_response(
     request_id: u32,
     has_data: u32,
     ptr: *const u8,
@@ -43,25 +47,29 @@ fn take_responses() -> Vec<Response> {
 }
 
 fn call_get(request_id: u32, key: &str) {
-    namui_kv_store_memory::_kv_store_get(request_id, key.as_ptr(), key.len() as u32);
+    unsafe {
+        namui_kv_store_memory::_kv_store_get(request_id, key.as_ptr(), key.len() as u32);
+    }
 }
 
 fn call_put(request_id: u32, key: &str, value: Option<&[u8]>) {
-    match value {
-        Some(value) => namui_kv_store_memory::_kv_store_put(
-            request_id,
-            key.as_ptr(),
-            key.len() as u32,
-            value.as_ptr(),
-            value.len() as u32,
-        ),
-        None => namui_kv_store_memory::_kv_store_put(
-            request_id,
-            key.as_ptr(),
-            key.len() as u32,
-            std::ptr::null(),
-            0,
-        ),
+    unsafe {
+        match value {
+            Some(value) => namui_kv_store_memory::_kv_store_put(
+                request_id,
+                key.as_ptr(),
+                key.len() as u32,
+                value.as_ptr(),
+                value.len() as u32,
+            ),
+            None => namui_kv_store_memory::_kv_store_put(
+                request_id,
+                key.as_ptr(),
+                key.len() as u32,
+                std::ptr::null(),
+                0,
+            ),
+        }
     }
 }
 

@@ -217,24 +217,6 @@ fn prune(ppo_dir: &Path, metadata: &PpoRunMetadata, best: usize) -> Result<()> {
     Ok(())
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::config::GameConfigTestExt;
-
-    #[test]
-    fn core_source_change_uses_warm_start_path() {
-        let config = GameConfig::default_config();
-        let environment = EnvironmentContract::capture(&config);
-
-        assert!(core_source_changed(&environment, "changed-core-hash"));
-        assert!(!core_source_changed(
-            &environment,
-            &environment.core_tree_hash
-        ));
-    }
-}
-
 fn load_config(path: Option<&Path>) -> Result<Arc<GameConfig>> {
     Ok(Arc::new(match path {
         Some(path) => crate::config::load_jsonc(path)?,
@@ -643,4 +625,22 @@ pub fn status() -> Result<()> {
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::GameConfigTestExt;
+
+    #[test]
+    fn core_source_change_uses_warm_start_path() {
+        let config = GameConfig::default_config();
+        let environment = EnvironmentContract::capture(&config);
+
+        assert!(core_source_changed(&environment, "changed-core-hash"));
+        assert!(!core_source_changed(
+            &environment,
+            &environment.core_tree_hash
+        ));
+    }
 }
