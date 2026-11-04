@@ -2,10 +2,10 @@ use super::contract::config_digest;
 use super::feature_contract::InputContract;
 use super::model::ModelConfig;
 use super::phase4_dataset::{
-    EpisodeRecord, Phase4Split, SourcePolicy, collect_into_directory, load_episodes,
+    EpisodeRecord, Phase4Split, SourcePolicy, collect_into_directory, core_tree_hash, load_episodes,
 };
 use super::policy_v2::KindMode;
-use super::retraining::prepare_transfer;
+use super::retraining::{EnvironmentContract, prepare_transfer};
 use super::semantic_bc::{
     BcCheckpointMetadata, BcTrainConfig, BcTrainInput, LabelSource,
     SEMANTIC_BC_CHECKPOINT_SCHEMA_VERSION, prepare_samples, train_bc_run,
@@ -159,6 +159,10 @@ fn best_iteration(metadata: &PpoRunMetadata) -> Option<(usize, f64)> {
         .max_by(|left, right| left.1.total_cmp(&right.1).then(left.0.cmp(&right.0)))
 }
 
+fn core_source_changed(environment: &EnvironmentContract, current_core_hash: &str) -> bool {
+    environment.core_tree_hash != current_core_hash
+}
+
 fn publish(root: &Path, run_dir: &Path, metadata: &PpoRunMetadata) -> Result<()> {
     ensure!(
         metadata.completed_iterations > 0,
@@ -213,6 +217,24 @@ fn prune(ppo_dir: &Path, metadata: &PpoRunMetadata, best: usize) -> Result<()> {
     Ok(())
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::GameConfigTestExt;
+
+    #[test]
+    fn core_source_change_uses_warm_start_path() {
+        let config = GameConfig::default_config();
+        let environment = EnvironmentContract::capture(&config);
+
+        assert!(core_source_changed(&environment, "changed-core-hash"));
+        assert!(!core_source_changed(
+            &environment,
+            &environment.core_tree_hash
+        ));
+    }
+}
+
 fn load_config(path: Option<&Path>) -> Result<Arc<GameConfig>> {
     Ok(Arc::new(match path {
         Some(path) => crate::config::load_jsonc(path)?,
@@ -236,6 +258,7 @@ enum Plan {
         source_checkpoint: PathBuf,
         source: Box<PpoRunMetadata>,
         transfer: Box<super::retraining::NumericTransfer>,
+        core_source_changed: bool,
     },
     Bootstrap,
 }
@@ -253,6 +276,11 @@ fn plan(root: &Path, config: &GameConfig) -> Result<(Plan, usize)> {
     let latest_checkpoint = iteration_dir(&ppo_dir, metadata.completed_iterations);
     let actor: PpoActorFile =
         serde_json::from_slice(&std::fs::read(latest_checkpoint.join("ppo-actor.json"))?)?;
+    let current_core_hash = core_tree_hash();
+    let core_source_changed = actor
+        .environment
+        .as_ref()
+        .is_some_and(|environment| core_source_changed(environment, &current_core_hash));
     let compatible = actor
         .environment
         .as_ref()
@@ -272,9 +300,15 @@ fn plan(root: &Path, config: &GameConfig) -> Result<(Plan, usize)> {
                 source_checkpoint,
                 source: Box::new(source),
                 transfer: Box::new(transfer),
+                core_source_changed,
             },
             next_index,
         )),
+        Err(error) if core_source_changed => {
+            Err(error).context(
+                "core rules source changed; warm-start retraining is required but the checkpoint cannot be transferred",
+            )
+        }
         Err(error) => {
             eprintln!(
                 "the active policy cannot be carried over to this configuration ({error:#}); \
@@ -307,6 +341,7 @@ pub fn train(options: TrainOptions) -> Result<()> {
             source_checkpoint,
             source,
             transfer,
+            core_source_changed,
         } => {
             let run_dir = root.join(format!("runs/run-{next_index:03}"));
             let mut ppo = source.config.clone();
@@ -314,12 +349,20 @@ pub fn train(options: TrainOptions) -> Result<()> {
             ppo.train_seed_start =
                 Some(TRANSFER_SEED_BASE + next_index as u64 * TRANSFER_SEED_STRIDE);
             ppo.train_seed_block_offset = 0;
-            eprintln!(
-                "configuration changed ({} numeric differences); warm-starting {} from {}",
-                transfer.changes.len(),
-                run_dir.display(),
-                source_checkpoint.display()
-            );
+            if core_source_changed {
+                eprintln!(
+                    "core rules source changed; warm-starting {} from {}",
+                    run_dir.display(),
+                    source_checkpoint.display()
+                );
+            } else {
+                eprintln!(
+                    "configuration changed ({} numeric differences); warm-starting {} from {}",
+                    transfer.changes.len(),
+                    run_dir.display(),
+                    source_checkpoint.display()
+                );
+            }
             let template = RunTemplate {
                 config: ppo,
                 init_bc_run: PathBuf::from(&source.init_bc_run),
@@ -591,7 +634,7 @@ pub fn status() -> Result<()> {
                 "run-{index:03}: {} completed iterations{}",
                 metadata.completed_iterations,
                 if metadata.transfer.is_some() {
-                    " (warm-started after a configuration change)"
+                    " (warm-started from a previous checkpoint)"
                 } else {
                     ""
                 }

@@ -8,9 +8,8 @@ use std::path::PathBuf;
 pub enum Command {
     /// Resume the active policy, or start a new one when none exists.
     ///
-    /// A changed game configuration is detected automatically: numeric
-    /// changes warm-start a new run from the active policy, structural
-    /// changes train a new policy from scratch.
+    /// Numeric configuration changes and core-rule source changes warm-start
+    /// a new run from the active policy. Structural changes train from scratch.
     Train {
         /// Game configuration to train on (default: the built-in configuration).
         #[arg(long)]

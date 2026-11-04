@@ -35,9 +35,13 @@ clear rate. It is republished after every iteration.
    from canonical expert games (behavior cloning plus critic pretraining),
    then PPO.
 2. The latest run matches the current game config: resume it.
-3. Numeric config changes (costs, damage, HP, and similar): start a new run
+3. Core rules source changed: start a new run warm-started from the best
+   compatible checkpoint. Actor and critic weights are reused; optimizer state
+   is fresh. If the checkpoint cannot pass transfer compatibility checks,
+   training stops with an error instead of silently bootstrapping from scratch.
+4. Numeric config changes (costs, damage, HP, and similar): start a new run
    warm-started from the best checkpoint of the previous run.
-4. Structural changes (new item, treasure or card service): the old policy
+5. Structural changes (new item, treasure or card service): the old policy
    cannot be carried over, so a new run is bootstrapped from scratch.
 
 ## Reset
