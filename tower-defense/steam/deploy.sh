@@ -3,11 +3,11 @@ set -euo pipefail
 
 # End-to-end deploy of tower-defense to Steam.
 #   - Installs steamcmd locally if missing
-#   - Mints a namsh build_id + hmac_key for crash reporting (PDB upload)
+#   - Mints a namsh build_id + hmac_key for crash reporting (unless --skip-namsh)
 #   - Builds the Windows target via namui CLI (unless --skip-build),
 #     injecting NAMSH_BUILD_ID and NAMSH_HMAC_KEY so the binary can sign
 #     crash intake requests
-#   - Uploads the resulting PDB to namsh
+#   - Uploads the resulting PDB to namsh (unless --skip-namsh)
 #   - Syncs the build output into content/ and uploads via SteamPipe
 #   - Sets the build live on the specified branch
 #
@@ -24,7 +24,8 @@ NAMSH_TOKEN_FILE="${NAMSH_TOKEN_FILE:-$HOME/.config/namsh/token}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-BUILD_OUTPUT="$REPO_ROOT/target/namui/x86_64-pc-windows-msvc"
+APP_ROOT="$REPO_ROOT/app"
+BUILD_OUTPUT="$APP_ROOT/target/namui/x86_64-pc-windows-msvc"
 
 STEAMCMD_DIR="$SCRIPT_DIR/steamcmd"
 STEAMCMD="$STEAMCMD_DIR/steamcmd.sh"
@@ -39,11 +40,13 @@ PDB_FILE="namui_runtime_x86_64_pc_windows_msvc.pdb"
 
 SKIP_BUILD=0
 SKIP_STEAM=0
+SKIP_NAMSH=0
 PREVIEW=0
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --skip-build) SKIP_BUILD=1; shift ;;
         --skip-steam) SKIP_STEAM=1; shift ;;
+        --skip-namsh) SKIP_NAMSH=1; shift ;;
         --preview)    PREVIEW=1; shift ;;
         --branch)     BRANCH="$2"; shift 2 ;;
         -h|--help)
@@ -56,6 +59,7 @@ Options:
   --branch NAME   Branch to set live (default: "$BRANCH"). Use "" to skip setlive.
   --skip-build    Skip the build step (and the namsh PDB upload).
   --skip-steam    Skip the Steam upload (still builds + uploads PDB to namsh).
+  --skip-namsh     Skip namsh requests, crash-reporting credentials, and PDB upload.
   --preview       Dry-run: validate VDF without uploading to Steam.
   -h, --help      Show this help.
 
@@ -260,7 +264,7 @@ BUILD_ID="$(date -u +%Y-%m-%d_%H-%M-%SZ)"
 NAMSH_HMAC_KEY_HEX=""
 NAMSH_PDB_PUT_URL=""
 
-if [ "$SKIP_BUILD" -eq 0 ]; then
+if [ "$SKIP_BUILD" -eq 0 ] && [ "$SKIP_NAMSH" -eq 0 ]; then
     namsh_load_or_authorize_token
     echo "=== Requesting namsh PDB upload for build_id=$BUILD_ID ==="
     namsh_request_pdb_upload
@@ -284,11 +288,14 @@ if [ "$SKIP_BUILD" -eq 0 ]; then
         exit 1
     fi
     echo "=== Building Windows target ==="
-    NAMSH_BUILD_ID="$BUILD_ID" \
-    NAMSH_HMAC_KEY="$NAMSH_HMAC_KEY_HEX" \
-    NAMSH_URL="$NAMSH_URL" \
-    namui build x86_64-pc-windows-msvc \
-        --manifest-path "$REPO_ROOT/Cargo.toml" \
+    BUILD_ENV=("NAMSH_URL=$NAMSH_URL")
+    if [ "$SKIP_NAMSH" -eq 0 ]; then
+        BUILD_ENV+=("NAMSH_BUILD_ID=$BUILD_ID" "NAMSH_HMAC_KEY=$NAMSH_HMAC_KEY_HEX")
+    else
+        echo "WARNING: namsh crash reporting and PDB upload are disabled for this build."
+    fi
+    env "${BUILD_ENV[@]}" namui build x86_64-pc-windows-msvc \
+        --manifest-path "$APP_ROOT/Cargo.toml" \
         --release
 fi
 
@@ -299,7 +306,7 @@ fi
 
 # 2b. Upload PDB to namsh (presigned PUT URLs expire in 10 minutes, so we
 # re-request after the build to get a fresh one).
-if [ "$SKIP_BUILD" -eq 0 ]; then
+if [ "$SKIP_BUILD" -eq 0 ] && [ "$SKIP_NAMSH" -eq 0 ]; then
     if [ ! -f "$BUILD_OUTPUT/$PDB_FILE" ]; then
         echo "ERROR: PDB not found at $BUILD_OUTPUT/$PDB_FILE"
         exit 1
@@ -369,7 +376,7 @@ if [ "$PREVIEW" -eq 0 ]; then
     fi
 fi
 
-STEAM_ASSETS_DIR="$REPO_ROOT/target/namui/steam-assets"
+STEAM_ASSETS_DIR="$APP_ROOT/target/namui/steam-assets"
 if [ -d "$STEAM_ASSETS_DIR" ]; then
     echo ""
     echo "=== Steam Partner assets ==="
