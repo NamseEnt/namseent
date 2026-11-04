@@ -576,7 +576,10 @@ mod tests {
         assert_eq!(ShopContentCategory::Item.id(), 1);
         assert_eq!(ShopContentCategory::Upgrade.id(), 2);
         assert_eq!(ShopContentCategory::CardService.id(), 3);
-        assert_eq!(ShopContentCategory::from_id(3), Some(ShopContentCategory::CardService));
+        assert_eq!(
+            ShopContentCategory::from_id(3),
+            Some(ShopContentCategory::CardService)
+        );
         assert_eq!(ShopContentCategory::from_id(0), None);
         assert_eq!(item_kind_id(0), 1);
         assert_eq!(item_kind_id(10), 11);
