@@ -29,7 +29,10 @@ unsafe extern "C" {
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn _kv_store_get(request_id: u32, key_ptr: *const u8, key_len: u32) {
+/// # Safety
+///
+/// `key_ptr` must point to `key_len` bytes of valid UTF-8 for the duration of this call.
+pub unsafe extern "C" fn _kv_store_get(request_id: u32, key_ptr: *const u8, key_len: u32) {
     let key = unsafe {
         std::str::from_utf8_unchecked(std::slice::from_raw_parts(key_ptr, key_len as usize))
     };
@@ -50,7 +53,12 @@ pub extern "C" fn _kv_store_get(request_id: u32, key_ptr: *const u8, key_len: u3
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn _kv_store_put(
+/// # Safety
+///
+/// `key_ptr` must point to `key_len` bytes of valid UTF-8 for the duration of this call.
+/// If `value_ptr` is not null, it must point to `value_len` readable bytes for the duration of
+/// this call.
+pub unsafe extern "C" fn _kv_store_put(
     request_id: u32,
     key_ptr: *const u8,
     key_len: u32,

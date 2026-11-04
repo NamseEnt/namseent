@@ -170,6 +170,7 @@ mod tests {
         state.force_start_defense();
         state
             .edit_snapshot(|parts| {
+                parts.hp_raw = 20_000;
                 parts.monster_spawn.monster_queue.clear();
                 parts.monster_spawn.next_spawn_tick = None;
                 parts.monsters.clear();
@@ -185,9 +186,12 @@ mod tests {
         );
         state.apply_defense_end_transition(defense_end.transition);
         assert_eq!(state.progress().stage, 11);
+        assert_eq!(state.hp_raw(), 50_000);
         assert!(matches!(
             state.flow(),
             crate::GameFlowState::TreasureSelection { .. }
         ));
+        assert!(!state.start_treasure_selection());
+        assert_eq!(state.hp_raw(), 50_000);
     }
 }

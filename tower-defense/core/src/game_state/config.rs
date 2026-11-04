@@ -83,12 +83,13 @@ pub struct GameConfig {
 pub type GameConfigState = GameConfig;
 
 impl GameConfig {
+    #[cfg(test)]
     pub fn default_config() -> Self {
         Self::from_jsonc_str(include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/../gameconfig.jsonc"
         )))
-        .expect("embedded gameconfig.jsonc must be valid")
+        .expect("test gameconfig.jsonc must be valid")
     }
 
     pub fn from_jsonc_str(content: &str) -> Result<Self, String> {
@@ -549,7 +550,7 @@ mod tests {
     }
 
     #[test]
-    fn core_owns_jsonc_loading_and_round_trip() {
+    fn core_parses_jsonc_and_round_trips() {
         let config = GameConfig::default_config();
         let encoded = config.to_jsonc_string().expect("config should serialize");
         let decoded = GameConfig::from_jsonc_str(&encoded).expect("config should parse");

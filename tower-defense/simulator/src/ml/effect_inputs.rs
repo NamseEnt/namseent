@@ -204,6 +204,7 @@ pub fn candidate_effects(observation: &Observation, candidate: &PolicyCandidate)
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config::GameConfigTestExt;
     use crate::ml::{
         feature_contract::InputContract,
         model::{ModelConfig, TrainBackend, default_policy_device},

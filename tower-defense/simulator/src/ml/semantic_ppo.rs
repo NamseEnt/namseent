@@ -23,7 +23,6 @@ use super::model::{
     DeepSetsActorCritic, InferenceBackend, ModelConfig, PolicyDevice, TrainBackend,
     TypedCandidateScorer, default_policy_device, model_to_full_precision_bytes, tensor_from_rows,
 };
-use super::neural_checkpoint::current_git_revision;
 use super::phase4_dataset::{
     DatasetProvenance, EpisodeRecord, GAME_RULES_EPOCH, MAX_EPISODE_DECISIONS, Phase4Split,
 };
@@ -41,6 +40,7 @@ use super::semantic_candidates::{
     SEMANTIC_CANDIDATE_ENCODER_VERSION, encode_decision,
 };
 use super::spatial::CellSet;
+use super::support::current_git_revision;
 use crate::config::GameConfig;
 use crate::environment::{DecisionPoint, GameEnvironment};
 use anyhow::{Context, Result, bail};
@@ -1029,7 +1029,7 @@ impl PpoLearner {
             return None;
         }
         let gradients = GradientsParams::from_grads(loss.backward(), &self.critic);
-        let norm = super::ppo::gradient_l2_norm(&self.critic, &gradients);
+        let norm = super::support::gradient_l2_norm(&self.critic, &gradients);
         if !norm.is_finite() {
             return None;
         }
@@ -2320,16 +2320,18 @@ impl PpoLearner {
                             };
                             let norm = match config.actor_update_mode {
                                 ActorUpdateMode::Full => {
-                                    super::ppo::gradient_l2_norm(&self.actor, &gradients)
+                                    super::support::gradient_l2_norm(&self.actor, &gradients)
                                 }
-                                ActorUpdateMode::PositionOnly => super::ppo::gradient_l2_norm(
+                                ActorUpdateMode::PositionOnly => super::support::gradient_l2_norm(
                                     &self.actor.spatial_cell_head(),
                                     &gradients,
                                 ),
-                                ActorUpdateMode::BuildOptionOnly => super::ppo::gradient_l2_norm(
-                                    &*self.build_option_head,
-                                    &gradients,
-                                ),
+                                ActorUpdateMode::BuildOptionOnly => {
+                                    super::support::gradient_l2_norm(
+                                        &*self.build_option_head,
+                                        &gradients,
+                                    )
+                                }
                             };
                             if norm.is_finite() {
                                 if transactional_epoch_gate
@@ -2340,15 +2342,15 @@ impl PpoLearner {
                                 if let (Some(path), Some(factors)) =
                                     (diagnostics_path.as_ref(), factor_diagnostics.as_ref())
                                 {
-                                    let shared = super::ppo::gradient_l2_norm(
+                                    let shared = super::support::gradient_l2_norm(
                                         &self.actor.scorer,
                                         &gradients,
                                     );
-                                    let family = super::ppo::gradient_l2_norm(
+                                    let family = super::support::gradient_l2_norm(
                                         &self.actor.family_head(),
                                         &gradients,
                                     );
-                                    let spatial = super::ppo::gradient_l2_norm(
+                                    let spatial = super::support::gradient_l2_norm(
                                         &self.actor.spatial_cell_head(),
                                         &gradients,
                                     );
@@ -5356,6 +5358,7 @@ mod tests {
     }
 
     use super::*;
+    use crate::config::GameConfigTestExt;
     use crate::ml::phase4_dataset::{SourcePolicy, collect_canonical_episode};
     use crate::ml::phase4_eval::run_policy_episode;
     use crate::ml::semantic_bc::{

@@ -1050,6 +1050,7 @@ pub fn is_ranked_family(kind: ActionKind) -> bool {
 mod tests {
     use super::*;
     use crate::config::GameConfig;
+    use crate::config::GameConfigTestExt;
     use crate::teacher::settle_forced_actions;
     use std::sync::Arc;
 
@@ -1629,6 +1630,7 @@ mod tests {
 mod profile {
     use super::*;
     use crate::config::GameConfig;
+    use crate::config::GameConfigTestExt;
     use std::sync::Arc;
     use std::time::Instant;
 

@@ -2336,6 +2336,7 @@ fn card_observation(card: &td_core::CardState) -> CardObservation {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config::GameConfigTestExt;
     use std::collections::HashSet;
 
     #[test]
@@ -4281,6 +4282,7 @@ mod tests {
 #[cfg(test)]
 mod clear_rate_trace_tests {
     use super::*;
+    use crate::config::GameConfigTestExt;
     use crate::policy_runner::canonical_scripted_semantic_action;
 
     #[test]

@@ -319,7 +319,7 @@ mod tests {
     #[test]
     fn restore_rejects_persisted_state_with_different_config() {
         let original = crate::game_state::create_game_state_with_seed(0x5EED);
-        let mut config = crate::config::GameConfig::default_config();
+        let mut config = crate::config::default_config();
         config.player.max_hp_raw += 1;
         let mut target =
             crate::game_state::create_game_state_with_config(std::sync::Arc::new(config), 0xA11CE);

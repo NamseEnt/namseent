@@ -832,6 +832,7 @@ pub fn run_teacher_selection_episode(
 mod tests {
     use super::*;
     use crate::config::GameConfig;
+    use crate::config::GameConfigTestExt;
     use crate::environment::DecisionPoint;
     use std::collections::HashSet;
     use std::sync::Arc;

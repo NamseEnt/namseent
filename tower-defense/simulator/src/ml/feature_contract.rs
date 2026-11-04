@@ -193,6 +193,7 @@ pub fn feature_scale_survey<'a>(
 mod tests {
     use super::*;
     use crate::config::GameConfig;
+    use crate::config::GameConfigTestExt;
     use crate::ml::phase4_dataset::load_episodes;
     use crate::ml::semantic_bc::{LabelSource, prepare_samples};
     use std::path::Path;
@@ -205,9 +206,7 @@ mod tests {
             .unwrap()
             .encoded;
         let mut probe = decision.clone();
-        for value in &mut probe.global_features {
-            *value = 1000.0;
-        }
+        probe.global_features.fill(1000.0);
         let squashed = apply_contract(&probe, InputContract::Normalized);
         for (slot, value) in squashed.global_features.iter().enumerate() {
             let expected = if SQUASHED_GLOBAL_SLOTS.contains(&slot) {

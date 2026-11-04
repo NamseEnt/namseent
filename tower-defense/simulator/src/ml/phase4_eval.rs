@@ -552,6 +552,7 @@ pub fn evaluate_policies(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config::GameConfigTestExt;
     use crate::ml::model::{InferenceBackend, ModelConfig, default_policy_device};
     use crate::teacher_terminal_gate::run_canonical_terminal_episode;
 

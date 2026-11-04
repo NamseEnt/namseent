@@ -2,6 +2,9 @@ use anyhow::Context;
 use rusqlite::{Connection, params};
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::Path;
+use td_core::{CardServiceKind, ItemKind, UpgradeKind};
+
+pub use crate::events::ContentKind;
 
 pub struct Database {
     conn: Connection,
@@ -15,6 +18,7 @@ pub struct SimulationOutcome {
 
 #[derive(Clone, Debug)]
 pub struct SummaryRow {
+    pub kind: ContentKind,
     pub name: String,
     pub selected_simulations: usize,
     pub total_purchases: usize,
@@ -74,24 +78,27 @@ pub struct DetailStats {
     pub distribution: Vec<PickBin>,
 }
 
-fn item_names() -> Vec<String> {
-    td_core::ItemKind::ALL
+fn item_kinds() -> Vec<ContentKind> {
+    ItemKind::ALL
         .iter()
-        .map(|kind| kind.key().to_string())
+        .copied()
+        .map(ContentKind::Item)
         .collect()
 }
 
-fn upgrade_names() -> Vec<String> {
-    td_core::UpgradeKind::ALL
+fn upgrade_kinds() -> Vec<ContentKind> {
+    UpgradeKind::ALL
         .iter()
-        .map(|kind| kind.key().to_string())
+        .copied()
+        .map(ContentKind::Upgrade)
         .collect()
 }
 
-fn card_service_names() -> Vec<String> {
-    td_core::CardServiceKind::ALL
+fn card_service_kinds() -> Vec<ContentKind> {
+    CardServiceKind::ALL
         .iter()
-        .map(|kind| kind.key().to_string())
+        .copied()
+        .map(ContentKind::CardService)
         .collect()
 }
 
@@ -126,25 +133,37 @@ impl Database {
 
     pub fn list_items(&self) -> anyhow::Result<Vec<SummaryRow>> {
         let summary = self.list_shop_purchase_summaries()?;
-        Ok(self.build_known_summary(summary, &item_names()))
+        Ok(self.build_known_summary(summary, &item_kinds()))
     }
 
     pub fn list_upgrades(&self) -> anyhow::Result<Vec<SummaryRow>> {
         let summary = self.list_shop_purchase_summaries()?;
-        Ok(self.build_known_summary(summary, &upgrade_names()))
+        Ok(self.build_known_summary(summary, &upgrade_kinds()))
     }
 
     pub fn list_treasures(&self) -> anyhow::Result<Vec<SummaryRow>> {
         let outcome = self.load_simulation_outcomes()?;
-        let rows = self.query_event_kind("treasure_selected", "$.TreasureSelected.upgrade_kind")?;
+        let rows = self.query_event_kind(
+            "treasure_selected",
+            "$.TreasureSelected.upgrade_kind",
+            crate::events::upgrade_kind_from_event_key,
+        )?;
         Ok(self.build_summary(rows, &outcome))
     }
 
     pub fn list_upgrades_and_treasures(&self) -> anyhow::Result<Vec<SummaryRow>> {
         let outcome = self.load_simulation_outcomes()?;
-        let mut rows = self.query_event_kind("shop_purchase", "$.ShopPurchase.item_kind")?;
-        rows.extend(self.query_event_kind("treasure_selected", "$.TreasureSelected.upgrade_kind")?);
-        Ok(self.build_known_summary(self.build_summary(rows, &outcome), &upgrade_names()))
+        let mut rows = self.query_event_kind(
+            "shop_purchase",
+            "$.ShopPurchase.item_kind",
+            ContentKind::from_event_key,
+        )?;
+        rows.extend(self.query_event_kind(
+            "treasure_selected",
+            "$.TreasureSelected.upgrade_kind",
+            crate::events::upgrade_kind_from_event_key,
+        )?);
+        Ok(self.build_known_summary(self.build_summary(rows, &outcome), &upgrade_kinds()))
     }
 
     pub fn list_strategy_win_rates(&self) -> anyhow::Result<Vec<StrategyStats>> {
@@ -215,24 +234,48 @@ impl Database {
         Ok(output)
     }
 
-    pub fn detail_for_shop_purchase(&self, kind: &str) -> anyhow::Result<DetailStats> {
-        self.detail_for_event("shop_purchase", "$.ShopPurchase.item_kind", kind)
-    }
-
-    pub fn detail_for_treasure(&self, kind: &str) -> anyhow::Result<DetailStats> {
-        self.detail_for_event("treasure_selected", "$.TreasureSelected.upgrade_kind", kind)
-    }
-
-    pub fn detail_for_upgrade(&self, kind: &str) -> anyhow::Result<DetailStats> {
+    pub fn detail_for_shop_purchase(&self, kind: ContentKind) -> anyhow::Result<DetailStats> {
         let outcome = self.load_simulation_outcomes()?;
-        let mut rows = self.query_event_kind("shop_purchase", "$.ShopPurchase.item_kind")?;
-        rows.extend(self.query_event_kind("treasure_selected", "$.TreasureSelected.upgrade_kind")?);
+        let rows = self.query_event_kind(
+            "shop_purchase",
+            "$.ShopPurchase.item_kind",
+            ContentKind::from_event_key,
+        )?;
         self.detail_for_rows(&outcome, rows, kind)
+    }
+
+    pub fn detail_for_treasure(&self, kind: UpgradeKind) -> anyhow::Result<DetailStats> {
+        let outcome = self.load_simulation_outcomes()?;
+        let rows = self.query_event_kind(
+            "treasure_selected",
+            "$.TreasureSelected.upgrade_kind",
+            crate::events::upgrade_kind_from_event_key,
+        )?;
+        self.detail_for_rows(&outcome, rows, kind.into())
+    }
+
+    pub fn detail_for_upgrade(&self, kind: UpgradeKind) -> anyhow::Result<DetailStats> {
+        let outcome = self.load_simulation_outcomes()?;
+        let mut rows = self.query_event_kind(
+            "shop_purchase",
+            "$.ShopPurchase.item_kind",
+            ContentKind::from_event_key,
+        )?;
+        rows.extend(self.query_event_kind(
+            "treasure_selected",
+            "$.TreasureSelected.upgrade_kind",
+            crate::events::upgrade_kind_from_event_key,
+        )?);
+        self.detail_for_rows(&outcome, rows, kind.into())
     }
 
     fn list_shop_purchase_summaries(&self) -> anyhow::Result<Vec<SummaryRow>> {
         let outcome = self.load_simulation_outcomes()?;
-        let rows = self.query_event_kind("shop_purchase", "$.ShopPurchase.item_kind")?;
+        let rows = self.query_event_kind(
+            "shop_purchase",
+            "$.ShopPurchase.item_kind",
+            ContentKind::from_event_key,
+        )?;
         Ok(self.build_summary(rows, &outcome))
     }
 
@@ -261,11 +304,15 @@ impl Database {
         Ok(outcome)
     }
 
-    fn query_event_kind(
+    fn query_event_kind<K>(
         &self,
         event_type: &str,
         json_path: &str,
-    ) -> anyhow::Result<Vec<(String, String)>> {
+        parse_kind: impl Fn(&str) -> anyhow::Result<K>,
+    ) -> anyhow::Result<Vec<(String, ContentKind)>>
+    where
+        K: Into<ContentKind>,
+    {
         let sql = format!(
             "SELECT simulation_id, json_extract(event_data, '{}') FROM simulation_events WHERE event_type = ?1 AND simulation_id IN (SELECT id FROM simulations WHERE completed_at IS NOT NULL)",
             json_path,
@@ -274,27 +321,28 @@ impl Database {
         let rows = stmt.query_map(params![event_type], |row| {
             let simulation_id: String = row.get(0)?;
             let kind: Option<String> = row.get(1)?;
-            Ok((simulation_id, kind.unwrap_or_default()))
+            Ok((simulation_id, kind))
         })?;
 
         let mut output = Vec::new();
         for row in rows {
             let (simulation_id, kind) = row?;
-            let kind = super::canonicalize_kind_name(kind);
-            if kind.is_empty() {
-                continue;
-            }
-            output.push((simulation_id, kind));
+            let kind = kind.with_context(|| {
+                format!("event {event_type} is missing the content key at {json_path}")
+            })?;
+            let kind = parse_kind(&kind)
+                .with_context(|| format!("invalid content key {kind:?} in event {event_type}"))?;
+            output.push((simulation_id, kind.into()));
         }
         Ok(output)
     }
 
     fn build_summary(
         &self,
-        rows: Vec<(String, String)>,
+        rows: Vec<(String, ContentKind)>,
         outcome: &HashMap<String, SimulationOutcome>,
     ) -> Vec<SummaryRow> {
-        let mut builder: HashMap<String, SummaryBuilder> = HashMap::new();
+        let mut builder: HashMap<ContentKind, SummaryBuilder> = HashMap::new();
 
         for (simulation_id, kind) in rows {
             let entry = builder.entry(kind).or_default();
@@ -310,7 +358,7 @@ impl Database {
 
         let mut result: Vec<SummaryRow> = builder
             .into_iter()
-            .map(|(name, entry)| {
+            .map(|(kind, entry)| {
                 let selected_simulations = entry.simulation_ids.len();
                 let win_count = entry
                     .simulation_ids
@@ -335,7 +383,8 @@ impl Database {
                 }
                 .max(0.0);
                 SummaryRow {
-                    name,
+                    kind,
+                    name: kind.key().to_string(),
                     selected_simulations,
                     total_purchases: entry.total_purchases,
                     win_rate,
@@ -356,18 +405,19 @@ impl Database {
     fn build_known_summary(
         &self,
         rows: Vec<SummaryRow>,
-        known_names: &[String],
+        known_kinds: &[ContentKind],
     ) -> Vec<SummaryRow> {
-        let mut map: HashMap<String, SummaryRow> = HashMap::new();
+        let mut map: HashMap<ContentKind, SummaryRow> = HashMap::new();
         for row in rows {
-            map.insert(row.name.clone(), row);
+            map.insert(row.kind, row);
         }
 
-        let mut result: Vec<SummaryRow> = known_names
+        let mut result: Vec<SummaryRow> = known_kinds
             .iter()
-            .map(|name| {
-                map.remove(name).unwrap_or(SummaryRow {
-                    name: name.to_string(),
+            .map(|kind| {
+                map.remove(kind).unwrap_or(SummaryRow {
+                    kind: *kind,
+                    name: kind.key().to_string(),
                     selected_simulations: 0,
                     total_purchases: 0,
                     win_rate: 0.0,
@@ -385,22 +435,11 @@ impl Database {
         result
     }
 
-    fn detail_for_event(
-        &self,
-        event_type: &str,
-        json_path: &str,
-        kind: &str,
-    ) -> anyhow::Result<DetailStats> {
-        let outcome = self.load_simulation_outcomes()?;
-        let rows = self.query_event_kind(event_type, json_path)?;
-        self.detail_for_rows(&outcome, rows, kind)
-    }
-
     fn detail_for_rows(
         &self,
         outcome: &HashMap<String, SimulationOutcome>,
-        rows: Vec<(String, String)>,
-        kind: &str,
+        rows: Vec<(String, ContentKind)>,
+        kind: ContentKind,
     ) -> anyhow::Result<DetailStats> {
         let total_simulations = outcome.len();
 
@@ -477,7 +516,7 @@ impl Database {
         let clear_rate_distribution = Self::build_clear_rate_distribution(&clear_rate_values);
 
         Ok(DetailStats {
-            name: kind.to_owned(),
+            name: kind.key().to_string(),
             total_simulations,
             selected_simulations,
             total_purchases,
@@ -610,12 +649,34 @@ impl Database {
 
     pub fn list_card_services(&self) -> anyhow::Result<Vec<SummaryRow>> {
         let outcome = self.load_simulation_outcomes()?;
-        let rows = self.query_event_kind("card_service_used", "$.CardServiceUsed.service_kind")?;
-        Ok(self.build_known_summary(self.build_summary(rows, &outcome), &card_service_names()))
+        let rows = self.query_event_kind(
+            "card_service_used",
+            "$.CardServiceUsed.service_kind",
+            |key| {
+                let kind = ContentKind::from_event_key(key)?;
+                match kind {
+                    ContentKind::CardService(kind) => Ok(kind),
+                    _ => anyhow::bail!("expected card service key, got {key:?}"),
+                }
+            },
+        )?;
+        Ok(self.build_known_summary(self.build_summary(rows, &outcome), &card_service_kinds()))
     }
 
-    pub fn detail_for_card_service(&self, kind: &str) -> anyhow::Result<DetailStats> {
-        self.detail_for_event("card_service_used", "$.CardServiceUsed.service_kind", kind)
+    pub fn detail_for_card_service(&self, kind: CardServiceKind) -> anyhow::Result<DetailStats> {
+        let outcome = self.load_simulation_outcomes()?;
+        let rows = self.query_event_kind(
+            "card_service_used",
+            "$.CardServiceUsed.service_kind",
+            |key| {
+                let kind = ContentKind::from_event_key(key)?;
+                match kind {
+                    ContentKind::CardService(kind) => Ok(kind),
+                    _ => anyhow::bail!("expected card service key, got {key:?}"),
+                }
+            },
+        )?;
+        self.detail_for_rows(&outcome, rows, kind.into())
     }
 }
 
@@ -658,6 +719,7 @@ pub fn upgrade_rarity_prefix(name: &str) -> Option<&'static str> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config::GameConfigTestExt;
     use crate::events::SimEvent;
     use crate::recording::SimRecorder;
     use std::fs;
@@ -720,7 +782,7 @@ mod tests {
                 &[SimEvent::ShopPurchase {
                     stage: 1,
                     cost: 0,
-                    item_kind: "Cat(CatUpgrade)".to_string(),
+                    content_kind: ContentKind::Upgrade(UpgradeKind::Cat),
                 }],
             )
             .unwrap();
@@ -736,6 +798,111 @@ mod tests {
                 .any(|row| row.name == "Cat" && row.total_purchases == 1)
         );
 
+        fs::remove_file(&db_path).unwrap();
+    }
+
+    #[test]
+    fn content_summaries_and_details_match_catalog_names_to_event_keys() {
+        let db_path = temp_db_path("content_event_keys");
+        let recorder = SimRecorder::new(&db_path).unwrap();
+
+        recorder
+            .record_simulation_start(
+                "sim1",
+                "shop_strategy",
+                "card_reroll_strategy",
+                "tower_placement_strategy",
+                "item_use_strategy",
+                "heuristic_card_service",
+                42u64,
+            )
+            .unwrap();
+        recorder
+            .record_events(
+                "sim1",
+                &[
+                    SimEvent::ShopPurchase {
+                        stage: 1,
+                        cost: 10,
+                        content_kind: ContentKind::Item(ItemKind::Bread),
+                    },
+                    SimEvent::ShopPurchase {
+                        stage: 1,
+                        cost: 20,
+                        content_kind: ContentKind::Upgrade(UpgradeKind::BlackWhite),
+                    },
+                    SimEvent::TreasureSelected {
+                        stage: 1,
+                        upgrade_kind: UpgradeKind::BlackWhite,
+                    },
+                ],
+            )
+            .unwrap();
+        let legacy_events = rusqlite::Connection::open(&db_path).unwrap();
+        for (event_order, event_data) in [
+            (
+                0,
+                r#"{"ShopPurchase":{"stage":1,"cost":10,"item_kind":"bread"}}"#,
+            ),
+            (
+                1,
+                r#"{"ShopPurchase":{"stage":1,"cost":20,"item_kind":"black_white"}}"#,
+            ),
+            (
+                2,
+                r#"{"TreasureSelected":{"stage":1,"upgrade_kind":"black_white"}}"#,
+            ),
+        ] {
+            legacy_events
+                .execute(
+                    "UPDATE simulation_events SET event_data = ?1 WHERE simulation_id = ?2 AND event_order = ?3",
+                    rusqlite::params![event_data, "sim1", event_order],
+                )
+                .unwrap();
+        }
+        drop(legacy_events);
+        recorder
+            .record_simulation_end("sim1", true, 1, 100.0, 1.0, 0, 0, 0, 0.0, 0)
+            .unwrap();
+
+        let db = Database::open(&db_path).unwrap();
+        let items = db.list_items().unwrap();
+        assert!(
+            items
+                .iter()
+                .any(|row| row.name == "Bread" && row.total_purchases == 1),
+            "{items:?}"
+        );
+
+        let upgrades = db.list_upgrades().unwrap();
+        assert!(
+            upgrades
+                .iter()
+                .any(|row| { row.name == "BlackWhite" && row.total_purchases == 1 })
+        );
+
+        let combined = db.list_upgrades_and_treasures().unwrap();
+        assert!(
+            combined
+                .iter()
+                .any(|row| { row.name == "BlackWhite" && row.total_purchases == 2 })
+        );
+
+        assert_eq!(
+            db.detail_for_shop_purchase(ContentKind::Item(ItemKind::Bread))
+                .unwrap()
+                .total_purchases,
+            1
+        );
+        assert_eq!(
+            db.detail_for_upgrade(UpgradeKind::BlackWhite)
+                .unwrap()
+                .total_purchases,
+            2
+        );
+
+        drop(db);
+        drop(recorder);
         fs::remove_file(&db_path).unwrap();
     }
 
@@ -762,11 +929,11 @@ mod tests {
                     SimEvent::ShopPurchase {
                         stage: 1,
                         cost: 0,
-                        item_kind: "Cat(CatUpgrade)".to_string(),
+                        content_kind: ContentKind::Upgrade(UpgradeKind::Cat),
                     },
                     SimEvent::TreasureSelected {
                         stage: 1,
-                        upgrade_kind: "Cat(CatUpgrade)".to_string(),
+                        upgrade_kind: UpgradeKind::Cat,
                     },
                 ],
             )
@@ -842,7 +1009,7 @@ mod tests {
                 &[SimEvent::ShopPurchase {
                     stage: 1,
                     cost: 50,
-                    item_kind: "long_sword".to_string(),
+                    content_kind: ContentKind::CardService(CardServiceKind::LongSword),
                 }],
             )
             .unwrap();
@@ -852,7 +1019,9 @@ mod tests {
 
         let db = Database::open(&db_path).unwrap();
 
-        let detail = db.detail_for_shop_purchase("long_sword").unwrap();
+        let detail = db
+            .detail_for_shop_purchase(ContentKind::CardService(CardServiceKind::LongSword))
+            .unwrap();
         assert_eq!(detail.total_purchases, 1);
 
         let upgrades = db.list_upgrades_and_treasures().unwrap();
@@ -905,6 +1074,9 @@ mod tests {
                     policy_kind: "environment".to_string(),
                     checkpoint_path: None,
                     checkpoint_iteration: None,
+                    checkpoint_sha256: None,
+                    model_sha256: None,
+                    git_revision: None,
                     environment_version: None,
                     action_schema_version: None,
                     config_digest: None,

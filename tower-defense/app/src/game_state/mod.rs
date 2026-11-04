@@ -2625,7 +2625,7 @@ impl Component for &FloorTile {
 static GAME_STATE_ATOM: Atom<crate::headed_game::HeadedGame> = Atom::uninitialized();
 
 fn create_game_state_with_seed_raw(seed: u64) -> GameState {
-    create_game_state_with_config(Arc::new(GameConfig::default_config()), seed)
+    create_game_state_with_config(Arc::new(crate::config::default_config()), seed)
 }
 
 #[cfg(not(test))]
@@ -2916,7 +2916,8 @@ mod tests {
 
     #[test]
     fn configured_initial_state_starts_at_treasure_selection() {
-        let game_state = create_game_state_with_config(Arc::new(GameConfig::default_config()), 7);
+        let game_state =
+            create_game_state_with_config(Arc::new(crate::config::default_config()), 7);
         assert!(matches!(
             game_state.raw_core.flow(),
             td_core::GameFlowState::TreasureSelection { .. }

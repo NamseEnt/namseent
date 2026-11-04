@@ -2,9 +2,9 @@
 //! existing `DeepSetsActorCritic` actor, plus the search-free inference
 //! policy used for terminal evaluation.
 
-use super::bc::MaskedGroups;
 use super::encoding::{PaddedEntityBatch, observation::ENTITY_SET_COUNT};
 use super::feature_contract::InputContract;
+use super::masked_groups::MaskedGroups;
 use super::model::{
     DeepSetsActorCritic, InferenceBackend, ModelConfig, PolicyDevice, TrainBackend,
     TypedCandidateScorer, default_policy_device, initialize_model, model_from_full_precision_bytes,
@@ -1482,6 +1482,7 @@ pub fn benchmark_bc_backend<B: burn::tensor::backend::AutodiffBackend>(
 mod tests {
     use super::*;
     use crate::config::GameConfig;
+    use crate::config::GameConfigTestExt;
     use crate::ml::phase4_dataset::{
         DatasetProvenance, Phase4Split, SourcePolicy, collect_canonical_episode,
     };

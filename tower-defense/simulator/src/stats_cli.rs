@@ -15,7 +15,7 @@ use std::io::{self, Stdout};
 use std::path::PathBuf;
 use std::time::Duration;
 use td_simulator::stats::{
-    Database, DetailStats, StrategyStats, SummaryRow, upgrade_rarity_prefix,
+    ContentKind, Database, DetailStats, StrategyStats, SummaryRow, upgrade_rarity_prefix,
 };
 
 #[derive(Args)]
@@ -107,17 +107,26 @@ impl App {
             Tab::Items => self
                 .current_list()
                 .get(self.selection)
-                .map(|row| db.detail_for_shop_purchase(&row.name))
+                .map(|row| match row.kind {
+                    ContentKind::Item(kind) => db.detail_for_shop_purchase(ContentKind::Item(kind)),
+                    kind => anyhow::bail!("unexpected content kind in items tab: {kind:?}"),
+                })
                 .transpose()?,
             Tab::Upgrades => self
                 .current_list()
                 .get(self.selection)
-                .map(|row| db.detail_for_upgrade(&row.name))
+                .map(|row| match row.kind {
+                    ContentKind::Upgrade(kind) => db.detail_for_upgrade(kind),
+                    kind => anyhow::bail!("unexpected content kind in upgrades tab: {kind:?}"),
+                })
                 .transpose()?,
             Tab::CardServices => self
                 .current_list()
                 .get(self.selection)
-                .map(|row| db.detail_for_card_service(&row.name))
+                .map(|row| match row.kind {
+                    ContentKind::CardService(kind) => db.detail_for_card_service(kind),
+                    kind => anyhow::bail!("unexpected content kind in card services tab: {kind:?}"),
+                })
                 .transpose()?,
             Tab::Strategies => self
                 .current_strategy()

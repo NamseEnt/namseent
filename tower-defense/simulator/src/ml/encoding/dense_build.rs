@@ -383,6 +383,7 @@ impl PlaceTowerFeatureBundle {
 mod tests {
     use super::*;
     use crate::config::GameConfig;
+    use crate::config::GameConfigTestExt;
     use crate::environment::{AgentAction, GameEnvironment};
     use std::sync::Arc;
 

@@ -479,6 +479,7 @@ impl GameCore {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config::GameConfigTestExt;
 
     fn mutate_raw_state(core: &mut GameCore, mutate: impl FnOnce(&mut td_core::CoreSnapshotParts)) {
         let mut parts = core.session.snapshot_parts();
@@ -935,8 +936,9 @@ mod tests {
 
         assert_eq!(output.sim_tick, SimTick::from_ticks(1));
         assert_eq!(core.session.monsters().len(), 1);
-        assert_eq!(core.session.monster_spawn().monster_queue.len(), 4);
-        assert_eq!(core.session.monster_spawn().next_spawn_tick, Some(134));
+        assert_eq!(core.session.monster_spawn().monster_queue.len(), 24);
+        assert_eq!(core.session.monster_spawn().spawn_interval_ticks, 45);
+        assert_eq!(core.session.monster_spawn().next_spawn_tick, Some(46));
         assert!(output.events.iter().any(|event| matches!(
             event,
             CoreEvent::MonsterSpawned {

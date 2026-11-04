@@ -406,6 +406,7 @@ impl std::error::Error for MlContractError {}
 mod tests {
     use super::*;
     use crate::config::GameConfig;
+    use crate::config::GameConfigTestExt;
     use crate::environment::{AgentAction, GameEnvironment};
     use crate::policy_runner::run_scripted_oracle_trajectory;
     use crate::trajectory::{TrajectoryMetadata, TrajectoryStep};

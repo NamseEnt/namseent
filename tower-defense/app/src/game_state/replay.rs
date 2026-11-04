@@ -196,7 +196,7 @@ mod tests {
 
     fn new_replay_state(seed: u64) -> crate::game_state::GameState {
         crate::game_state::create_game_state_with_config(
-            std::sync::Arc::new(GameConfig::default_config()),
+            std::sync::Arc::new(crate::config::default_config()),
             seed,
         )
     }
@@ -234,7 +234,7 @@ mod tests {
 
     #[test]
     fn legacy_replay_json_migrates_to_core_replay() {
-        let config = GameConfig::default_config();
+        let config = crate::config::default_config();
         let source = replay_state_with_tower_selection(42);
         let core_replay = source.export_core_replay();
         let legacy = LegacyReplay {
@@ -265,7 +265,7 @@ mod tests {
 
     #[test]
     fn core_replay_config_digest_mutation_is_rejected() {
-        let config = GameConfig::default_config();
+        let config = crate::config::default_config();
         let replay = crate::game_state::create_game_state_with_seed(42).export_core_replay();
         let mut value = serde_json::to_value(replay).unwrap();
         value["config_digest"] = serde_json::json!("invalid");
@@ -280,7 +280,7 @@ mod tests {
 
     #[test]
     fn malformed_core_replay_command_log_is_rejected() {
-        let config = GameConfig::default_config();
+        let config = crate::config::default_config();
         let mut replay = crate::game_state::create_game_state_with_seed(42).export_core_replay();
         replay.commands.push(RecordedPlayerCommand {
             sequence: 3,
@@ -334,7 +334,7 @@ mod tests {
     #[test]
     fn replay_runner_reproduces_checkpoints_and_reports_mutated_checkpoint() {
         let source = replay_state_with_tower_selection(42);
-        let config = GameConfig::default_config();
+        let config = crate::config::default_config();
         let replay_json = serde_json::to_string_pretty(&source.export_core_replay()).unwrap();
         let replay = decode_replay_json(&replay_json, &config).unwrap();
         let config = std::sync::Arc::new(config);
@@ -361,7 +361,7 @@ mod tests {
     #[test]
     fn replay_runner_reports_mutated_event_checkpoint() {
         let source = replay_state_with_tower_selection(42);
-        let config = GameConfig::default_config();
+        let config = crate::config::default_config();
         let replay_json = serde_json::to_string(&source.export_core_replay()).unwrap();
         let mut replay = decode_replay_json(&replay_json, &config).unwrap();
         replay.checkpoints[0].event_digest = "different".to_string();
@@ -387,7 +387,7 @@ mod tests {
 
     #[test]
     fn command_only_replay_runs_without_checkpoint_divergence() {
-        let config = GameConfig::default_config();
+        let config = crate::config::default_config();
         let source = replay_state_with_tower_selection(42);
         let mut replay = source.export_core_replay();
         replay.checkpoints.clear();

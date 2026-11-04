@@ -596,6 +596,7 @@ pub fn scenario_schedule_digest(scenario_seed_start: u64, scenario_count: usize)
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config::GameConfigTestExt;
 
     fn config() -> Arc<GameConfig> {
         Arc::new(GameConfig::default_config())

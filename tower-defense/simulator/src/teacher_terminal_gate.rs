@@ -308,6 +308,7 @@ pub fn extend_truncated_seed(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config::GameConfigTestExt;
     use crate::teacher_eval::run_canonical_scripted_semantic_episode;
 
     #[test]

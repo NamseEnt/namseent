@@ -1760,6 +1760,7 @@ fn runner_environment_error(seed: u64, error: EnvironmentError) -> anyhow::Error
 mod tests {
     use super::*;
     use crate::config::GameConfig;
+    use crate::config::GameConfigTestExt;
 
     fn first_legal_action(
         _observation: &Observation,

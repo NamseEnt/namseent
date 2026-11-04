@@ -160,6 +160,7 @@ fn splash_feature_row(
 mod tests {
     use super::*;
     use crate::config::GameConfig;
+    use crate::config::GameConfigTestExt;
     use crate::environment::GameEnvironment;
     use std::sync::Arc;
 

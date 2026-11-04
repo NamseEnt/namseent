@@ -795,6 +795,7 @@ pub fn scenario_seed_digest(seeds: &[u64]) -> String {
 mod tests {
     use super::*;
     use crate::config::GameConfig;
+    use crate::config::GameConfigTestExt;
     use std::sync::Arc;
 
     fn environment() -> GameEnvironment {

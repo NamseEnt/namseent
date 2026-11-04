@@ -389,6 +389,7 @@ impl From<serde_json::Error> for TrajectoryError {
 mod tests {
     use super::*;
     use crate::config::GameConfig;
+    use crate::config::GameConfigTestExt;
     use crate::environment::GameEnvironment;
     use std::io::Cursor;
     use std::sync::Arc;
